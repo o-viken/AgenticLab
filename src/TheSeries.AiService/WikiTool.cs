@@ -12,6 +12,10 @@ namespace TheSeries.AiService;
 public sealed class WikiTool(HttpClient http)
 {
 
+    /// <summary>Searches Wikipedia and returns matching page titles with short descriptions.</summary>
+    /// <param name="query">The words to search for.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    /// <returns>A newline-separated list of matching page titles, or a message when nothing matches.</returns>
     [Description("Search Wikipedia for articles matching a query. Returns a list of matching page titles with short descriptions.")]
     public async Task<string> SearchWiki(
         [Description("The words to search for, e.g. 'Alan Turing'.")] string query,
@@ -35,6 +39,10 @@ public sealed class WikiTool(HttpClient http)
         return sb.Length == 0 ? "No matching Wikipedia pages found." : sb.ToString();
     }
 
+    /// <summary>Looks up a single Wikipedia page by its exact title and returns a short summary extract.</summary>
+    /// <param name="title">The exact page title to look up.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    /// <returns>The page summary extract, or a message when the page is missing or has no summary.</returns>
     [Description("Look up a single Wikipedia page by its exact title and return a short summary extract.")]
     public async Task<string> GetWikiPage(
         [Description("The exact page title, e.g. 'Alan Turing'.")] string title,

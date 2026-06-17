@@ -16,6 +16,13 @@ public static class AgentService
         "relevant pages and the GetWikiPage tool to read a page summary before answering. " +
         "Always base factual answers on what the tools return and mention the page title you used.";
 
+    /// <summary>
+    /// Creates the stateless WikiAssistant agent backed by Azure OpenAI and equipped with the Wikipedia tool.
+    /// </summary>
+    /// <param name="configuration">Configuration providing the <c>AzureOpenAI:Endpoint</c>, <c>AzureOpenAI:Deployment</c> and <c>AzureOpenAI:ApiKey</c> values.</param>
+    /// <param name="wikiTool">The Wikipedia tool whose methods are exposed to the agent.</param>
+    /// <returns>A configured <see cref="AIAgent"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a required Azure OpenAI configuration value is missing.</exception>
     public static AIAgent CreateWikiAgent(IConfiguration configuration, WikiTool wikiTool)
     {
         var endpoint = Required(configuration, "AzureOpenAI:Endpoint");
