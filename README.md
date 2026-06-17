@@ -1,26 +1,36 @@
 # TheSeries
 
-A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample built on **.NET 10**: an AI **WikiAssistant** agent backed by Azure OpenAI that answers questions using Wikipedia as a tool.
+A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample built on **.NET 10**: a set of AI agents backed by Azure OpenAI, each with its own persona and toolset, that answer questions using Wikipedia and a calculator as tools.
 
 ## How it works
 
 ```mermaid
 flowchart LR
     Console["TheSeries.Console<br/>(interactive client)"]
-    AiService["TheSeries.AiService<br/>POST /chat"]
-    Agent["ChatClientAgent<br/>(WikiAssistant)"]
+    AiService["TheSeries.AiService<br/>POST /chat, GET /agents"]
+    Catalog["AgentCatalog<br/>(WikiAssistant, MathTutor, TriviaMaster)"]
     OpenAI["Azure OpenAI"]
     Wiki["Wikipedia REST API"]
 
-    Console -->|"POST /chat"| AiService
-    AiService --> Agent
-    Agent --> OpenAI
-    Agent -->|"SearchWiki / GetWikiPage"| Wiki
+    Console -->|"POST /chat (agent)"| AiService
+    AiService --> Catalog
+    Catalog --> OpenAI
+    Catalog -->|"SearchWiki / GetWikiPage"| Wiki
+    Catalog -->|"Calculate"| OpenAI
 ```
 
-The Console sends a question to the AI service's `POST /chat` endpoint. The service hosts a stateless
-`ChatClientAgent` (Azure OpenAI) that calls the `WikiTool` functions — `SearchWiki` and `GetWikiPage` —
-to look things up on Wikipedia before answering.
+The Console sends a question (and the chosen agent) to the AI service's `POST /chat` endpoint. The service
+hosts an `AgentCatalog` of stateless `ChatClientAgent`s (Azure OpenAI), each composed from an
+`IAgentDefinition` that declares its instructions and tool subset. `GET /agents` lists the available
+agents.
+
+### Agents
+
+| Agent | Persona | Tools |
+|-------|---------|-------|
+| **WikiAssistant** (default) | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
+| **MathTutor** | Patient tutor that solves and explains arithmetic. | `Calculate` |
+| **TriviaMaster** | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 
 ## Projects
 
@@ -73,7 +83,9 @@ of the app. To run it:
 1. Start the app with `dotnet run --project src/TheSeries.AppHost` and open the Aspire dashboard.
 2. Find the `console` resource and start it (▶). It needs an attached terminal for stdin, so use the
    dashboard's terminal/console view to interact with it.
-3. Type a question at the `>` prompt and press Enter. Press Enter on an empty line to quit.
+3. The console lists the available agents and starts on the default. Type a question at the
+   `<agent>>` prompt and press Enter. Use `/agents` to list them again and `/agent <name>` to switch
+   (e.g. `/agent MathTutor`). Press Enter on an empty line to quit.
 
 To run the Console **standalone** (against an already-running AI service), pass the service URL:
 
@@ -86,21 +98,36 @@ URL is needed.
 
 ## API
 
+### `GET /agents`
+
+Lists the available agents and the default name:
+
+```json
+{
+  "agents": [
+    { "name": "WikiAssistant", "description": "Concise research helper that answers factual questions using Wikipedia." },
+    { "name": "MathTutor", "description": "Patient tutor that solves and explains arithmetic step by step." },
+    { "name": "TriviaMaster", "description": "Playful trivia host that researches facts and crunches numbers." }
+  ],
+  "default": "WikiAssistant"
+}
+```
+
 ### `POST /chat`
 
-Request:
+Request (`agent` is optional; defaults to `WikiAssistant`):
 
 ```json
-{ "message": "Who was Alan Turing?" }
+{ "message": "Who was Alan Turing?", "agent": "WikiAssistant" }
 ```
 
-Response:
+Response (echoes which agent answered):
 
 ```json
-{ "reply": "Alan Turing was a British mathematician and computer scientist..." }
+{ "reply": "Alan Turing was a British mathematician and computer scientist...", "agent": "WikiAssistant" }
 ```
 
-Returns `400 Bad Request` when `message` is empty.
+Returns `400 Bad Request` when `message` is empty or `agent` is an unknown name.
 
 ## Conventions
 
@@ -108,7 +135,9 @@ Returns `400 Bad Request` when `message` is empty.
 - Top-level statements in `Program.cs` and minimal APIs (no controllers).
 - DTOs are `internal sealed record` types declared at the bottom of the file that uses them.
 - Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter)
-  and exposed via `AIFunctionFactory.Create(...)` in `WikiTool.AsTools()`.
+  and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()`.
+- Each agent is an `IAgentDefinition` under `src/TheSeries.AiService/Agents/`; add a new one by
+  implementing the interface and registering it in `Program.cs`.
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service
   discovery, not hardcoded URLs.
 

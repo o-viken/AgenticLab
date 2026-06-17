@@ -1,0 +1,66 @@
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+
+namespace TheSeries.AiService.Agents;
+
+/// <summary>
+/// A user-facing summary of a selectable agent.
+/// </summary>
+/// <param name="Name">The unique name used to select the agent.</param>
+/// <param name="Description">A short description of what the agent is good at.</param>
+public sealed record AgentInfo(string Name, string Description);
+
+/// <summary>
+/// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
+/// the same Azure OpenAI chat client. Agents are stateless and built once at construction.
+/// </summary>
+public sealed class AgentCatalog
+{
+    private readonly Dictionary<string, AIAgent> _agents;
+
+    /// <summary>
+    /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
+    /// The first definition is treated as the default.
+    /// </summary>
+    /// <param name="chatClient">The shared Azure OpenAI chat client every agent runs on.</param>
+    /// <param name="definitions">The agent definitions to expose.</param>
+    /// <exception cref="ArgumentException">Thrown when no definitions are supplied.</exception>
+    public AgentCatalog(IChatClient chatClient, IEnumerable<IAgentDefinition> definitions)
+    {
+        var list = definitions.ToList();
+        if (list.Count == 0)
+        {
+            throw new ArgumentException("At least one agent definition is required.", nameof(definitions));
+        }
+
+        _agents = new Dictionary<string, AIAgent>(StringComparer.OrdinalIgnoreCase);
+        foreach (var definition in list)
+        {
+            _agents[definition.Name] = new ChatClientAgent(
+                chatClient,
+                instructions: definition.Instructions,
+                name: definition.Name,
+                tools: definition.Tools);
+        }
+
+        DefaultName = list[0].Name;
+        Agents = list.Select(d => new AgentInfo(d.Name, d.Description)).ToList();
+    }
+
+    /// <summary>The name of the agent used when a request does not specify one.</summary>
+    public string DefaultName { get; }
+
+    /// <summary>The available agents, in registration order.</summary>
+    public IReadOnlyList<AgentInfo> Agents { get; }
+
+    /// <summary>Resolves the agent by name (case-insensitive), or the default when <paramref name="name"/> is null/blank.</summary>
+    /// <param name="name">The requested agent name, or null/blank for the default.</param>
+    /// <param name="agent">The resolved agent when found.</param>
+    /// <param name="resolvedName">The name of the resolved agent when found.</param>
+    /// <returns><c>true</c> when an agent was resolved; otherwise <c>false</c>.</returns>
+    public bool TryResolve(string? name, out AIAgent agent, out string resolvedName)
+    {
+        resolvedName = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
+        return _agents.TryGetValue(resolvedName, out agent!);
+    }
+}

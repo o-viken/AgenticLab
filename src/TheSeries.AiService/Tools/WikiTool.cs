@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
-namespace TheSeries.AiService;
+namespace TheSeries.AiService.Tools;
 
 /// <summary>
 /// A single capability exposed to the agent: searching Wikipedia and looking up a page.
