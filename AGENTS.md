@@ -2,6 +2,8 @@
 
 A .NET 10 [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample: an AI "WikiAssistant" agent backed by Azure OpenAI that answers questions using Wikipedia as a tool.
 
+See [README.md](README.md) for a user-facing overview, prerequisites, and the `POST /chat` API.
+
 ## Architecture
 
 Four projects, orchestrated by Aspire (solution: [TheSeries.slnx](TheSeries.slnx)):
