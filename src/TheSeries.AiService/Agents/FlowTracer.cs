@@ -15,7 +15,13 @@ namespace TheSeries.AiService.Agents;
 /// </param>
 /// <param name="Label">A short, human-readable description of the step.</param>
 /// <param name="Detail">Optional extra context, e.g. tool arguments or the reply text.</param>
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null);
+/// <param name="Turn">The 1-based LLM round-trip this step belongs to; 0 before the first round-trip.</param>
+/// <param name="Data">
+/// Optional full, untruncated payload revealed on demand in the UI: the data sent to the LLM for an
+/// <c>llm-request</c>, the model's response for an <c>llm-response</c>/<c>final</c>, or the raw tool
+/// arguments/result for a <c>tool-call</c>/<c>tool-result</c>.
+/// </param>
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null);
 
 /// <summary>
 /// Runs an agent and projects its real execution (the LLM round-trips and tool invocations) into an
@@ -43,7 +49,9 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var sequence = 0;
-        FlowEvent Step(string kind, string label, string? detail = null) => new(++sequence, kind, label, detail);
+        var currentTurn = 0;
+        FlowEvent Step(string kind, string label, string? detail = null, string? data = null) =>
+            new(++sequence, kind, label, detail, currentTurn, data);
 
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -67,28 +75,60 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             await session.WaitForStepAsync(token);
             yield return Step("received", "Harness received the message", $"Agent: {resolvedName}");
 
-            await session.WaitForStepAsync(token);
-            yield return Step("llm-request", "Harness → LLM", "Sending the prompt and tool definitions to the model.");
-
+            // Capture the real LLM round-trips (request payloads and responses) for this run only.
+            using var capture = FlowCaptureScope.Begin();
             var finalText = new StringBuilder();
+            var callNames = new Dictionary<string, string>();
+            var emittedTurns = 0;
 
-            await foreach (var update in agent.RunStreamingAsync(message, cancellationToken: token))
+            // Enumerate manually so we can re-assert the capture scope right before each agent advance.
+            // The scope lives in an AsyncLocal that is reset whenever this iterator resumes after a yield,
+            // so without re-activating immediately before MoveNextAsync only the first LLM round-trip is
+            // recorded and the later turns (the calls made after each tool result) are silently lost.
+            await using var updates = agent.RunStreamingAsync(message, cancellationToken: token)
+                .GetAsyncEnumerator(token);
+
+            while (true)
             {
+                capture.Activate();
+                if (!await updates.MoveNextAsync())
+                {
+                    break;
+                }
+
+                var update = updates.Current;
+
+                // Surface an llm-request for every round-trip captured since the last update. The first
+                // turn carries the prompt + tools; later turns carry the tool results fed back to the model.
+                var turns = capture.Turns;
+                while (emittedTurns < turns.Count)
+                {
+                    var turn = turns[emittedTurns++];
+                    currentTurn = turn.TurnNumber;
+                    await session.WaitForStepAsync(token);
+                    yield return Step("llm-request", DescribeTurn(turn.TurnNumber), turn.RequestSummary, turn.RequestData);
+                }
+
                 foreach (var content in update.Contents)
                 {
                     switch (content)
                     {
                         case FunctionCallContent call:
+                            callNames[call.CallId] = call.Name;
                             await session.WaitForStepAsync(token);
-                            yield return Step("tool-call", $"LLM → Tool: {call.Name}", DescribeArguments(call.Arguments));
+                            yield return Step(
+                                "tool-call",
+                                $"LLM → Tool: {DescribeCall(call.Name, call.Arguments)}",
+                                DescribeArguments(call.Arguments) ?? "(no arguments)",
+                                FullCall(call.Name, call.Arguments));
                             break;
 
                         case FunctionResultContent result:
+                            var resultText = result.Result?.ToString();
+                            var toolName = callNames.GetValueOrDefault(result.CallId);
+                            var resultLabel = toolName is null ? "Tool → Harness" : $"Tool → Harness: {toolName}";
                             await session.WaitForStepAsync(token);
-                            yield return Step("tool-result", "Tool → Harness", Truncate(result.Result?.ToString()));
-
-                            await session.WaitForStepAsync(token);
-                            yield return Step("llm-request", "Harness → LLM", "Sending the tool result back to the model.");
+                            yield return Step("tool-result", resultLabel, Truncate(resultText), resultText);
                             break;
 
                         case TextContent text when !string.IsNullOrEmpty(text.Text):
@@ -98,16 +138,50 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
                 }
             }
 
+            // Emit any round-trip captured right at the end of the stream (defensive; normally none remain).
+            var finalTurns = capture.Turns;
+            while (emittedTurns < finalTurns.Count)
+            {
+                var turn = finalTurns[emittedTurns++];
+                currentTurn = turn.TurnNumber;
+                await session.WaitForStepAsync(token);
+                yield return Step("llm-request", DescribeTurn(turn.TurnNumber), turn.RequestSummary, turn.RequestData);
+            }
+
+            var lastResponse = finalTurns.Count > 0 ? finalTurns[^1].ResponseData : null;
+            var answer = finalText.ToString();
+            var responseDetail = string.IsNullOrWhiteSpace(answer)
+                ? "The model returned its final answer."
+                : $"Answer: {Truncate(answer)}";
             await session.WaitForStepAsync(token);
-            yield return Step("llm-response", "LLM → Harness", "The model returned its final answer.");
+            yield return Step("llm-response", "LLM → Harness", responseDetail, lastResponse);
 
             await session.WaitForStepAsync(token);
-            yield return Step("final", "Harness → Client", finalText.ToString());
+            yield return Step("final", "Harness → Client", answer, answer);
         }
         finally
         {
             registry.Remove(session.Id);
         }
+    }
+
+    private static string DescribeTurn(int turnNumber) =>
+        turnNumber <= 1 ? "Harness → LLM" : $"Harness → LLM (turn {turnNumber})";
+
+    // A compact call signature for a step label, e.g. Calculate(expression: "2 + 2").
+    private static string DescribeCall(string name, IDictionary<string, object?>? arguments) =>
+        $"{name}({DescribeArguments(arguments)})";
+
+    // The full, untruncated call rendered as name + one argument per line for the expandable data panel.
+    private static string FullCall(string name, IDictionary<string, object?>? arguments)
+    {
+        if (arguments is null || arguments.Count == 0)
+        {
+            return $"{name}()";
+        }
+
+        var lines = arguments.Select(kvp => $"  {kvp.Key}: {kvp.Value}");
+        return $"{name}(" + Environment.NewLine + string.Join(Environment.NewLine, lines) + Environment.NewLine + ")";
     }
 
     private static string? DescribeArguments(IDictionary<string, object?>? arguments)

@@ -8,7 +8,8 @@ namespace TheSeries.AiService.Agents;
 /// </summary>
 /// <param name="Name">The unique name used to select the agent.</param>
 /// <param name="Description">A short description of what the agent is good at.</param>
-public sealed record AgentInfo(string Name, string Description);
+/// <param name="Tools">The names of the tools this agent may call.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -44,7 +45,10 @@ public sealed class AgentCatalog
         }
 
         DefaultName = list[0].Name;
-        Agents = list.Select(d => new AgentInfo(d.Name, d.Description)).ToList();
+        Agents = list.Select(d => new AgentInfo(
+            d.Name,
+            d.Description,
+            d.Tools.OfType<AIFunction>().Select(f => f.Name).ToList())).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

@@ -153,9 +153,12 @@ Same request shape as `/chat` plus a `sessionId` (correlates control calls), a `
 optional `stepDelayMs` (server-side delay between steps in Auto mode). Returns a
 `text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
 `kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`),
-`label`, and optional `detail`. The stream is gated on the backend: each real step waits for the
-session to be allowed to advance, so it stays in sync with the agent's execution and telemetry. The
-Blazor web UI consumes this to animate the data flow.
+`label`, an optional `detail`, the `turn` (1-based LLM round-trip it belongs to), and an optional
+`data` payload with the full, untruncated request/response for that step. The stream is gated on the
+backend: each real step waits for the session to be allowed to advance, so it stays in sync with the
+agent's execution and telemetry. The Blazor web UI consumes this to animate the data flow — with
+separate send/receive arrows, a loop/turn counter, and expandable steps that reveal the real data
+sent to and returned by the model.
 
 ### `POST /chat/control`
 

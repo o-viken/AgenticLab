@@ -79,8 +79,13 @@
             </div>
         </div>
 
-        <div class="connector horizontal @ArrowClass("client-harness")">
-            <span class="flow-label">Input</span>
+        <div class="connector-group">
+            <div class="connector horizontal send @ArrowClass("client-harness-send")">
+                <span class="flow-label">Input ▶</span>
+            </div>
+            <div class="connector horizontal recv @ArrowClass("client-harness-recv")">
+                <span class="flow-label">◀ Reply</span>
+            </div>
         </div>
 
         <div class="column center">
@@ -90,14 +95,34 @@
                 <span class="subtitle">AiService · Agent</span>
                 <div class="tools node-inner @NodeClass("tools")">
                     <span class="title">Tools</span>
-                    <span class="subtitle">Wiki · Calculator</span>
+                    <span class="subtitle">@SelectedAgentTools</span>
                 </div>
             </div>
+
+            @if (ActiveResourceInfo is { } resource)
+            {
+                <div class="connector vertical active"></div>
+                <div class="resources">
+                    <div class="node resource active">
+                        <span class="icon">@resource.Icon</span>
+                        <span class="title">@resource.Title</span>
+                        <span class="subtitle">@resource.Transport</span>
+                    </div>
+                </div>
+            }
         </div>
 
-        <div class="connector horizontal loop @ArrowClass("harness-llm")">
-            <span class="flow-label">Input + Prompt + Tools</span>
-            <span class="flow-label back">Response</span>
+        <div class="connector-group loop">
+            <div class="loop-badge @(_running && CurrentTurn > 0 ? "active" : "")">
+                <span class="loop-icon">🔁</span>
+                <span class="loop-count">@LoopLabel</span>
+            </div>
+            <div class="connector horizontal send @ArrowClass("harness-llm-send")">
+                <span class="flow-label">Prompt + Tools ▶</span>
+            </div>
+            <div class="connector horizontal recv @ArrowClass("harness-llm-recv")">
+                <span class="flow-label">◀ Response</span>
+            </div>
         </div>
 
         <div class="column right">
@@ -111,7 +136,13 @@
 
     <section class="output">
         <div class="log">
-            <h2>Steps <span class="progress">@StepProgress</span></h2>
+            <h2>
+                Steps <span class="progress">@StepProgress</span>
+                @if (TotalTurns > 0)
+                {
+                    <span class="turns">· 🔁 @TotalTurns turn@(TotalTurns == 1 ? "" : "s")</span>
+                }
+            </h2>
             @if (_events.Count == 0)
             {
                 <p class="empty">
@@ -125,12 +156,28 @@
                 <ol>
                     @foreach (var e in _events)
                     {
-                        <li class="step @e.Kind">
-                            <span class="kind">@e.Kind</span>
-                            <span class="label">@e.Label</span>
-                            @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                        var hasData = !string.IsNullOrWhiteSpace(e.Data);
+                        var expanded = _expanded.Contains(e.Sequence);
+                        <li class="step @e.Kind @(hasData ? "expandable" : "") @(expanded ? "expanded" : "")">
+                            <div class="step-row" @onclick="@(() => ToggleStep(e.Sequence))">
+                                <span class="kind">@e.Kind</span>
+                                @if (e.Turn > 0)
+                                {
+                                    <span class="turn-badge">T@e.Turn</span>
+                                }
+                                <span class="label">@e.Label</span>
+                                @if (hasData)
+                                {
+                                    <span class="expand-icon">@(expanded ? "▾" : "▸")</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                                {
+                                    <span class="detail">@e.Detail</span>
+                                }
+                            </div>
+                            @if (hasData && expanded)
                             {
-                                <span class="detail">@e.Detail</span>
+                                <pre class="step-data">@e.Data</pre>
                             }
                         </li>
                     }
@@ -161,6 +208,7 @@
 
     private readonly List<AgentInfo> _agents = new();
     private readonly List<FlowEvent> _events = new();
+    private readonly HashSet<int> _expanded = new();
 
     private string _message = string.Empty;
     private string? _selectedAgent;
@@ -169,6 +217,7 @@
 
     private string? _activeNode;
     private string? _activeArrow;
+    private string? _activeTool;
     private string _reply = string.Empty;
     private string? _error;
 
@@ -181,6 +230,43 @@
 
     private string StepProgress =>
         _events.Count == 0 ? string.Empty : $"{_events.Count} step{(_events.Count == 1 ? "" : "s")}";
+
+    // The LLM round-trip of the most recent step (0 before the first request).
+    private int CurrentTurn => _events.Count == 0 ? 0 : _events[^1].Turn;
+
+    // The total number of LLM round-trips seen so far.
+    private int TotalTurns => _events.Select(e => e.Turn).DefaultIfEmpty(0).Max();
+
+    // A compact label for the loop badge: the live turn while running, or the total when finished.
+    private string LoopLabel =>
+        _running
+            ? (CurrentTurn == 0 ? "Turn …" : $"Turn {CurrentTurn}")
+            : (TotalTurns == 0 ? "—" : $"{TotalTurns} turn{(TotalTurns == 1 ? "" : "s")}");
+
+    // The tools available to the currently selected agent, shown in the harness Tools box.
+    private string SelectedAgentTools
+    {
+        get
+        {
+            var tools = _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.Tools;
+            return tools is { Count: > 0 } ? string.Join(" · ", tools) : "—";
+        }
+    }
+
+    // Describes an external resource a tool reaches out to, shown as a node below the harness.
+    private sealed record ResourceInfo(string Key, string Icon, string Title, string Transport, string[] ToolNames);
+
+    // The external resources the tools can reach. Each maps one or more tool names to a transport.
+    private static readonly ResourceInfo[] KnownResources =
+    {
+        new("wikipedia", "🌐", "Wikipedia", "HTTPS · en.wikipedia.org", new[] { "SearchWiki", "GetWikiPage" }),
+        new("compute", "🧮", "Local compute", "In-process · CPU", new[] { "Calculate" }),
+    };
+
+    // The resource currently being used, based on the active tool, or null when none is active.
+    // Resources are only shown while their tool runs — never before or after.
+    private ResourceInfo? ActiveResourceInfo =>
+        _activeTool is null ? null : KnownResources.FirstOrDefault(r => r.ToolNames.Contains(_activeTool));
 
     protected override async Task OnInitializedAsync()
     {
@@ -221,7 +307,9 @@
         _reply = string.Empty;
         _activeNode = null;
         _activeArrow = null;
+        _activeTool = null;
         _events.Clear();
+        _expanded.Clear();
         _sessionId = Guid.NewGuid().ToString("n");
         _cts = new CancellationTokenSource();
 
@@ -238,6 +326,7 @@
             {
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);
+                _activeTool = ToolNameFor(flowEvent);
                 _awaitingStep = false;
 
                 if (flowEvent.Kind == "final")
@@ -328,23 +417,67 @@
         _awaitingStep = false;
         _activeNode = null;
         _activeArrow = null;
+        _activeTool = null;
     }
 
     private static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
     {
-        "received" => ("harness", "client-harness"),
-        "llm-request" => ("llm", "harness-llm"),
-        "tool-call" => ("tools", "harness-llm"),
-        "tool-result" => ("harness", "harness-llm"),
-        "llm-response" => ("llm", "harness-llm"),
-        "final" => ("client", "client-harness"),
+        "received" => ("harness", "client-harness-send"),
+        "llm-request" => ("llm", "harness-llm-send"),
+        "tool-call" => ("tools", "harness-llm-recv"),
+        "tool-result" => ("harness", "harness-llm-recv"),
+        "llm-response" => ("harness", "harness-llm-recv"),
+        "final" => ("client", "client-harness-recv"),
         "error" => ("harness", null),
         _ => (null, null),
     };
 
-    private string NodeClass(string node) => _activeNode == node ? "active" : string.Empty;
+    // Extracts the tool name from a tool-result event so the matching resource lights up only once the
+    // external resource has actually been contacted (never on tool-call, which is just the LLM's request).
+    // Returns null for other steps. The tool-result label is "Tool → Harness: Name".
+    private static string? ToolNameFor(FlowEvent flowEvent)
+    {
+        var label = flowEvent.Label;
+        var marker = flowEvent.Kind switch
+        {
+            "tool-result" => "Harness: ",
+            _ => null,
+        };
+
+        if (marker is null)
+        {
+            return null;
+        }
+
+        var start = label.IndexOf(marker, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return null;
+        }
+
+        var name = label[(start + marker.Length)..];
+        var paren = name.IndexOf('(');
+        return (paren >= 0 ? name[..paren] : name).Trim();
+    }
+
+    // Highlights a node when it is the active target. The Tools box lives inside the Harness, so a
+    // tool-call (active node "tools") also lights up the Harness — it is the component invoking the tool.
+    private string NodeClass(string node)
+    {
+        var active = _activeNode == node || (node == "harness" && _activeNode == "tools");
+        return active ? "active" : string.Empty;
+    }
 
     private string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
+
+    // Toggles whether a step's full request/response data panel is shown.
+    private void ToggleStep(int sequence)
+    {
+        if (!_expanded.Remove(sequence))
+        {
+            _expanded.Add(sequence);
+        }
+    }
 
     public void Dispose()
     {

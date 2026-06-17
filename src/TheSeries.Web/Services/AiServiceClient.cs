@@ -82,8 +82,8 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, bool Manual, int StepDelayMs);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
-internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail);
+internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

@@ -1,6 +1,7 @@
 using System.ClientModel;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
+using TheSeries.AiService.Agents;
 
 namespace TheSeries.AiService;
 
@@ -27,6 +28,7 @@ public static class AgentService
             .AsIChatClient()
             .AsBuilder()
             .UseFunctionInvocation()
+            .Use(inner => new CapturingChatClient(inner))
             .UseOpenTelemetry()
             .Build();
     }
