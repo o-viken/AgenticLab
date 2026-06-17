@@ -13,7 +13,12 @@ builder.Services.AddRazorComponents()
 // Talks to the AI service. Under Aspire orchestration the name resolves via service discovery;
 // when run standalone, override with AiService:Url (e.g. https://localhost:7123).
 var serviceUrl = builder.Configuration["AiService:Url"] ?? "https+http://aiservice";
-builder.Services.AddHttpClient<AiServiceClient>(client => client.BaseAddress = new Uri(serviceUrl));
+#pragma warning disable EXTEXP0001 // RemoveAllResilienceHandlers is marked experimental but is the supported way to opt out.
+builder.Services.AddHttpClient<AiServiceClient>(client => client.BaseAddress = new Uri(serviceUrl))
+    // The flow stream is a long-lived, pausable SSE response; the default resilience timeouts and
+    // retries would cancel a paused run and must not apply here.
+    .RemoveAllResilienceHandlers();
+#pragma warning restore EXTEXP0001
 
 var app = builder.Build();
 

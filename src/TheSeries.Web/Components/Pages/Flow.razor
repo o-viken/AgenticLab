@@ -9,7 +9,7 @@
 <div class="flow-app">
     <header class="flow-header">
         <h1>Chatbot Application Flow</h1>
-        <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back.</p>
+        <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back. Stepping pauses the <em>real</em> backend execution, so it stays in sync with the telemetry.</p>
     </header>
 
     <section class="controls">
@@ -31,24 +31,36 @@
         </div>
 
         <div class="control">
-            <label for="backend">Backend delay <span>@_backendDelayMs ms</span></label>
-            <input id="backend" type="range" min="0" max="2000" step="50"
-                   @bind="_backendDelayMs" @bind:event="oninput" disabled="@_running" />
+            <label for="delay">Auto step delay <span>@_stepDelayMs ms</span></label>
+            <input id="delay" type="range" min="0" max="3000" step="50"
+                   @bind="_stepDelayMs" @bind:event="oninput" @bind:after="OnDelayChangedAsync"
+                   disabled="@(_mode == FlowMode.Manual)" />
         </div>
 
         <div class="control">
-            <label for="frontend">Animation delay <span>@_frontendDelayMs ms</span></label>
-            <input id="frontend" type="range" min="0" max="2000" step="50"
-                   @bind="_frontendDelayMs" @bind:event="oninput" disabled="@_running" />
+            <label>Stepping</label>
+            <div class="mode-toggle">
+                <button type="button" class="@(_mode == FlowMode.Auto ? "selected" : "")"
+                        disabled="@_running" @onclick="@(() => _mode = FlowMode.Auto)">Auto</button>
+                <button type="button" class="@(_mode == FlowMode.Manual ? "selected" : "")"
+                        disabled="@_running" @onclick="@(() => _mode = FlowMode.Manual)">Manual</button>
+            </div>
         </div>
 
         <div class="control actions">
-            <button class="send" @onclick="SendAsync" disabled="@(_running || string.IsNullOrWhiteSpace(_message))">
-                @(_running ? "Running…" : "Send")
-            </button>
-            @if (_running)
+            @if (!_running)
             {
-                <button class="stop" @onclick="Stop">Stop</button>
+                <button class="send" @onclick="SendAsync" disabled="@string.IsNullOrWhiteSpace(_message)">Send</button>
+            }
+            else if (_mode == FlowMode.Manual)
+            {
+                <button class="send" @onclick="NextAsync" disabled="@_awaitingStep">@(_awaitingStep ? "Waiting…" : "Next ▶")</button>
+                <button class="stop" @onclick="StopAsync">Stop</button>
+            }
+            else
+            {
+                <button class="send" @onclick="TogglePauseAsync">@(_paused ? "Resume ▶" : "Pause ⏸")</button>
+                <button class="stop" @onclick="StopAsync">Stop</button>
             }
         </div>
     </section>
@@ -99,10 +111,14 @@
 
     <section class="output">
         <div class="log">
-            <h2>Steps</h2>
+            <h2>Steps <span class="progress">@StepProgress</span></h2>
             @if (_events.Count == 0)
             {
-                <p class="empty">No steps yet. Send a message to begin.</p>
+                <p class="empty">
+                    @(_running && _mode == FlowMode.Manual
+                        ? "Click \u201cNext\u201d to run and reveal each step."
+                        : "No steps yet. Send a message to begin.")
+                </p>
             }
             else
             {
@@ -141,20 +157,30 @@
 </div>
 
 @code {
+    private enum FlowMode { Auto, Manual }
+
     private readonly List<AgentInfo> _agents = new();
     private readonly List<FlowEvent> _events = new();
 
     private string _message = string.Empty;
     private string? _selectedAgent;
-    private int _backendDelayMs = 400;
-    private int _frontendDelayMs = 600;
+    private int _stepDelayMs = 600;
+    private FlowMode _mode = FlowMode.Auto;
 
     private string? _activeNode;
     private string? _activeArrow;
     private string _reply = string.Empty;
     private string? _error;
+
     private bool _running;
+    private bool _paused;
+    private bool _awaitingStep;
+
+    private string _sessionId = string.Empty;
     private CancellationTokenSource? _cts;
+
+    private string StepProgress =>
+        _events.Count == 0 ? string.Empty : $"{_events.Count} step{(_events.Count == 1 ? "" : "s")}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,27 +207,38 @@
         }
     }
 
-    private async Task SendAsync()
+    private Task SendAsync()
     {
         if (_running || string.IsNullOrWhiteSpace(_message))
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _running = true;
+        _paused = false;
+        _awaitingStep = false;
         _error = null;
         _reply = string.Empty;
         _activeNode = null;
         _activeArrow = null;
         _events.Clear();
+        _sessionId = Guid.NewGuid().ToString("n");
         _cts = new CancellationTokenSource();
 
+        // The backend paces the run; we render each step as it arrives and drive pace via control calls.
+        _ = ConsumeAsync(_cts.Token);
+        return Task.CompletedTask;
+    }
+
+    private async Task ConsumeAsync(CancellationToken token)
+    {
         try
         {
-            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _backendDelayMs, _cts.Token))
+            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _mode == FlowMode.Manual, _stepDelayMs, token))
             {
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);
+                _awaitingStep = false;
 
                 if (flowEvent.Kind == "final")
                 {
@@ -212,12 +249,7 @@
                     _error = flowEvent.Detail ?? flowEvent.Label;
                 }
 
-                StateHasChanged();
-
-                if (_frontendDelayMs > 0)
-                {
-                    await Task.Delay(_frontendDelayMs, _cts.Token);
-                }
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
@@ -226,20 +258,77 @@
         }
         catch (Exception ex)
         {
-            _error = $"Error talking to the AI service: {ex.Message}";
+            _error ??= $"Error talking to the AI service: {ex.Message}";
         }
         finally
         {
-            _running = false;
-            _activeNode = null;
-            _activeArrow = null;
-            _cts?.Dispose();
-            _cts = null;
-            StateHasChanged();
+            Finish();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
-    private void Stop() => _cts?.Cancel();
+    private async Task NextAsync()
+    {
+        if (!_running || _mode != FlowMode.Manual || _awaitingStep)
+        {
+            return;
+        }
+
+        _awaitingStep = true;
+        StateHasChanged();
+        await SafeControlAsync("next");
+    }
+
+    private async Task TogglePauseAsync()
+    {
+        if (!_running)
+        {
+            return;
+        }
+
+        _paused = !_paused;
+        await SafeControlAsync(_paused ? "pause" : "resume");
+    }
+
+    private async Task OnDelayChangedAsync()
+    {
+        if (_running && _mode == FlowMode.Auto)
+        {
+            await SafeControlAsync(action: null, delayMs: _stepDelayMs);
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        _cts?.Cancel();
+        await SafeControlAsync("stop");
+    }
+
+    private async Task SafeControlAsync(string? action, int? delayMs = null)
+    {
+        if (string.IsNullOrEmpty(_sessionId))
+        {
+            return;
+        }
+
+        try
+        {
+            await Ai.SendControlAsync(_sessionId, action, delayMs: delayMs);
+        }
+        catch
+        {
+            // Best-effort: control is advisory and the run may already have ended.
+        }
+    }
+
+    private void Finish()
+    {
+        _running = false;
+        _paused = false;
+        _awaitingStep = false;
+        _activeNode = null;
+        _activeArrow = null;
+    }
 
     private static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
     {
@@ -257,5 +346,9 @@
 
     private string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
 
-    public void Dispose() => _cts?.Cancel();
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
 }

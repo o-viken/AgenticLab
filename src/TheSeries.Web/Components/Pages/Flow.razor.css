@@ -103,6 +103,38 @@
     color: #e9edf5;
 }
 
+/* Mode toggle --------------------------------------------------------- */
+.mode-toggle {
+    display: inline-flex;
+    border: 1px solid rgba(120, 140, 190, .3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mode-toggle button {
+    padding: .55rem 1rem;
+    border: none;
+    background: #0d1322;
+    color: #9fb4dc;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+.mode-toggle button + button {
+    border-left: 1px solid rgba(120, 140, 190, .3);
+}
+
+.mode-toggle button.selected {
+    background: #1d5a93;
+    color: #fff;
+    font-weight: 600;
+}
+
+.mode-toggle button:disabled {
+    cursor: not-allowed;
+    opacity: .8;
+}
+
 /* Diagram ------------------------------------------------------------- */
 .diagram {
     display: flex;
@@ -304,6 +336,15 @@
     text-transform: uppercase;
     letter-spacing: .8px;
     color: #8da0c8;
+}
+
+.log h2 .progress {
+    margin-left: .5rem;
+    font-size: .78rem;
+    letter-spacing: .4px;
+    color: #ffc987;
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
 }
 
 .log ol {

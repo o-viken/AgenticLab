@@ -19,21 +19,26 @@ internal sealed class AiServiceClient(HttpClient http)
         await http.GetFromJsonAsync<AgentsResponse>("/agents", JsonOptions, cancellationToken);
 
     /// <summary>
-    /// Sends a message and yields each <see cref="FlowEvent"/> as the agent run progresses.
+    /// Sends a message and yields each <see cref="FlowEvent"/> as the agent run progresses. The run is
+    /// paced on the server by the matching <see cref="SendControlAsync"/> calls (keyed by session id).
     /// </summary>
     /// <param name="message">The user's message.</param>
     /// <param name="agent">The agent to use, or null/blank for the default.</param>
-    /// <param name="stepDelayMs">An artificial server-side delay applied after each step, in milliseconds.</param>
+    /// <param name="sessionId">The unique id shared with the control calls.</param>
+    /// <param name="manual">When <c>true</c>, the run starts in manual stepping mode.</param>
+    /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
         string message,
         string? agent,
+        string sessionId,
+        bool manual,
         int stepDelayMs,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, stepDelayMs)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, manual, stepDelayMs)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -52,9 +57,33 @@ internal sealed class AiServiceClient(HttpClient http)
             }
         }
     }
+
+    /// <summary>
+    /// Drives an in-flight flow run on the server: <c>next</c>, <c>pause</c>, <c>resume</c> or
+    /// <c>stop</c>, and optionally switches mode or changes the auto delay.
+    /// </summary>
+    /// <param name="sessionId">The id of the run to control.</param>
+    /// <param name="action">The action: <c>next</c>, <c>pause</c>, <c>resume</c> or <c>stop</c>.</param>
+    /// <param name="manual">Optionally switch the stepping mode.</param>
+    /// <param name="delayMs">Optionally change the auto-mode step delay.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task SendControlAsync(
+        string sessionId,
+        string? action = null,
+        bool? manual = null,
+        int? delayMs = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync(
+            "/chat/control",
+            new FlowControlRequest(sessionId, action, manual, delayMs),
+            JsonOptions,
+            cancellationToken);
+    }
 }
 
 internal sealed record AgentInfo(string Name, string Description);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, int StepDelayMs);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, bool Manual, int StepDelayMs);
+internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
 internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail);

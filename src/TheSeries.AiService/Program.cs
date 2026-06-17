@@ -5,6 +5,10 @@ using TheSeries.AiService.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The /chat/stream SSE response can stay idle for a long time while the client pauses or
+// single-steps the flow, so disable Kestrel's minimum response data rate to avoid aborting it.
+builder.WebHost.ConfigureKestrel(options => options.Limits.MinResponseDataRate = null);
+
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
 
@@ -32,6 +36,7 @@ builder.Services.AddSingleton(sp =>
     new AgentCatalog(sp.GetRequiredService<IChatClient>(), sp.GetServices<IAgentDefinition>()));
 
 // Projects a real agent run into an observable stream of flow events for the visualization UI.
+builder.Services.AddSingleton<FlowControlRegistry>();
 builder.Services.AddSingleton<FlowTracer>();
 
 var app = builder.Build();
@@ -59,14 +64,57 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Cancellat
 });
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
-app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, CancellationToken cancellationToken) =>
-    TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, request.StepDelayMs, cancellationToken),
-        eventType: "flow"));
+// The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
+app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, CancellationToken cancellationToken) =>
+{
+    var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
+    return TypedResults.ServerSentEvents(
+        tracer.StreamAsync(request.Message, request.Agent, session, cancellationToken),
+        eventType: "flow");
+});
+
+// Drives an in-flight /chat/stream run: single-step (next), pause, resume, switch mode, change the
+// delay or stop. Matches the run by its session id.
+app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry registry) =>
+{
+    if (!registry.TryGet(request.SessionId, out var session))
+    {
+        return Results.NotFound();
+    }
+
+    if (request.Manual is { } manual)
+    {
+        session.Manual = manual;
+    }
+
+    if (request.DelayMs is { } delay)
+    {
+        session.DelayMs = delay;
+    }
+
+    switch (request.Action?.ToLowerInvariant())
+    {
+        case "next":
+            session.Advance();
+            break;
+        case "pause":
+            session.Paused = true;
+            break;
+        case "resume":
+            session.Paused = false;
+            break;
+        case "stop":
+            session.Stop();
+            break;
+    }
+
+    return Results.NoContent();
+});
 
 app.Run();
 
 internal sealed record ChatRequest(string Message, string? Agent = null);
 internal sealed record ChatResponse(string Reply, string Agent);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent = null, int StepDelayMs = 0);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, bool Manual = false, int StepDelayMs = 0);
+internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);

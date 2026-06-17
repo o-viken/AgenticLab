@@ -8,7 +8,7 @@ A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample built on **.N
 flowchart LR
     Console["TheSeries.Console<br/>(interactive client)"]
     Web["TheSeries.Web<br/>(Blazor flow visualizer)"]
-    AiService["TheSeries.AiService<br/>POST /chat, /chat/stream, GET /agents"]
+    AiService["TheSeries.AiService<br/>POST /chat, /chat/stream, /chat/control, GET /agents"]
     Catalog["AgentCatalog<br/>(WikiAssistant, MathTutor, TriviaMaster)"]
     OpenAI["Azure OpenAI"]
     Wiki["Wikipedia REST API"]
@@ -42,7 +42,7 @@ The solution ([TheSeries.slnx](TheSeries.slnx)) contains five projects, orchestr
 | Project | Role |
 |---------|------|
 | [src/TheSeries.AppHost](src/TheSeries.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects Azure OpenAI config, sets service references. |
-| [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream` and `GET /agents`. Hosts the agent catalog. |
+| [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream`, `POST /chat/control` and `GET /agents`. Hosts the agent catalog. |
 | [src/TheSeries.Console](src/TheSeries.Console/Program.cs) | Interactive console client that calls the AI service via service discovery. |
 | [src/TheSeries.Web](src/TheSeries.Web/Program.cs) | Blazor Server app that animates the live data flow (User → Client → Harness → Tools → LLM) from the `/chat/stream` events. |
 | [src/TheSeries.ServiceDefaults](src/TheSeries.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. |
@@ -104,13 +104,17 @@ URL is needed.
 
 The `web` resource (Blazor Server) starts automatically with the app and is exposed on an external HTTP
 endpoint. Open it from the Aspire dashboard's `web` resource link. Type a message, pick an agent, then
-watch the data flow light up node-by-node as the agent runs. Two sliders pace the animation:
+watch the data flow light up node-by-node as the agent runs. The stepping is **gated on the backend**, so
+the animation stays in sync with the real agent execution (and its OpenTelemetry spans) rather than being
+a client-side replay. Two modes control the pacing:
 
-- **Backend delay** — an artificial pause the AI service applies after each real step (sent as
-  `stepDelayMs` to `/chat/stream`).
-- **Animation delay** — how long the browser holds each step on screen before advancing.
+- **Auto** — the AI service advances on its own, pausing for an adjustable *step delay* after each real
+  step. The delay can be changed live, and the run can be paused/resumed at any time.
+- **Manual** — the AI service blocks before each step until you click *Next*, so the next LLM round-trip
+  or tool call does not start until you allow it.
 
-The final answer appears once the run completes.
+The UI sends `next`, `pause`, `resume` and `stop` actions to `/chat/control`. The final answer appears
+once the run completes.
 
 ### `GET /agents`
 
@@ -145,10 +149,25 @@ Returns `400 Bad Request` when `message` is empty or `agent` is an unknown name.
 
 ### `POST /chat/stream`
 
-Same request shape as `/chat` plus an optional `stepDelayMs` (server-side delay between steps). Returns a
+Same request shape as `/chat` plus a `sessionId` (correlates control calls), a `manual` flag, and an
+optional `stepDelayMs` (server-side delay between steps in Auto mode). Returns a
 `text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
 `kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`),
-`label`, and optional `detail`. The Blazor web UI consumes this to animate the data flow.
+`label`, and optional `detail`. The stream is gated on the backend: each real step waits for the
+session to be allowed to advance, so it stays in sync with the agent's execution and telemetry. The
+Blazor web UI consumes this to animate the data flow.
+
+### `POST /chat/control`
+
+Drives an in-progress `/chat/stream` run, keyed by its `sessionId`:
+
+```json
+{ "sessionId": "abc123", "action": "next", "manual": true, "delayMs": 600 }
+```
+
+`action` is one of `next` (advance one step in Manual mode), `pause`, `resume`, or `stop`. `manual` and
+`delayMs` are optional live adjustments. Returns `204 No Content`, or `404 Not Found` when the session is
+unknown (e.g. already finished).
 
 ## Conventions
 
