@@ -1,0 +1,261 @@
+@page "/"
+@rendermode InteractiveServer
+@inject AiServiceClient Ai
+@implements IDisposable
+@using System.Threading
+
+<PageTitle>TheSeries — Flow</PageTitle>
+
+<div class="flow-app">
+    <header class="flow-header">
+        <h1>Chatbot Application Flow</h1>
+        <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back.</p>
+    </header>
+
+    <section class="controls">
+        <div class="control message">
+            <label for="message">Message</label>
+            <input id="message" @bind="_message" @bind:event="oninput"
+                   placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
+                   disabled="@_running" @onkeydown="OnKeyDownAsync" />
+        </div>
+
+        <div class="control">
+            <label for="agent">Agent</label>
+            <select id="agent" @bind="_selectedAgent" disabled="@_running">
+                @foreach (var agent in _agents)
+                {
+                    <option value="@agent.Name">@agent.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="control">
+            <label for="backend">Backend delay <span>@_backendDelayMs ms</span></label>
+            <input id="backend" type="range" min="0" max="2000" step="50"
+                   @bind="_backendDelayMs" @bind:event="oninput" disabled="@_running" />
+        </div>
+
+        <div class="control">
+            <label for="frontend">Animation delay <span>@_frontendDelayMs ms</span></label>
+            <input id="frontend" type="range" min="0" max="2000" step="50"
+                   @bind="_frontendDelayMs" @bind:event="oninput" disabled="@_running" />
+        </div>
+
+        <div class="control actions">
+            <button class="send" @onclick="SendAsync" disabled="@(_running || string.IsNullOrWhiteSpace(_message))">
+                @(_running ? "Running…" : "Send")
+            </button>
+            @if (_running)
+            {
+                <button class="stop" @onclick="Stop">Stop</button>
+            }
+        </div>
+    </section>
+
+    <section class="diagram">
+        <div class="column left">
+            <div class="node @NodeClass("user")">
+                <span class="icon">🧑</span>
+                <span class="title">User</span>
+            </div>
+            <div class="connector vertical @ArrowClass("user-client")"></div>
+            <div class="node @NodeClass("client")">
+                <span class="icon">💻</span>
+                <span class="title">Client</span>
+                <span class="subtitle">Blazor web app</span>
+            </div>
+        </div>
+
+        <div class="connector horizontal @ArrowClass("client-harness")">
+            <span class="flow-label">Input</span>
+        </div>
+
+        <div class="column center">
+            <div class="node harness @NodeClass("harness")">
+                <span class="icon">🛠️</span>
+                <span class="title">Harness</span>
+                <span class="subtitle">AiService · Agent</span>
+                <div class="tools node-inner @NodeClass("tools")">
+                    <span class="title">Tools</span>
+                    <span class="subtitle">Wiki · Calculator</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="connector horizontal loop @ArrowClass("harness-llm")">
+            <span class="flow-label">Input + Prompt + Tools</span>
+            <span class="flow-label back">Response</span>
+        </div>
+
+        <div class="column right">
+            <div class="node llm @NodeClass("llm")">
+                <span class="icon">🤖</span>
+                <span class="title">LLM (MCP)</span>
+                <span class="subtitle">Azure OpenAI</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="output">
+        <div class="log">
+            <h2>Steps</h2>
+            @if (_events.Count == 0)
+            {
+                <p class="empty">No steps yet. Send a message to begin.</p>
+            }
+            else
+            {
+                <ol>
+                    @foreach (var e in _events)
+                    {
+                        <li class="step @e.Kind">
+                            <span class="kind">@e.Kind</span>
+                            <span class="label">@e.Label</span>
+                            @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                            {
+                                <span class="detail">@e.Detail</span>
+                            }
+                        </li>
+                    }
+                </ol>
+            }
+        </div>
+
+        <div class="reply">
+            <h2>Reply</h2>
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <p class="error">@_error</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(_reply))
+            {
+                <p>@_reply</p>
+            }
+            else
+            {
+                <p class="empty">The agent's final answer will appear here.</p>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    private readonly List<AgentInfo> _agents = new();
+    private readonly List<FlowEvent> _events = new();
+
+    private string _message = string.Empty;
+    private string? _selectedAgent;
+    private int _backendDelayMs = 400;
+    private int _frontendDelayMs = 600;
+
+    private string? _activeNode;
+    private string? _activeArrow;
+    private string _reply = string.Empty;
+    private string? _error;
+    private bool _running;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Ai.GetAgentsAsync();
+            if (response is not null)
+            {
+                _agents.AddRange(response.Agents);
+                _selectedAgent = response.Default;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load agents: {ex.Message}";
+        }
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !_running && !string.IsNullOrWhiteSpace(_message))
+        {
+            await SendAsync();
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        if (_running || string.IsNullOrWhiteSpace(_message))
+        {
+            return;
+        }
+
+        _running = true;
+        _error = null;
+        _reply = string.Empty;
+        _activeNode = null;
+        _activeArrow = null;
+        _events.Clear();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _backendDelayMs, _cts.Token))
+            {
+                _events.Add(flowEvent);
+                (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);
+
+                if (flowEvent.Kind == "final")
+                {
+                    _reply = flowEvent.Detail ?? string.Empty;
+                }
+                else if (flowEvent.Kind == "error")
+                {
+                    _error = flowEvent.Detail ?? flowEvent.Label;
+                }
+
+                StateHasChanged();
+
+                if (_frontendDelayMs > 0)
+                {
+                    await Task.Delay(_frontendDelayMs, _cts.Token);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Stopped by the user; keep whatever has been shown so far.
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error talking to the AI service: {ex.Message}";
+        }
+        finally
+        {
+            _running = false;
+            _activeNode = null;
+            _activeArrow = null;
+            _cts?.Dispose();
+            _cts = null;
+            StateHasChanged();
+        }
+    }
+
+    private void Stop() => _cts?.Cancel();
+
+    private static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
+    {
+        "received" => ("harness", "client-harness"),
+        "llm-request" => ("llm", "harness-llm"),
+        "tool-call" => ("tools", "harness-llm"),
+        "tool-result" => ("harness", "harness-llm"),
+        "llm-response" => ("llm", "harness-llm"),
+        "final" => ("client", "client-harness"),
+        "error" => ("harness", null),
+        _ => (null, null),
+    };
+
+    private string NodeClass(string node) => _activeNode == node ? "active" : string.Empty;
+
+    private string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
+
+    public void Dispose() => _cts?.Cancel();
+}

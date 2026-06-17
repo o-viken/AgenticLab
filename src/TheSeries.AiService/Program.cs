@@ -31,6 +31,9 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
     new AgentCatalog(sp.GetRequiredService<IChatClient>(), sp.GetServices<IAgentDefinition>()));
 
+// Projects a real agent run into an observable stream of flow events for the visualization UI.
+builder.Services.AddSingleton<FlowTracer>();
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -55,8 +58,15 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Cancellat
     return Results.Ok(new ChatResponse(response.Text, resolvedName));
 });
 
+// Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
+app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, CancellationToken cancellationToken) =>
+    TypedResults.ServerSentEvents(
+        tracer.StreamAsync(request.Message, request.Agent, request.StepDelayMs, cancellationToken),
+        eventType: "flow"));
+
 app.Run();
 
 internal sealed record ChatRequest(string Message, string? Agent = null);
 internal sealed record ChatResponse(string Reply, string Agent);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
+internal sealed record FlowChatRequest(string Message, string? Agent = null, int StepDelayMs = 0);

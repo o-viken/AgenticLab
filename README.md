@@ -7,12 +7,14 @@ A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample built on **.N
 ```mermaid
 flowchart LR
     Console["TheSeries.Console<br/>(interactive client)"]
-    AiService["TheSeries.AiService<br/>POST /chat, GET /agents"]
+    Web["TheSeries.Web<br/>(Blazor flow visualizer)"]
+    AiService["TheSeries.AiService<br/>POST /chat, /chat/stream, GET /agents"]
     Catalog["AgentCatalog<br/>(WikiAssistant, MathTutor, TriviaMaster)"]
     OpenAI["Azure OpenAI"]
     Wiki["Wikipedia REST API"]
 
     Console -->|"POST /chat (agent)"| AiService
+    Web -->|"POST /chat/stream (SSE)"| AiService
     AiService --> Catalog
     Catalog --> OpenAI
     Catalog -->|"SearchWiki / GetWikiPage"| Wiki
@@ -22,7 +24,8 @@ flowchart LR
 The Console sends a question (and the chosen agent) to the AI service's `POST /chat` endpoint. The service
 hosts an `AgentCatalog` of stateless `ChatClientAgent`s (Azure OpenAI), each composed from an
 `IAgentDefinition` that declares its instructions and tool subset. `GET /agents` lists the available
-agents.
+agents. The Blazor web UI calls `POST /chat/stream`, which streams the real execution steps (LLM
+round-trips and tool calls) as Server-Sent Events so the data flow can be animated live.
 
 ### Agents
 
@@ -34,13 +37,14 @@ agents.
 
 ## Projects
 
-The solution ([TheSeries.slnx](TheSeries.slnx)) contains four projects, orchestrated by Aspire:
+The solution ([TheSeries.slnx](TheSeries.slnx)) contains five projects, orchestrated by Aspire:
 
 | Project | Role |
 |---------|------|
 | [src/TheSeries.AppHost](src/TheSeries.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects Azure OpenAI config, sets service references. |
-| [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`. Hosts the agent. |
+| [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream` and `GET /agents`. Hosts the agent catalog. |
 | [src/TheSeries.Console](src/TheSeries.Console/Program.cs) | Interactive console client that calls the AI service via service discovery. |
+| [src/TheSeries.Web](src/TheSeries.Web/Program.cs) | Blazor Server app that animates the live data flow (User → Client → Harness → Tools → LLM) from the `/chat/stream` events. |
 | [src/TheSeries.ServiceDefaults](src/TheSeries.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. |
 
 ## Prerequisites
@@ -96,7 +100,17 @@ dotnet run --project src/TheSeries.Console -- --AiService:Url https://localhost:
 Under Aspire it resolves the AI service by name (`https+http://aiservice`) via service discovery, so no
 URL is needed.
 
-## API
+### Running the web UI
+
+The `web` resource (Blazor Server) starts automatically with the app and is exposed on an external HTTP
+endpoint. Open it from the Aspire dashboard's `web` resource link. Type a message, pick an agent, then
+watch the data flow light up node-by-node as the agent runs. Two sliders pace the animation:
+
+- **Backend delay** — an artificial pause the AI service applies after each real step (sent as
+  `stepDelayMs` to `/chat/stream`).
+- **Animation delay** — how long the browser holds each step on screen before advancing.
+
+The final answer appears once the run completes.
 
 ### `GET /agents`
 
@@ -128,6 +142,13 @@ Response (echoes which agent answered):
 ```
 
 Returns `400 Bad Request` when `message` is empty or `agent` is an unknown name.
+
+### `POST /chat/stream`
+
+Same request shape as `/chat` plus an optional `stepDelayMs` (server-side delay between steps). Returns a
+`text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
+`kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`),
+`label`, and optional `detail`. The Blazor web UI consumes this to animate the data flow.
 
 ## Conventions
 

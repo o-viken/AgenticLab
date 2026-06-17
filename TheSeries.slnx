@@ -4,5 +4,6 @@
     <Project Path="src/TheSeries.AppHost/TheSeries.AppHost.csproj" />
     <Project Path="src/TheSeries.Console/TheSeries.Console.csproj" />
     <Project Path="src/TheSeries.ServiceDefaults/TheSeries.ServiceDefaults.csproj" />
+    <Project Path="src/TheSeries.Web/TheSeries.Web.csproj" />
   </Folder>
 </Solution>

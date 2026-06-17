@@ -14,4 +14,11 @@ builder.AddProject<Projects.TheSeries_Console>("console")
     .WaitFor(aiService)
     .WithExplicitStart();
 
+// Blazor web UI that visualizes the live data flow through the agent. Reaches the AI service
+// via service discovery and is exposed on an external HTTP endpoint.
+builder.AddProject<Projects.TheSeries_Web>("web")
+    .WithReference(aiService)
+    .WaitFor(aiService)
+    .WithExternalHttpEndpoints();
+
 builder.Build().Run();
