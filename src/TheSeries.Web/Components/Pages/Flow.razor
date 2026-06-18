@@ -57,6 +57,14 @@
             </div>
         </div>
 
+        <div class="control">
+            <label>Boundaries</label>
+            <div class="boundary-toggles">
+                <label class="check"><input type="checkbox" @bind="_showHarnessBoundary" /> Harness</label>
+                <label class="check"><input type="checkbox" @bind="_showAgentBoundary" /> Agent</label>
+            </div>
+        </div>
+
         <div class="control actions">
             @if (!_running)
             {
@@ -77,17 +85,35 @@
     </section>
 
     <section class="diagram">
-        <div class="column left">
-            <div class="node @NodeClass("user")">
-                <span class="icon">🧑</span>
-                <span class="title">User</span>
+        @if (_showHarnessBoundary)
+        {
+            <div class="boundary harness-b">
+                <span class="boundary-label">Harness</span>
             </div>
-            <div class="connector vertical @ArrowClass("user-client")"></div>
-            <div class="node @NodeClass("client")">
-                <span class="icon">💻</span>
-                <span class="title">Client</span>
-                <span class="subtitle">Blazor web app</span>
+        }
+        @if (_showAgentBoundary)
+        {
+            <div class="boundary agent-b">
+                <span class="boundary-label">Agent</span>
             </div>
+        }
+
+        <div class="node user @NodeClass("user")">
+            <span class="icon">🧑</span>
+            <span class="title">User</span>
+            <span class="subtitle">Human</span>
+        </div>
+
+        <div class="connector-group thin">
+            <div class="connector horizontal send @ArrowClass("user-client")">
+                <span class="flow-label">asks ▶</span>
+            </div>
+        </div>
+
+        <div class="node client @NodeClass("client")">
+            <span class="icon">💻</span>
+            <span class="title">Client</span>
+            <span class="subtitle">Blazor web app</span>
         </div>
 
         <div class="connector-group">
@@ -305,6 +331,9 @@
     private string _workspace = string.Empty;
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
+
+    private bool _showHarnessBoundary = true;
+    private bool _showAgentBoundary = true;
 
     private string? _activeNode;
     private string? _activeArrow;
