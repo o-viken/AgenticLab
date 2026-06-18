@@ -51,6 +51,7 @@
             @if (!_running)
             {
                 <button class="send" @onclick="SendAsync" disabled="@string.IsNullOrWhiteSpace(_message)">Send</button>
+                <button class="stop" @onclick="NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
             }
             else if (_mode == FlowMode.Manual)
             {
@@ -128,11 +129,80 @@
         <div class="column right">
             <div class="node llm @NodeClass("llm")">
                 <span class="icon">🤖</span>
-                <span class="title">LLM (MCP)</span>
+                <span class="title">LLM</span>
                 <span class="subtitle">Azure OpenAI</span>
             </div>
         </div>
     </section>
+
+    @if (_turns.Count > 0)
+    {
+        <section class="transcript">
+            <h2>Conversation <span class="count">@_turns.Count message@(_turns.Count == 1 ? "" : "s")</span></h2>
+            <div class="turns">
+                @foreach (var turn in _turns)
+                {
+                    var turnCount = turn.Events.Select(e => e.Turn).DefaultIfEmpty(0).Max();
+                    <div class="turn">
+                        <div class="bubble user">
+                            <span class="who">🧑 You</span>
+                            <p>@turn.Message</p>
+                        </div>
+                        <div class="bubble agent">
+                            <span class="who">🤖 @(turn.Agent ?? "Agent")</span>
+                            @if (!string.IsNullOrWhiteSpace(turn.Error))
+                            {
+                                <p class="error">@turn.Error</p>
+                            }
+                            else
+                            {
+                                <p>@turn.Reply</p>
+                            }
+                        </div>
+                        @if (turn.Events.Count > 0)
+                        {
+                            <details class="turn-flow">
+                                <summary>
+                                    Flow history <span class="progress">@turn.Events.Count step@(turn.Events.Count == 1 ? "" : "s")</span>
+                                    @if (turnCount > 0)
+                                    {
+                                        <span class="turns-badge">· 🔁 @turnCount turn@(turnCount == 1 ? "" : "s")</span>
+                                    }
+                                </summary>
+                                <ol class="mini-steps">
+                                    @foreach (var e in turn.Events)
+                                    {
+                                        var hasData = !string.IsNullOrWhiteSpace(e.Data);
+                                        <li class="step @e.Kind">
+                                            <div class="step-row">
+                                                <span class="kind">@e.Kind</span>
+                                                @if (e.Turn > 0)
+                                                {
+                                                    <span class="turn-badge">T@e.Turn</span>
+                                                }
+                                                <span class="label">@e.Label</span>
+                                                @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                                                {
+                                                    <span class="detail">@e.Detail</span>
+                                                }
+                                            </div>
+                                            @if (hasData)
+                                            {
+                                                <details class="step-data-wrap">
+                                                    <summary>data</summary>
+                                                    <pre class="step-data">@e.Data</pre>
+                                                </details>
+                                            }
+                                        </li>
+                                    }
+                                </ol>
+                            </details>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
 
     <section class="output">
         <div class="log">
@@ -210,6 +280,12 @@
     private readonly List<FlowEvent> _events = new();
     private readonly HashSet<int> _expanded = new();
 
+    // The conversation transcript: each completed turn keeps its message, reply and full flow history.
+    private readonly List<ConversationTurn> _turns = new();
+    // The message/agent of the run currently shown in the live panels, archived into _turns on the next send.
+    private string _runMessage = string.Empty;
+    private string? _runAgent;
+
     private string _message = string.Empty;
     private string? _selectedAgent;
     private int _stepDelayMs = 600;
@@ -226,6 +302,8 @@
     private bool _awaitingStep;
 
     private string _sessionId = string.Empty;
+    // Stays the same across sends so the agent remembers prior turns; reset by "New conversation".
+    private string _conversationId = Guid.NewGuid().ToString("n");
     private CancellationTokenSource? _cts;
 
     private string StepProgress =>
@@ -308,6 +386,9 @@
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        ArchiveCurrentRun();
+        _runMessage = _message;
+        _runAgent = _selectedAgent;
         _events.Clear();
         _expanded.Clear();
         _sessionId = Guid.NewGuid().ToString("n");
@@ -318,11 +399,58 @@
         return Task.CompletedTask;
     }
 
+    // Forgets the conversation's history on the server and starts a fresh one, clearing the panel.
+    private async Task NewConversationAsync()
+    {
+        if (_running)
+        {
+            return;
+        }
+
+        var previous = _conversationId;
+        _conversationId = Guid.NewGuid().ToString("n");
+        _reply = string.Empty;
+        _error = null;
+        _activeNode = null;
+        _activeArrow = null;
+        _activeTool = null;
+        _events.Clear();
+        _expanded.Clear();
+        _turns.Clear();
+        _runMessage = string.Empty;
+        _runAgent = null;
+
+        try
+        {
+            await Ai.ResetConversationAsync(previous);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not reset the conversation: {ex.Message}";
+        }
+    }
+
+    // Moves the run currently in the live panels into the conversation transcript, preserving its history.
+    private void ArchiveCurrentRun()
+    {
+        if (_events.Count == 0)
+        {
+            return;
+        }
+
+        _turns.Add(new ConversationTurn(
+            _runMessage,
+            _runAgent,
+            _reply,
+            _error,
+            new List<FlowEvent>(_events)));
+    }
+
     private async Task ConsumeAsync(CancellationToken token)
     {
         try
         {
-            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _mode == FlowMode.Manual, _stepDelayMs, token))
+            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _conversationId, _mode == FlowMode.Manual, _stepDelayMs, token))
             {
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);
@@ -484,4 +612,13 @@
         _cts?.Cancel();
         _cts?.Dispose();
     }
+
+    // One completed exchange in the conversation transcript: the user's message, the responding agent,
+    // its final reply (or error) and the full ordered flow history for that turn.
+    private sealed record ConversationTurn(
+        string Message,
+        string? Agent,
+        string Reply,
+        string? Error,
+        IReadOnlyList<FlowEvent> Events);
 }

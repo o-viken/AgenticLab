@@ -25,6 +25,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="message">The user's message.</param>
     /// <param name="agent">The agent to use, or null/blank for the default.</param>
     /// <param name="sessionId">The unique id shared with the control calls.</param>
+    /// <param name="conversationId">The conversation to continue, so the run remembers prior turns.</param>
     /// <param name="manual">When <c>true</c>, the run starts in manual stepping mode.</param>
     /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
@@ -32,13 +33,14 @@ internal sealed class AiServiceClient(HttpClient http)
         string message,
         string? agent,
         string sessionId,
+        string conversationId,
         bool manual,
         int stepDelayMs,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, manual, stepDelayMs)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -80,10 +82,23 @@ internal sealed class AiServiceClient(HttpClient http)
             JsonOptions,
             cancellationToken);
     }
+
+    /// <summary>Clears a conversation's remembered history so the next message starts fresh.</summary>
+    /// <param name="conversationId">The id of the conversation to reset.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task ResetConversationAsync(string conversationId, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync(
+            "/chat/reset",
+            new ConversationResetRequest(conversationId),
+            JsonOptions,
+            cancellationToken);
+    }
 }
 
 internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, bool Manual, int StepDelayMs);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
+internal sealed record ConversationResetRequest(string ConversationId);
 internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

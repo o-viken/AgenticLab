@@ -35,6 +35,9 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
     new AgentCatalog(sp.GetRequiredService<IChatClient>(), sp.GetServices<IAgentDefinition>()));
 
+// Holds one conversation thread per conversation id so agent runs can continue an existing chat.
+builder.Services.AddSingleton<ConversationStore>();
+
 // Projects a real agent run into an observable stream of flow events for the visualization UI.
 builder.Services.AddSingleton<FlowControlRegistry>();
 builder.Services.AddSingleton<FlowTracer>();
@@ -47,7 +50,7 @@ app.MapDefaultEndpoints();
 app.MapGet("/agents", (AgentCatalog catalog) =>
     Results.Ok(new AgentsResponse(catalog.Agents, catalog.DefaultName)));
 
-app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, CancellationToken cancellationToken) =>
+app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, ConversationStore conversations, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
     {
@@ -59,8 +62,15 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Cancellat
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
 
-    var response = await agent.RunAsync(request.Message, cancellationToken: cancellationToken);
-    return Results.Ok(new ChatResponse(response.Text, resolvedName));
+    // Continue the existing conversation (remembering prior turns) when an id is supplied; otherwise mint
+    // a new one and return it so the client can keep the conversation going.
+    var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
+        ? Guid.NewGuid().ToString("n")
+        : request.ConversationId.Trim();
+    var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
+
+    var response = await agent.RunAsync(request.Message, session, cancellationToken: cancellationToken);
+    return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
 });
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
@@ -69,7 +79,7 @@ app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowCon
 {
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
     return TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, session, cancellationToken),
+        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, session, cancellationToken),
         eventType: "flow");
 });
 
@@ -111,10 +121,23 @@ app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry re
     return Results.NoContent();
 });
 
+// Clears a conversation's remembered history so the next message starts fresh.
+app.MapPost("/chat/reset", (ConversationResetRequest request, ConversationStore conversations) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ConversationId))
+    {
+        return Results.BadRequest("ConversationId must not be empty.");
+    }
+
+    conversations.Reset(request.ConversationId.Trim());
+    return Results.NoContent();
+});
+
 app.Run();
 
-internal sealed record ChatRequest(string Message, string? Agent = null);
-internal sealed record ChatResponse(string Reply, string Agent);
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null);
+internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, bool Manual = false, int StepDelayMs = 0);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);
+internal sealed record ConversationResetRequest(string ConversationId);

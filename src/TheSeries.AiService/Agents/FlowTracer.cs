@@ -31,7 +31,8 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 /// </summary>
 /// <param name="catalog">The catalog used to resolve the requested agent.</param>
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
-public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registry)
+/// <param name="conversations">The store holding each conversation's thread so the run can continue prior turns.</param>
+public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registry, ConversationStore conversations)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -39,12 +40,14 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
     /// </summary>
     /// <param name="message">The user's message.</param>
     /// <param name="agentName">The agent to use, or null/blank for the default.</param>
+    /// <param name="conversationId">The conversation to continue, so the run remembers prior turns.</param>
     /// <param name="session">The control session that paces, pauses and stops the run.</param>
     /// <param name="cancellationToken">A token to cancel the run.</param>
     /// <returns>An ordered, lazily-produced sequence of flow events.</returns>
     public async IAsyncEnumerable<FlowEvent> StreamAsync(
         string message,
         string? agentName,
+        string conversationId,
         FlowSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -85,7 +88,8 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             // The scope lives in an AsyncLocal that is reset whenever this iterator resumes after a yield,
             // so without re-activating immediately before MoveNextAsync only the first LLM round-trip is
             // recorded and the later turns (the calls made after each tool result) are silently lost.
-            await using var updates = agent.RunStreamingAsync(message, cancellationToken: token)
+            var agentSession = await conversations.GetOrCreateAsync(conversationId, agent, token);
+            await using var updates = agent.RunStreamingAsync(message, agentSession, cancellationToken: token)
                 .GetAsyncEnumerator(token);
 
             while (true)

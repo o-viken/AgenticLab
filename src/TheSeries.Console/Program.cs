@@ -37,7 +37,10 @@ catch (Exception ex)
 
 PrintAgents(agents, currentAgent);
 Console.WriteLine();
-Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', or press Enter on an empty line to quit.");
+Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', start over with '/new', or press Enter on an empty line to quit.");
+
+// One conversation for this session so the agent remembers prior turns; '/new' starts a fresh one.
+var conversationId = Guid.NewGuid().ToString("n");
 
 while (true)
 {
@@ -51,6 +54,24 @@ while (true)
     if (message.Trim().Equals("/agents", StringComparison.OrdinalIgnoreCase))
     {
         PrintAgents(agents, currentAgent);
+        Console.WriteLine();
+        continue;
+    }
+
+    if (message.Trim().Equals("/new", StringComparison.OrdinalIgnoreCase))
+    {
+        try
+        {
+            using var reset = await http.PostAsJsonAsync("/chat/reset", new { conversationId });
+            reset.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not reset the conversation: {ex.Message}");
+        }
+
+        conversationId = Guid.NewGuid().ToString("n");
+        Console.WriteLine("Started a new conversation.");
         Console.WriteLine();
         continue;
     }
@@ -75,7 +96,7 @@ while (true)
 
     try
     {
-        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent });
+        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent, conversationId });
         response.EnsureSuccessStatusCode();
         var reply = await response.Content.ReadFromJsonAsync<ChatReply>();
         Console.WriteLine(reply?.Reply ?? "(no reply)");
