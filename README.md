@@ -31,7 +31,8 @@ round-trips and tool calls) as Server-Sent Events so the data flow can be animat
 
 | Agent | Persona | Tools |
 |-------|---------|-------|
-| **WikiAssistant** (default) | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
+| **ChatBot** (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
+| **WikiAssistant** | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
 | **MathTutor** | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | **TriviaMaster** | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 
@@ -123,17 +124,18 @@ Lists the available agents and the default name:
 ```json
 {
   "agents": [
+    { "name": "ChatBot", "description": "Friendly conversational chatbot that chats from its own knowledge, with no tools." },
     { "name": "WikiAssistant", "description": "Concise research helper that answers factual questions using Wikipedia." },
     { "name": "MathTutor", "description": "Patient tutor that solves and explains arithmetic step by step." },
     { "name": "TriviaMaster", "description": "Playful trivia host that researches facts and crunches numbers." }
   ],
-  "default": "WikiAssistant"
+  "default": "ChatBot"
 }
 ```
 
 ### `POST /chat`
 
-Request (`agent` is optional; defaults to `WikiAssistant`):
+Request (`agent` is optional; defaults to `ChatBot`):
 
 ```json
 { "message": "Who was Alan Turing?", "agent": "WikiAssistant" }

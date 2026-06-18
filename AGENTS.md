@@ -34,9 +34,10 @@ The Blazor web app animates a real agent run. [src/TheSeries.Web](src/TheSeries.
 
 | Agent | Persona | Tools |
 |-------|---------|-------|
-| `WikiAssistant` (default) | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
+| `WikiAssistant` | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
 | `MathTutor` | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | `TriviaMaster` | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
+| `ChatBot` (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
 
 The first-registered definition in [Program.cs](src/TheSeries.AiService/Program.cs) is the default. `GET /agents` lists them; `POST /chat` selects one by name (case-insensitive) and falls back to the default when none is given.
 

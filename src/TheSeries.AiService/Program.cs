@@ -25,9 +25,10 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton<CalculatorTool>();
 
 // Each agent declares its own persona and tool subset; the first registered is the default.
+builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
 builder.Services.AddSingleton<IAgentDefinition, MathTutorAgent>();
-builder.Services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
+// builder.Services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
 
 // The shared chat client and the catalog of agents are stateless and safe to share as singletons.
 builder.Services.AddSingleton(sp =>
