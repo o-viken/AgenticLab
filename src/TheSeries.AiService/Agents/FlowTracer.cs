@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
 namespace TheSeries.AiService.Agents;
@@ -32,7 +33,8 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 /// <param name="catalog">The catalog used to resolve the requested agent.</param>
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
 /// <param name="conversations">The store holding each conversation's thread so the run can continue prior turns.</param>
-public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registry, ConversationStore conversations)
+/// <param name="skills">Discovers the active workspace's skills so their catalogue can be injected into the run.</param>
+public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -108,7 +110,13 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             // so without re-activating immediately before MoveNextAsync only the first LLM round-trip is
             // recorded and the later turns (the calls made after each tool result) are silently lost.
             var agentSession = await conversations.GetOrCreateAsync(conversationId, agent, token);
-            await using var updates = agent.RunStreamingAsync(message, agentSession, cancellationToken: token)
+
+            // Surface the workspace's skills (names + descriptions) to the agent for this run only. The
+            // scope's AsyncLocal is reset by the earlier yields, so re-assert it before reading skills.
+            workspaceScope?.Activate();
+            var runOptions = catalog.SupportsSkills(resolvedName) ? BuildSkillRunOptions() : null;
+
+            await using var updates = agent.RunStreamingAsync(message, agentSession, runOptions, token)
                 .GetAsyncEnumerator(token);
 
             while (true)
@@ -200,6 +208,16 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         {
             return null;
         }
+    }
+
+    // Builds run options that append the active workspace's skill catalogue to the agent's instructions
+    // for this run, or null when the workspace declares no skills. Assumes the workspace scope is active.
+    private AgentRunOptions? BuildSkillRunOptions()
+    {
+        var block = skills.BuildContextBlock();
+        return string.IsNullOrEmpty(block)
+            ? null
+            : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
     }
 
     private static string DescribeTurn(int turnNumber) =>

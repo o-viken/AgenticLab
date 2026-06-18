@@ -10,7 +10,7 @@ namespace TheSeries.AiService.Agents;
 /// and it overrides the shared <see cref="AgentDefinitionBase.Harness"/> with stronger operating rules
 /// suited to making real changes on disk.
 /// </summary>
-public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal) : AgentDefinitionBase
+public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal, SkillsTool skills) : AgentDefinitionBase
 {
     /// <inheritdoc />
     public override string Name => "Coder";
@@ -20,6 +20,9 @@ public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal) : Ag
 
     /// <inheritdoc />
     public override bool RequiresWorkspace => true;
+
+    /// <inheritdoc />
+    public override bool SupportsSkills => true;
 
     /// <inheritdoc />
     protected override string Harness =>
@@ -33,6 +36,7 @@ public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal) : Ag
         "ground everything you do in actual tool results — never claim a file was created, changed, or that a command succeeded unless a tool confirms it; " +
         "use the terminal only for allowlisted commands (e.g. build, test, version checks) and report the exit code and relevant output; " +
         "do not attempt to escape the workspace, delete directories, or run destructive commands; " +
+        "when a workspace skill listed in the <skills> section fits the task, call the ReadSkill tool to load its full instructions and follow them rather than improvising; " +
         "when you finish, summarize exactly which files you created, updated or deleted and which commands you ran." +
         $"\n\n<environment>\n{terminal.EnvironmentInfo}\n</environment>";
 
@@ -45,5 +49,5 @@ public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal) : Ag
         "focused, and explain what you changed and why in clear, concise terms.";
 
     /// <inheritdoc />
-    public override IList<AITool> Tools => [.. files.AsTools(), .. terminal.AsTools()];
+    public override IList<AITool> Tools => [.. files.AsTools(), .. terminal.AsTools(), .. skills.AsTools()];
 }

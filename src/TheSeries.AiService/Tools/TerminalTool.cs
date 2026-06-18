@@ -27,7 +27,8 @@ public sealed class TerminalTool
 
     /// <summary>
     /// Creates the tool with an allowlist of permitted executables. Falls back to a sensible default
-    /// set (<c>dotnet, git, ls, dir, npm, node, python, pip</c>) when configuration supplies none.
+    /// set (<c>dotnet, git, ls, dir, npm, node, python, pip, powershell, pwsh</c>) when configuration
+    /// supplies none.
     /// </summary>
     /// <param name="configuration">Configuration optionally providing <c>Coder:AllowedCommands</c>.</param>
     public TerminalTool(IConfiguration configuration)
@@ -35,7 +36,7 @@ public sealed class TerminalTool
         var configured = configuration.GetSection("Coder:AllowedCommands").Get<string[]>();
         var commands = configured is { Length: > 0 }
             ? configured
-            : ["dotnet", "git", "ls", "dir", "npm", "node", "python", "pip"];
+            : ["dotnet", "git", "ls", "dir", "npm", "node", "python", "pip", "powershell", "pwsh"];
         _allowlist = new HashSet<string>(commands, StringComparer.OrdinalIgnoreCase);
     }
 

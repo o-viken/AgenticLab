@@ -25,6 +25,14 @@ public interface IAgentDefinition
     /// </summary>
     bool RequiresWorkspace { get; }
 
+    /// <summary>
+    /// Whether this agent participates in workspace skills. When <c>true</c>, the chat endpoints discover
+    /// the skills declared in the active workspace and inject their names and descriptions into the agent's
+    /// instructions for the run, so the agent can load a skill's full content on demand. Implies a
+    /// workspace is available.
+    /// </summary>
+    bool SupportsSkills { get; }
+
     /// <summary>The tools this agent is allowed to call.</summary>
     IList<AITool> Tools { get; }
 }

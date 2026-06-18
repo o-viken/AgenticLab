@@ -1,3 +1,4 @@
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using TheSeries.AiService;
 using TheSeries.AiService.Agents;
@@ -28,6 +29,12 @@ builder.Services.AddSingleton<CalculatorTool>();
 builder.Services.AddSingleton<FileSystemTool>();
 builder.Services.AddSingleton<TerminalTool>();
 
+// Workspace skills: discovered per run from the active workspace, their names/descriptions injected
+// into the agent's context and their full instructions loaded on demand via SkillsTool.
+builder.Services.AddSingleton<SkillLoader>();
+builder.Services.AddSingleton<SkillMatcher>();
+builder.Services.AddSingleton<SkillsTool>();
+
 // Each agent declares its own persona and tool subset; the first registered is the default.
 builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
@@ -56,7 +63,7 @@ app.MapDefaultEndpoints();
 app.MapGet("/agents", (AgentCatalog catalog) =>
     Results.Ok(new AgentsResponse(catalog.Agents, catalog.DefaultName)));
 
-app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, ConversationStore conversations, CancellationToken cancellationToken) =>
+app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
     {
@@ -86,7 +93,10 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Conversat
         : request.ConversationId.Trim();
     var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
 
-    var response = await agent.RunAsync(request.Message, session, cancellationToken: cancellationToken);
+    // Surface the workspace's skills to the agent for this run (names + descriptions only).
+    var runOptions = BuildSkillRunOptions(catalog, resolvedName, skills);
+
+    var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
     return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
 });
 
@@ -163,6 +173,22 @@ static WorkspaceScope? OpenWorkspace(string? path)
     {
         return null;
     }
+}
+
+// Builds run options that inject the active workspace's skill catalogue into the agent's instructions
+// for a single run. Returns null when the agent does not use skills or the workspace declares none, so
+// the agent runs with just its base instructions. Must be called while the workspace scope is active.
+static AgentRunOptions? BuildSkillRunOptions(AgentCatalog catalog, string agentName, SkillLoader skills)
+{
+    if (!catalog.SupportsSkills(agentName))
+    {
+        return null;
+    }
+
+    var block = skills.BuildContextBlock();
+    return string.IsNullOrEmpty(block)
+        ? null
+        : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
 }
 
 internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null);

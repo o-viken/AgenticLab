@@ -10,7 +10,8 @@ namespace TheSeries.AiService.Agents;
 /// <param name="Description">A short description of what the agent is good at.</param>
 /// <param name="Tools">The names of the tools this agent may call.</param>
 /// <param name="RequiresWorkspace">Whether selecting this agent requires the caller to supply a workspace path.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace);
+/// <param name="SupportsSkills">Whether this agent uses workspace skills (its names/descriptions are injected each run).</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -20,6 +21,7 @@ public sealed class AgentCatalog
 {
     private readonly Dictionary<string, AIAgent> _agents;
     private readonly Dictionary<string, bool> _requiresWorkspace;
+    private readonly Dictionary<string, bool> _supportsSkills;
 
     /// <summary>
     /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
@@ -38,6 +40,7 @@ public sealed class AgentCatalog
 
         _agents = new Dictionary<string, AIAgent>(StringComparer.OrdinalIgnoreCase);
         _requiresWorkspace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        _supportsSkills = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in list)
         {
             _agents[definition.Name] = new ChatClientAgent(
@@ -46,6 +49,7 @@ public sealed class AgentCatalog
                 name: definition.Name,
                 tools: definition.Tools);
             _requiresWorkspace[definition.Name] = definition.RequiresWorkspace;
+            _supportsSkills[definition.Name] = definition.SupportsSkills;
         }
 
         DefaultName = list[0].Name;
@@ -53,7 +57,8 @@ public sealed class AgentCatalog
             d.Name,
             d.Description,
             d.Tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
-            d.RequiresWorkspace)).ToList();
+            d.RequiresWorkspace,
+            d.SupportsSkills)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>
@@ -78,4 +83,10 @@ public sealed class AgentCatalog
     /// <returns><c>true</c> when the agent requires a workspace; otherwise <c>false</c>.</returns>
     public bool RequiresWorkspace(string name) =>
         _requiresWorkspace.TryGetValue(name, out var requires) && requires;
+
+    /// <summary>Whether the named agent uses workspace skills. Unknown names return <c>false</c>.</summary>
+    /// <param name="name">The resolved agent name.</param>
+    /// <returns><c>true</c> when the agent participates in workspace skills; otherwise <c>false</c>.</returns>
+    public bool SupportsSkills(string name) =>
+        _supportsSkills.TryGetValue(name, out var supports) && supports;
 }
