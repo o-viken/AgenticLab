@@ -383,6 +383,23 @@ button.stop {
     color: #7f8db0;
 }
 
+/* Live "response type" hint on the LLM receive arrow. */
+.response-hint {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .64rem;
+    font-weight: 600;
+    padding: .1rem .4rem;
+    color: #ffe7c2;
+    background: rgba(44, 35, 80, .85);
+    border: 1px solid #ffc987;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
 .connector.send.active::after { border-left-color: #ffd9a8; }
 .connector.recv.active::after { border-right-color: #ffd9a8; }
 

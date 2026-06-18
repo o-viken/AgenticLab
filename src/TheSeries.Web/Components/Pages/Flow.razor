@@ -133,6 +133,10 @@
             </div>
             <div class="connector horizontal recv @ArrowClass("harness-llm-recv")">
                 <span class="flow-label">◀ Response</span>
+                @if (_activeArrow == "harness-llm-recv" && !string.IsNullOrEmpty(_responseHint))
+                {
+                    <span class="response-hint">@_responseHint</span>
+                }
             </div>
         </div>
 
@@ -305,6 +309,8 @@
     private string? _activeNode;
     private string? _activeArrow;
     private string? _activeTool;
+    // A short hint shown on the LLM receive arrow describing the latest response type (e.g. function call, text).
+    private string? _responseHint;
     private string _reply = string.Empty;
     private string? _error;
 
@@ -403,6 +409,7 @@
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _responseHint = null;
         ArchiveCurrentRun();
         _runMessage = _message;
         _runAgent = _selectedAgent;
@@ -431,6 +438,7 @@
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _responseHint = null;
         _events.Clear();
         _expanded.Clear();
         _turns.Clear();
@@ -472,6 +480,7 @@
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);
                 _activeTool = ToolNameFor(flowEvent);
+                _responseHint = ResponseHintFor(flowEvent) ?? _responseHint;
                 _awaitingStep = false;
 
                 if (flowEvent.Kind == "final")
@@ -563,6 +572,7 @@
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _responseHint = null;
     }
 
     private static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
@@ -614,6 +624,15 @@
     }
 
     private string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
+
+    // Derives a short "response type" hint for the LLM receive arrow so the kind of the latest model
+    // response (a function/tool call, or final text) is visible without scrolling the transcript.
+    private static string? ResponseHintFor(FlowEvent flowEvent) => flowEvent.Kind switch
+    {
+        "tool-call" => "\U0001F527 function call",
+        "llm-response" => "\U0001F4AC text",
+        _ => null,
+    };
 
     // Toggles whether a step's full request/response data panel is shown.
     private void ToggleStep(int sequence)
