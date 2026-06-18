@@ -29,6 +29,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="manual">When <c>true</c>, the run starts in manual stepping mode.</param>
     /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
     /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
+    /// <param name="disabledTools">The names of the agent's tools to hide from the model for this run; null/empty to offer them all.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
         string message,
@@ -38,11 +39,12 @@ internal sealed class AiServiceClient(HttpClient http)
         bool manual,
         int stepDelayMs,
         string? workspace,
+        IReadOnlyList<string>? disabledTools,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -100,7 +102,7 @@ internal sealed class AiServiceClient(HttpClient http)
 
 internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
 internal sealed record ConversationResetRequest(string ConversationId);
 internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

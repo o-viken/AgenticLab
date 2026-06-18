@@ -96,6 +96,11 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Conversat
     // Surface the workspace's skills to the agent for this run (names + descriptions only).
     var runOptions = BuildSkillRunOptions(catalog, resolvedName, skills);
 
+    // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
+    using var toolScope = request.DisabledTools is { Count: > 0 } disabled
+        ? ToolFilterScope.Begin(disabled)
+        : null;
+
     var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
     return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
 });
@@ -106,7 +111,7 @@ app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowCon
 {
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
     return TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, session, cancellationToken),
+        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, session, cancellationToken),
         eventType: "flow");
 });
 
@@ -191,9 +196,9 @@ static AgentRunOptions? BuildSkillRunOptions(AgentCatalog catalog, string agentN
         : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
 }
 
-internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null);
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);
 internal sealed record ConversationResetRequest(string ConversationId);

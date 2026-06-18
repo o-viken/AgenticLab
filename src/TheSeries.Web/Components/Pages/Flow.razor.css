@@ -157,6 +157,33 @@ button.stop {
     accent-color: #4f9bd9;
 }
 
+/* Tool toggles -------------------------------------------------------- */
+.tool-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .9rem;
+    align-items: center;
+    padding: .35rem 0;
+}
+
+.tool-toggles .check {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .9rem;
+    color: #c7d3ea;
+    cursor: pointer;
+}
+
+.tool-toggles .check input {
+    cursor: pointer;
+    accent-color: #4f9bd9;
+}
+
+.tool-toggles .check input:disabled {
+    cursor: default;
+}
+
 /* Diagram ------------------------------------------------------------- */
 .diagram {
     display: grid;

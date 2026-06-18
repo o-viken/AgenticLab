@@ -44,6 +44,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
     /// <param name="agentName">The agent to use, or null/blank for the default.</param>
     /// <param name="conversationId">The conversation to continue, so the run remembers prior turns.</param>
     /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
+    /// <param name="disabledTools">The names of the agent's tools to hide from the model for this run; null/empty to offer them all.</param>
     /// <param name="session">The control session that paces, pauses and stops the run.</param>
     /// <param name="cancellationToken">A token to cancel the run.</param>
     /// <returns>An ordered, lazily-produced sequence of flow events.</returns>
@@ -52,6 +53,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         string? agentName,
         string conversationId,
         string? workspace,
+        IReadOnlyList<string>? disabledTools,
         FlowSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -101,6 +103,12 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
 
             // Capture the real LLM round-trips (request payloads and responses) for this run only.
             using var capture = FlowCaptureScope.Begin();
+
+            // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
+            using var toolScope = disabledTools is { Count: > 0 }
+                ? ToolFilterScope.Begin(disabledTools)
+                : null;
+
             var finalText = new StringBuilder();
             var callNames = new Dictionary<string, string>();
             var emittedTurns = 0;
@@ -123,6 +131,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             {
                 capture.Activate();
                 workspaceScope?.Activate();
+                toolScope?.Activate();
                 if (!await updates.MoveNextAsync())
                 {
                     break;

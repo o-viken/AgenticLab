@@ -22,13 +22,30 @@
 
         <div class="control">
             <label for="agent">Agent</label>
-            <select id="agent" @bind="_selectedAgent" disabled="@_running">
+            <select id="agent" @bind="SelectedAgent" disabled="@_running">
                 @foreach (var agent in _agents)
                 {
                     <option value="@agent.Name">@agent.Name</option>
                 }
             </select>
         </div>
+
+        @if (SelectedAgentToolNames.Count > 0)
+        {
+            <div class="control">
+                <label>Tools</label>
+                <div class="tool-toggles">
+                    @foreach (var tool in SelectedAgentToolNames)
+                    {
+                        <label class="check">
+                            <input type="checkbox" checked="@IsToolEnabled(tool)" disabled="@_running"
+                                   @onchange="@(e => SetToolEnabled(tool, (bool)e.Value!))" />
+                            @tool
+                        </label>
+                    }
+                </div>
+            </div>
+        }
 
         @if (SelectedAgentRequiresWorkspace)
         {
@@ -329,6 +346,8 @@
     private string _message = string.Empty;
     private string? _selectedAgent;
     private string _workspace = string.Empty;
+    // The names of the selected agent's tools the user has switched off for the next run.
+    private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
 
@@ -380,7 +399,41 @@
             return tools is { Count: > 0 } ? string.Join(" · ", tools) : "—";
         }
     }
+    // The full tool list of the selected agent, used to render the per-tool on/off checkboxes.
+    private IReadOnlyList<string> SelectedAgentToolNames =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.Tools ?? Array.Empty<string>();
 
+    // The selected agent, switching it resets which tools are disabled (the names are agent-specific).
+    private string? SelectedAgent
+    {
+        get => _selectedAgent;
+        set
+        {
+            if (_selectedAgent == value)
+            {
+                return;
+            }
+
+            _selectedAgent = value;
+            _disabledTools.Clear();
+        }
+    }
+
+    // Whether the given tool is currently enabled (offered to the model) for the next run.
+    private bool IsToolEnabled(string tool) => !_disabledTools.Contains(tool);
+
+    // Switches a tool on or off for the next run.
+    private void SetToolEnabled(string tool, bool enabled)
+    {
+        if (enabled)
+        {
+            _disabledTools.Remove(tool);
+        }
+        else
+        {
+            _disabledTools.Add(tool);
+        }
+    }
     // Describes an external resource a tool reaches out to, shown as a node below the harness.
     private sealed record ResourceInfo(string Key, string Icon, string Title, string Transport, string[] ToolNames);
 
@@ -504,7 +557,7 @@
     {
         try
         {
-            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _conversationId, _mode == FlowMode.Manual, _stepDelayMs, _workspace, token))
+            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _conversationId, _mode == FlowMode.Manual, _stepDelayMs, _workspace, _disabledTools.Count > 0 ? _disabledTools.ToArray() : null, token))
             {
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);

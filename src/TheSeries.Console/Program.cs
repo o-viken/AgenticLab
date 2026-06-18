@@ -37,13 +37,16 @@ catch (Exception ex)
 
 PrintAgents(agents, currentAgent);
 Console.WriteLine();
-Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', set a folder with '/workspace <path>', start over with '/new', or press Enter on an empty line to quit.");
+Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', toggle tools with '/tools [name]', set a folder with '/workspace <path>', start over with '/new', or press Enter on an empty line to quit.");
 
 // One conversation for this session so the agent remembers prior turns; '/new' starts a fresh one.
 var conversationId = Guid.NewGuid().ToString("n");
 
 // The workspace folder used by agents that require one (e.g. Coder); set with '/workspace <path>'.
 string? workspace = null;
+
+// Tools the user has switched off for the current agent; cleared when switching agents.
+var disabledTools = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 while (true)
 {
@@ -102,6 +105,48 @@ while (true)
         continue;
     }
 
+    if (message.TrimStart().StartsWith("/tools", StringComparison.OrdinalIgnoreCase))
+    {
+        var selectedAgent = agents.FirstOrDefault(a => a.Name.Equals(currentAgent, StringComparison.OrdinalIgnoreCase));
+        var tools = selectedAgent?.Tools ?? Array.Empty<string>();
+        var arg = message.Trim().Length > "/tools".Length
+            ? message.Trim()["/tools".Length..].Trim()
+            : string.Empty;
+
+        if (tools.Count == 0)
+        {
+            Console.WriteLine($"Agent '{currentAgent}' has no tools to toggle.");
+        }
+        else if (string.IsNullOrWhiteSpace(arg))
+        {
+            Console.WriteLine($"Tools for {currentAgent}:");
+            foreach (var tool in tools)
+            {
+                Console.WriteLine($"   [{(disabledTools.Contains(tool) ? " " : "x")}] {tool}");
+            }
+        }
+        else
+        {
+            var match = tools.FirstOrDefault(t => t.Equals(arg, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+            {
+                Console.WriteLine($"Unknown tool '{arg}'. Available: {string.Join(", ", tools)}");
+            }
+            else if (disabledTools.Remove(match))
+            {
+                Console.WriteLine($"Enabled {match}.");
+            }
+            else
+            {
+                disabledTools.Add(match);
+                Console.WriteLine($"Disabled {match}.");
+            }
+        }
+
+        Console.WriteLine();
+        continue;
+    }
+
     if (message.TrimStart().StartsWith("/agent ", StringComparison.OrdinalIgnoreCase))
     {
         var name = message.Trim()["/agent ".Length..].Trim();
@@ -113,6 +158,7 @@ while (true)
         else
         {
             currentAgent = match.Name;
+            disabledTools.Clear();
             Console.WriteLine($"Switched to {match.Name}.");
         }
 
@@ -130,7 +176,7 @@ while (true)
             continue;
         }
 
-        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent, conversationId, workspace });
+        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent, conversationId, workspace, disabledTools = disabledTools.Count > 0 ? disabledTools.ToArray() : null });
         response.EnsureSuccessStatusCode();
         var reply = await response.Content.ReadFromJsonAsync<ChatReply>();
         Console.WriteLine(reply?.Reply ?? "(no reply)");
@@ -162,6 +208,6 @@ static void PrintAgents(IReadOnlyList<AgentInfo> agents, string? currentAgent)
 }
 
 internal sealed record ChatReply(string Reply);
-internal sealed record AgentInfo(string Name, string Description, bool RequiresWorkspace = false);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 

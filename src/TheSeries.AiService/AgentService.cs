@@ -27,6 +27,10 @@ public static class AgentService
             .GetChatClient(deployment)
             .AsIChatClient()
             .AsBuilder()
+            // Outermost: strip the tools the caller disabled for this run before function invocation or
+            // the model ever see them. The agent framework only unions per-run tools, so restricting to a
+            // subset of an agent's tools must happen here rather than through run options.
+            .Use(inner => new ToolFilteringChatClient(inner))
             .UseFunctionInvocation()
             .Use(inner => new CapturingChatClient(inner))
             .UseOpenTelemetry()
