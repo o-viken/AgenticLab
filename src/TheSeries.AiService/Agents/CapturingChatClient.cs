@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 
@@ -15,6 +16,9 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
+        // Render <, >, & and other characters literally instead of as \u003C escapes so the
+        // captured system prompt and messages stay human-readable in the flow visualizer.
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <inheritdoc />
@@ -74,7 +78,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
             }),
         };
 
-        return JsonSerializer.Serialize(payload, JsonOptions);
+        return Serialize(payload);
     }
 
     /// <summary>
@@ -128,7 +132,18 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
             toolCalls = toolCalls.Count == 0 ? null : toolCalls,
         };
 
-        return JsonSerializer.Serialize(payload, JsonOptions);
+        return Serialize(payload);
+    }
+
+    /// <summary>
+    /// Serializes a captured payload to indented JSON, then unescapes the <c>\n</c>/<c>\r</c> escape
+    /// sequences inside string values into real line breaks. The result is display-only (no longer
+    /// strict JSON), so multi-line content like the system prompt renders on actual lines in the UI.
+    /// </summary>
+    private static string Serialize(object payload)
+    {
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        return json.Replace("\\r\\n", "\n").Replace("\\n", "\n").Replace("\\r", "\n");
     }
 
     private static object RenderContent(AIContent content) => content switch
