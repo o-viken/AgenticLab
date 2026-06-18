@@ -18,6 +18,13 @@ public interface IAgentDefinition
     /// <summary>The system instructions supplied to the agent on every run.</summary>
     string Instructions { get; }
 
+    /// <summary>
+    /// Whether this agent requires the caller to supply a workspace path. When <c>true</c>, the chat
+    /// endpoints reject a request that does not include a workspace, and a <see cref="WorkspaceScope"/>
+    /// is opened for the run so the file-system and terminal tools have a root to operate against.
+    /// </summary>
+    bool RequiresWorkspace { get; }
+
     /// <summary>The tools this agent is allowed to call.</summary>
     IList<AITool> Tools { get; }
 }

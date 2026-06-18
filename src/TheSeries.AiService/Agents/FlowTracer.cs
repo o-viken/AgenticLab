@@ -41,6 +41,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
     /// <param name="message">The user's message.</param>
     /// <param name="agentName">The agent to use, or null/blank for the default.</param>
     /// <param name="conversationId">The conversation to continue, so the run remembers prior turns.</param>
+    /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
     /// <param name="session">The control session that paces, pauses and stops the run.</param>
     /// <param name="cancellationToken">A token to cancel the run.</param>
     /// <returns>An ordered, lazily-produced sequence of flow events.</returns>
@@ -48,6 +49,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         string message,
         string? agentName,
         string conversationId,
+        string? workspace,
         FlowSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -66,6 +68,23 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         if (!catalog.TryResolve(agentName, out var agent, out var resolvedName))
         {
             yield return Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
+            registry.Remove(session.Id);
+            yield break;
+        }
+
+        if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(workspace))
+        {
+            yield return Step("error", $"Agent '{resolvedName}' requires a workspace", "Set a workspace path before running this agent.");
+            registry.Remove(session.Id);
+            yield break;
+        }
+
+        using var workspaceScope = catalog.RequiresWorkspace(resolvedName)
+            ? OpenWorkspace(workspace)
+            : null;
+        if (catalog.RequiresWorkspace(resolvedName) && workspaceScope is null)
+        {
+            yield return Step("error", "Invalid workspace", $"Workspace path '{workspace}' is not an existing directory.");
             registry.Remove(session.Id);
             yield break;
         }
@@ -95,6 +114,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             while (true)
             {
                 capture.Activate();
+                workspaceScope?.Activate();
                 if (!await updates.MoveNextAsync())
                 {
                     break;
@@ -166,6 +186,19 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
         finally
         {
             registry.Remove(session.Id);
+        }
+    }
+
+    // Opens a workspace scope for a path, returning null when the path is missing or not a directory.
+    private static WorkspaceScope? OpenWorkspace(string? path)
+    {
+        try
+        {
+            return WorkspaceScope.Begin(path);
+        }
+        catch (Exception ex) when (ex is ArgumentException or DirectoryNotFoundException)
+        {
+            return null;
         }
     }
 

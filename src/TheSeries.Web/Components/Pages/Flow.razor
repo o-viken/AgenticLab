@@ -30,6 +30,16 @@
             </select>
         </div>
 
+        @if (SelectedAgentRequiresWorkspace)
+        {
+            <div class="control message">
+                <label for="workspace">Workspace</label>
+                <input id="workspace" @bind="_workspace" @bind:event="oninput"
+                       placeholder="Absolute path to a folder the agent may edit, e.g. C:\code\my-app"
+                       disabled="@_running" />
+            </div>
+        }
+
         <div class="control">
             <label for="delay">Auto step delay <span>@_stepDelayMs ms</span></label>
             <input id="delay" type="range" min="0" max="3000" step="50"
@@ -50,7 +60,7 @@
         <div class="control actions">
             @if (!_running)
             {
-                <button class="send" @onclick="SendAsync" disabled="@string.IsNullOrWhiteSpace(_message)">Send</button>
+                <button class="send" @onclick="SendAsync" disabled="@(string.IsNullOrWhiteSpace(_message) || (SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(_workspace)))">Send</button>
                 <button class="stop" @onclick="NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
             }
             else if (_mode == FlowMode.Manual)
@@ -288,6 +298,7 @@
 
     private string _message = string.Empty;
     private string? _selectedAgent;
+    private string _workspace = string.Empty;
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
 
@@ -321,6 +332,10 @@
             ? (CurrentTurn == 0 ? "Turn …" : $"Turn {CurrentTurn}")
             : (TotalTurns == 0 ? "—" : $"{TotalTurns} turn{(TotalTurns == 1 ? "" : "s")}");
 
+    // Whether the currently selected agent requires a workspace path before it can run.
+    private bool SelectedAgentRequiresWorkspace =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.RequiresWorkspace ?? false;
+
     // The tools available to the currently selected agent, shown in the harness Tools box.
     private string SelectedAgentTools
     {
@@ -339,6 +354,8 @@
     {
         new("wikipedia", "🌐", "Wikipedia", "HTTPS · en.wikipedia.org", new[] { "SearchWiki", "GetWikiPage" }),
         new("compute", "🧮", "Local compute", "In-process · CPU", new[] { "Calculate" }),
+        new("workspace", "📁", "Workspace", "Local file system", new[] { "ReadFile", "ListFiles", "WriteFile", "DeleteFile" }),
+        new("shell", "⌨️", "Terminal", "Local process · allowlisted", new[] { "RunCommand" }),
     };
 
     // The resource currently being used, based on the active tool, or null when none is active.
@@ -450,7 +467,7 @@
     {
         try
         {
-            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _conversationId, _mode == FlowMode.Manual, _stepDelayMs, token))
+            await foreach (var flowEvent in Ai.StreamFlowAsync(_message, _selectedAgent, _sessionId, _conversationId, _mode == FlowMode.Manual, _stepDelayMs, _workspace, token))
             {
                 _events.Add(flowEvent);
                 (_activeNode, _activeArrow) = MapTarget(flowEvent.Kind);

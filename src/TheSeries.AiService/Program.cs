@@ -24,11 +24,16 @@ builder.Services.AddSingleton(sp =>
     new WikiTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("wikipedia")));
 builder.Services.AddSingleton<CalculatorTool>();
 
+// Workspace-scoped tools for the coding agent.
+builder.Services.AddSingleton<FileSystemTool>();
+builder.Services.AddSingleton<TerminalTool>();
+
 // Each agent declares its own persona and tool subset; the first registered is the default.
 builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
 builder.Services.AddSingleton<IAgentDefinition, MathTutorAgent>();
 // builder.Services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
+builder.Services.AddSingleton<IAgentDefinition, CoderAgent>();
 
 // The shared chat client and the catalog of agents are stateless and safe to share as singletons.
 builder.Services.AddSingleton(sp =>
@@ -63,6 +68,17 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Conversat
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
 
+    if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
+    {
+        return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
+    }
+
+    using var workspace = catalog.RequiresWorkspace(resolvedName) ? OpenWorkspace(request.Workspace) : null;
+    if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
+    {
+        return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+    }
+
     // Continue the existing conversation (remembering prior turns) when an id is supplied; otherwise mint
     // a new one and return it so the client can keep the conversation going.
     var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
@@ -80,7 +96,7 @@ app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowCon
 {
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
     return TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, session, cancellationToken),
+        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, session, cancellationToken),
         eventType: "flow");
 });
 
@@ -136,9 +152,22 @@ app.MapPost("/chat/reset", (ConversationResetRequest request, ConversationStore 
 
 app.Run();
 
-internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null);
+// Opens a workspace scope for a path, returning null when the path is missing or not a directory.
+static WorkspaceScope? OpenWorkspace(string? path)
+{
+    try
+    {
+        return WorkspaceScope.Begin(path);
+    }
+    catch (Exception ex) when (ex is ArgumentException or DirectoryNotFoundException)
+    {
+        return null;
+    }
+}
+
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);
 internal sealed record ConversationResetRequest(string ConversationId);

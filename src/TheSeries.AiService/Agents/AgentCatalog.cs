@@ -9,7 +9,8 @@ namespace TheSeries.AiService.Agents;
 /// <param name="Name">The unique name used to select the agent.</param>
 /// <param name="Description">A short description of what the agent is good at.</param>
 /// <param name="Tools">The names of the tools this agent may call.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools);
+/// <param name="RequiresWorkspace">Whether selecting this agent requires the caller to supply a workspace path.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -18,6 +19,7 @@ public sealed record AgentInfo(string Name, string Description, IReadOnlyList<st
 public sealed class AgentCatalog
 {
     private readonly Dictionary<string, AIAgent> _agents;
+    private readonly Dictionary<string, bool> _requiresWorkspace;
 
     /// <summary>
     /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
@@ -35,6 +37,7 @@ public sealed class AgentCatalog
         }
 
         _agents = new Dictionary<string, AIAgent>(StringComparer.OrdinalIgnoreCase);
+        _requiresWorkspace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in list)
         {
             _agents[definition.Name] = new ChatClientAgent(
@@ -42,13 +45,15 @@ public sealed class AgentCatalog
                 instructions: definition.Instructions,
                 name: definition.Name,
                 tools: definition.Tools);
+            _requiresWorkspace[definition.Name] = definition.RequiresWorkspace;
         }
 
         DefaultName = list[0].Name;
         Agents = list.Select(d => new AgentInfo(
             d.Name,
             d.Description,
-            d.Tools.OfType<AIFunction>().Select(f => f.Name).ToList())).ToList();
+            d.Tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
+            d.RequiresWorkspace)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>
@@ -67,4 +72,10 @@ public sealed class AgentCatalog
         resolvedName = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
         return _agents.TryGetValue(resolvedName, out agent!);
     }
+
+    /// <summary>Whether the named agent requires a workspace path. Unknown names return <c>false</c>.</summary>
+    /// <param name="name">The resolved agent name.</param>
+    /// <returns><c>true</c> when the agent requires a workspace; otherwise <c>false</c>.</returns>
+    public bool RequiresWorkspace(string name) =>
+        _requiresWorkspace.TryGetValue(name, out var requires) && requires;
 }

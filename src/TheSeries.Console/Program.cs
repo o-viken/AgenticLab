@@ -37,10 +37,13 @@ catch (Exception ex)
 
 PrintAgents(agents, currentAgent);
 Console.WriteLine();
-Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', start over with '/new', or press Enter on an empty line to quit.");
+Console.WriteLine("Ask a question, switch with '/agent <name>', list with '/agents', set a folder with '/workspace <path>', start over with '/new', or press Enter on an empty line to quit.");
 
 // One conversation for this session so the agent remembers prior turns; '/new' starts a fresh one.
 var conversationId = Guid.NewGuid().ToString("n");
+
+// The workspace folder used by agents that require one (e.g. Coder); set with '/workspace <path>'.
+string? workspace = null;
 
 while (true)
 {
@@ -54,6 +57,29 @@ while (true)
     if (message.Trim().Equals("/agents", StringComparison.OrdinalIgnoreCase))
     {
         PrintAgents(agents, currentAgent);
+        Console.WriteLine();
+        continue;
+    }
+
+    if (message.TrimStart().StartsWith("/workspace", StringComparison.OrdinalIgnoreCase))
+    {
+        var path = message.Trim().Length > "/workspace".Length
+            ? message.Trim()["/workspace".Length..].Trim().Trim('"')
+            : string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            Console.WriteLine(workspace is null ? "No workspace set." : $"Workspace: {workspace}");
+        }
+        else if (!Directory.Exists(path))
+        {
+            Console.WriteLine($"Directory does not exist: {path}");
+        }
+        else
+        {
+            workspace = Path.GetFullPath(path);
+            Console.WriteLine($"Workspace set to {workspace}.");
+        }
+
         Console.WriteLine();
         continue;
     }
@@ -96,7 +122,15 @@ while (true)
 
     try
     {
-        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent, conversationId });
+        var selected = agents.FirstOrDefault(a => a.Name.Equals(currentAgent, StringComparison.OrdinalIgnoreCase));
+        if (selected?.RequiresWorkspace == true && string.IsNullOrWhiteSpace(workspace))
+        {
+            Console.WriteLine($"Agent '{currentAgent}' needs a workspace. Set one with '/workspace <path>' first.");
+            Console.WriteLine();
+            continue;
+        }
+
+        using var response = await http.PostAsJsonAsync("/chat", new { message, agent = currentAgent, conversationId, workspace });
         response.EnsureSuccessStatusCode();
         var reply = await response.Content.ReadFromJsonAsync<ChatReply>();
         Console.WriteLine(reply?.Reply ?? "(no reply)");
@@ -128,6 +162,6 @@ static void PrintAgents(IReadOnlyList<AgentInfo> agents, string? currentAgent)
 }
 
 internal sealed record ChatReply(string Reply);
-internal sealed record AgentInfo(string Name, string Description);
+internal sealed record AgentInfo(string Name, string Description, bool RequiresWorkspace = false);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 

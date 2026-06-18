@@ -36,6 +36,10 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     public abstract string Description { get; }
 
     /// <inheritdoc />
+    /// <remarks>Defaults to <c>false</c>; agents that need a workspace override this to return <c>true</c>.</remarks>
+    public virtual bool RequiresWorkspace => false;
+
+    /// <inheritdoc />
     public abstract IList<AITool> Tools { get; }
 
     /// <summary>
