@@ -135,6 +135,11 @@ button.stop {
     opacity: .8;
 }
 
+.perspective-toggle button {
+    padding: .55rem .8rem;
+    font-size: .85rem;
+}
+
 /* Boundary toggles ---------------------------------------------------- */
 .boundary-toggles {
     display: flex;
@@ -208,6 +213,17 @@ button.stop {
 .diagram > .column.center { grid-column: 5; grid-row: 1; }
 .diagram > .connector-group.loop { grid-column: 6; grid-row: 1; }
 .diagram > .column.right { grid-column: 7; grid-row: 1; }
+
+/* Non-technical perspective: User → Application → LLM (5 columns). */
+.diagram.p-nontech {
+    grid-template-columns: max-content minmax(120px, 1fr) max-content minmax(120px, 1fr) max-content;
+}
+
+.diagram.p-nontech > .node.user { grid-column: 1; grid-row: 1; }
+.diagram.p-nontech > .connector-group.user-app { grid-column: 2; grid-row: 1; }
+.diagram.p-nontech > .node.application { grid-column: 3; grid-row: 1; }
+.diagram.p-nontech > .connector-group.app-llm { grid-column: 4; grid-row: 1; }
+.diagram.p-nontech > .column.right { grid-column: 5; grid-row: 1; }
 
 .diagram > .node,
 .diagram > .column,
@@ -326,6 +342,12 @@ button.stop {
     border-color: rgba(120, 170, 230, .5);
 }
 
+/* Merged Client + AiService node shown in the non-technical perspective. */
+.node.application {
+    background: #163a63;
+    border-color: rgba(120, 170, 230, .5);
+}
+
 .node-inner.tools {
     margin-top: .75rem;
     padding: .5rem .8rem;
@@ -356,6 +378,167 @@ button.stop {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: #c8b78f;
+}
+
+/* Harness anatomy (the expanded "what makes up the harness" view) ----- */
+.node.harness.anatomy {
+    align-items: stretch;
+    text-align: left;
+    gap: .45rem;
+    padding: 1rem;
+    min-width: 250px;
+    max-width: 300px;
+    background: #0f2742;
+}
+
+.anatomy-heading {
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: #cfe0fb;
+    text-align: center;
+    margin-bottom: .15rem;
+}
+
+.anatomy .layer {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: .55rem .65rem;
+    border-radius: 10px;
+    color: #1a1a1a;
+}
+
+.anatomy .layer-title {
+    font-weight: 800;
+    font-size: .92rem;
+}
+
+.anatomy .layer-body {
+    font-size: .72rem;
+    line-height: 1.25;
+    color: #2a2a2a;
+}
+
+/* Colour-coded by who sets the layer (matches the anatomy concept). */
+.anatomy .layer.app { background: #ff5252; }
+.anatomy .layer.agent { background: #f1ec18; }
+.anatomy .layer.user { background: #82e000; }
+
+.anatomy .set-by {
+    align-self: flex-start;
+    font-size: .66rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, .35);
+    border-radius: 5px;
+    padding: .12rem .45rem;
+    margin-top: .15rem;
+}
+
+.anatomy .tool-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .74rem;
+    color: #1a1a1a;
+}
+
+.anatomy .layer.tools.active {
+    box-shadow: 0 0 0 2px rgba(240, 136, 62, .55), 0 0 16px 2px rgba(240, 136, 62, .5);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+/* Growing context visualization (KISS: a bar + an appended chip per step). */
+.anatomy .context-stack {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .55rem .65rem;
+    border-radius: 10px;
+    background: #08121f;
+    border: 1px solid rgba(120, 140, 190, .25);
+}
+
+.context-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+.context-title {
+    font-weight: 700;
+    color: #cfe0fb;
+    font-size: .82rem;
+}
+
+.context-meta {
+    font-size: .66rem;
+    color: #8aa0c8;
+}
+
+.context-bar {
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(120, 140, 190, .2);
+    overflow: hidden;
+}
+
+.context-bar > span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #82e000, #f1ec18, #ff5252);
+    transition: width .4s ease;
+}
+
+.context-empty {
+    font-size: .7rem;
+    color: #8aa0c8;
+    font-style: italic;
+}
+
+.context-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    max-height: 168px;
+    overflow-y: auto;
+}
+
+.context-chips .ctx {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .7rem;
+    padding: .2rem .45rem;
+    border-radius: 6px;
+    border-left: 3px solid transparent;
+    background: rgba(255, 255, 255, .04);
+    color: #c7d3ea;
+    animation: ctx-in .3s ease;
+}
+
+.context-chips .ctx.app { border-left-color: #ff5252; }
+.context-chips .ctx.agent { border-left-color: #f1ec18; }
+.context-chips .ctx.user { border-left-color: #82e000; }
+
+.context-chips .ctx-turn {
+    font-size: .6rem;
+    font-weight: 700;
+    color: #9fb4dc;
+    background: rgba(120, 140, 190, .18);
+    border-radius: 4px;
+    padding: 0 .3rem;
+}
+
+@keyframes ctx-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Skills catalogue inside the harness box ----------------------------- */
