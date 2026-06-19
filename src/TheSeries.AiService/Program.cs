@@ -63,6 +63,23 @@ app.MapDefaultEndpoints();
 app.MapGet("/agents", (AgentCatalog catalog) =>
     Results.Ok(new AgentsResponse(catalog.Agents, catalog.DefaultName)));
 
+// Lists the skills discovered in a given workspace (names + descriptions) so a client can show the
+// skill catalogue before a run starts. Returns an empty list when the path is missing/invalid or the
+// workspace declares no skills.
+app.MapPost("/skills", (SkillsRequest request, SkillLoader skills) =>
+{
+    using var workspace = OpenWorkspace(request.Workspace);
+    if (workspace is null)
+    {
+        return Results.Ok(new SkillsResponse(Array.Empty<SkillInfo>()));
+    }
+
+    var discovered = skills.Load()
+        .Select(s => new SkillInfo(s.Name, s.Description))
+        .ToList();
+    return Results.Ok(new SkillsResponse(discovered));
+});
+
 app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
@@ -199,6 +216,9 @@ static AgentRunOptions? BuildSkillRunOptions(AgentCatalog catalog, string agentN
 internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
+internal sealed record SkillsRequest(string? Workspace);
+internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
+internal sealed record SkillInfo(string Name, string Description);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);
 internal sealed record ConversationResetRequest(string ConversationId);

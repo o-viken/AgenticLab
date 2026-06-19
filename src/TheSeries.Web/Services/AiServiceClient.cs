@@ -19,6 +19,20 @@ internal sealed class AiServiceClient(HttpClient http)
         await http.GetFromJsonAsync<AgentsResponse>("/agents", JsonOptions, cancellationToken);
 
     /// <summary>
+    /// Lists the skills discovered in the given workspace (names + descriptions) so the catalogue can be
+    /// shown in the harness before a run. Returns an empty list when the path is missing or declares none.
+    /// </summary>
+    /// <param name="workspace">The workspace path to scan for skills; null/blank yields an empty list.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<SkillsResponse?> GetSkillsAsync(string? workspace, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync("/skills", new SkillsRequest(workspace), JsonOptions, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<SkillsResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
     /// Sends a message and yields each <see cref="FlowEvent"/> as the agent run progresses. The run is
     /// paced on the server by the matching <see cref="SendControlAsync"/> calls (keyed by session id).
     /// </summary>
@@ -100,8 +114,11 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
+internal sealed record SkillsRequest(string? Workspace);
+internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
+internal sealed record SkillInfo(string Name, string Description);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
 internal sealed record ConversationResetRequest(string ConversationId);

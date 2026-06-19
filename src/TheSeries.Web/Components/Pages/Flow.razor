@@ -3,6 +3,7 @@
 @inject AiServiceClient Ai
 @implements IDisposable
 @using System.Threading
+@using System.Text.Json
 
 <PageTitle>TheSeries — Flow</PageTitle>
 
@@ -22,7 +23,7 @@
 
         <div class="control">
             <label for="agent">Agent</label>
-            <select id="agent" @bind="SelectedAgent" disabled="@_running">
+            <select id="agent" @bind="SelectedAgent" @bind:after="RefreshKnownSkillsAsync" disabled="@_running">
                 @foreach (var agent in _agents)
                 {
                     <option value="@agent.Name">@agent.Name</option>
@@ -51,7 +52,7 @@
         {
             <div class="control message">
                 <label for="workspace">Workspace</label>
-                <input id="workspace" @bind="_workspace" @bind:event="oninput"
+                <input id="workspace" @bind="_workspace" @bind:event="oninput" @onblur="RefreshKnownSkillsAsync"
                        placeholder="Absolute path to a folder the agent may edit, e.g. C:\code\my-app"
                        disabled="@_running" />
             </div>
@@ -145,12 +146,38 @@
         <div class="column center">
             <div class="node harness @NodeClass("harness")">
                 <span class="icon">🛠️</span>
-                <span class="title">Harness</span>
-                <span class="subtitle">AiService · Agent</span>
+                <span class="title">Application</span>
+                <span class="subtitle">Service · @(_selectedAgent ?? "Agent")</span>
+                @if (SelectedAgentRequiresWorkspace && !string.IsNullOrWhiteSpace(_workspace))
+                {
+                    <span class="subtitle workspace-path" title="@_workspace">📁 @_workspace</span>
+                }
                 <div class="tools node-inner @NodeClass("tools")">
                     <span class="title">Tools</span>
                     <span class="subtitle">@SelectedAgentTools</span>
                 </div>
+                @if (SelectedAgentSupportsSkills)
+                {
+                    <div class="skills node-inner">
+                        <span class="title">Skills</span>
+                        @if (_knownSkills.Count == 0)
+                        {
+                            <span class="subtitle">@(string.IsNullOrWhiteSpace(_workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
+                        }
+                        else
+                        {
+                            <div class="skill-chips">
+                                @foreach (var skill in _knownSkills)
+                                {
+                                    <span class="skill-chip @(_loadedSkills.Contains(skill.Name) ? "loaded" : "")"
+                                          title="@skill.Description">
+                                        @skill.Name
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
             </div>
 
             @if (ActiveResourceInfo is { } resource)
@@ -348,6 +375,10 @@
     private string _workspace = string.Empty;
     // The names of the selected agent's tools the user has switched off for the next run.
     private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
+    // The skills discovered in the workspace for this run (parsed from the streamed llm-request).
+    private readonly List<SkillChip> _knownSkills = new();
+    // The skills whose full instructions the model has loaded via ReadSkill during this run.
+    private readonly HashSet<string> _loadedSkills = new(StringComparer.OrdinalIgnoreCase);
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
 
@@ -390,6 +421,10 @@
     private bool SelectedAgentRequiresWorkspace =>
         _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.RequiresWorkspace ?? false;
 
+    // Whether the currently selected agent uses workspace skills, so the harness Skills box is shown.
+    private bool SelectedAgentSupportsSkills =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.SupportsSkills ?? false;
+
     // The tools available to the currently selected agent, shown in the harness Tools box.
     private string SelectedAgentTools
     {
@@ -416,6 +451,8 @@
 
             _selectedAgent = value;
             _disabledTools.Clear();
+            _knownSkills.Clear();
+            _loadedSkills.Clear();
         }
     }
 
@@ -498,6 +535,7 @@
         _runAgent = _selectedAgent;
         _events.Clear();
         _expanded.Clear();
+        _loadedSkills.Clear();
         _sessionId = Guid.NewGuid().ToString("n");
         _cts = new CancellationTokenSource();
 
@@ -525,6 +563,7 @@
         _events.Clear();
         _expanded.Clear();
         _turns.Clear();
+        _loadedSkills.Clear();
         _runMessage = string.Empty;
         _runAgent = null;
 
@@ -565,6 +604,8 @@
                 _activeTool = ToolNameFor(flowEvent);
                 _responseHint = ResponseHintFor(flowEvent) ?? _responseHint;
                 _awaitingStep = false;
+
+                TrackSkills(flowEvent);
 
                 if (flowEvent.Kind == "final")
                 {
@@ -717,6 +758,118 @@
         _ => null,
     };
 
+    // Loads the workspace's skill catalogue so the harness Skills box can list it before a run. Resets
+    // any loaded markers and clears the list when the selected agent does not use skills or no workspace
+    // is set. Called when the agent or workspace changes.
+    private async Task RefreshKnownSkillsAsync()
+    {
+        _knownSkills.Clear();
+        _loadedSkills.Clear();
+
+        if (!SelectedAgentSupportsSkills || string.IsNullOrWhiteSpace(_workspace))
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Ai.GetSkillsAsync(_workspace);
+            if (response is not null)
+            {
+                _knownSkills.AddRange(response.Skills.Select(s => new SkillChip(s.Name, s.Description)));
+            }
+        }
+        catch
+        {
+            // Best-effort: the catalogue is informational and the path may still be mid-edit.
+        }
+    }
+
+    // Keeps the harness Skills box in sync with the run: the catalogue of skills the workspace offers
+    // (parsed once from the first llm-request's instructions) and the ones the model has actually loaded.
+    private void TrackSkills(FlowEvent flowEvent)
+    {
+        if (flowEvent.Kind == "llm-request" && _knownSkills.Count == 0 && !string.IsNullOrWhiteSpace(flowEvent.Data))
+        {
+            _knownSkills.AddRange(ParseKnownSkills(flowEvent.Data));
+        }
+        else if (flowEvent.Kind == "tool-call")
+        {
+            var loaded = LoadedSkillFor(flowEvent);
+            if (loaded is not null)
+            {
+                _loadedSkills.Add(loaded);
+            }
+        }
+    }
+
+    // Extracts the workspace's skill catalogue from the captured llm-request payload by reading the
+    // <skills> block that the harness injects into the instructions (each entry is "- name: description").
+    private static IReadOnlyList<SkillChip> ParseKnownSkills(string data)
+    {
+        string? instructions;
+        try
+        {
+            using var document = JsonDocument.Parse(data);
+            instructions = document.RootElement.TryGetProperty("instructions", out var value)
+                ? value.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<SkillChip>();
+        }
+
+        if (string.IsNullOrEmpty(instructions))
+        {
+            return Array.Empty<SkillChip>();
+        }
+
+        var open = instructions.IndexOf("<skills>", StringComparison.OrdinalIgnoreCase);
+        var close = instructions.IndexOf("</skills>", StringComparison.OrdinalIgnoreCase);
+        if (open < 0 || close <= open)
+        {
+            return Array.Empty<SkillChip>();
+        }
+
+        var block = instructions[(open + "<skills>".Length)..close];
+        var skills = new List<SkillChip>();
+        foreach (var raw in block.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (!line.StartsWith("- ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var entry = line[2..];
+            var separator = entry.IndexOf(':');
+            var name = (separator >= 0 ? entry[..separator] : entry).Trim();
+            var description = separator >= 0 ? entry[(separator + 1)..].Trim() : string.Empty;
+            if (name.Length > 0)
+            {
+                skills.Add(new SkillChip(name, description));
+            }
+        }
+
+        return skills;
+    }
+
+    // Returns the known skill a ReadSkill tool-call is loading, or null when the call is not a skill load.
+    // Matches by the known skill name appearing in the event text, so it works regardless of arg formatting.
+    private string? LoadedSkillFor(FlowEvent flowEvent)
+    {
+        var text = flowEvent.Data ?? flowEvent.Label;
+        if (text.IndexOf("ReadSkill", StringComparison.OrdinalIgnoreCase) < 0)
+        {
+            return null;
+        }
+
+        return _knownSkills
+            .Select(s => s.Name)
+            .FirstOrDefault(name => text.Contains(name, StringComparison.OrdinalIgnoreCase));
+    }
+
     // Toggles whether a step's full request/response data panel is shown.
     private void ToggleStep(int sequence)
     {
@@ -740,4 +893,7 @@
         string Reply,
         string? Error,
         IReadOnlyList<FlowEvent> Events);
+
+    // A skill discovered in the workspace and offered to the agent: its name and one-line description.
+    private sealed record SkillChip(string Name, string Description);
 }

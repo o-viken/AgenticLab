@@ -349,6 +349,50 @@ button.stop {
     animation: pulse 1s ease-in-out infinite;
 }
 
+/* Workspace path shown inside the harness box ------------------------- */
+.node .subtitle.workspace-path {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #c8b78f;
+}
+
+/* Skills catalogue inside the harness box ----------------------------- */
+.node-inner.skills {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: #2c2350;
+    border: 1px solid rgba(170, 150, 230, .4);
+}
+
+.skill-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .3rem;
+    margin-top: .35rem;
+}
+
+.skill-chip {
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    color: #cdbff2;
+    background: rgba(120, 100, 200, .25);
+    border: 1px solid rgba(170, 150, 230, .45);
+    transition: background .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+.skill-chip.loaded {
+    color: #2a1c00;
+    background: #ffc987;
+    border-color: #ffc987;
+    box-shadow: 0 0 12px 1px rgba(240, 136, 62, .5);
+}
+
 /* External resources (below the harness) ------------------------------ */
 .resources {
     display: flex;
