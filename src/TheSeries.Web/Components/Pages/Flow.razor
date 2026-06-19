@@ -81,16 +81,16 @@
                 <button type="button" class="@(_perspective == Perspective.NonTechnical ? "selected" : "")"
                         @onclick="@(() => _perspective = Perspective.NonTechnical)"
                         title="User → Application → LLM">Non-technical</button>
-                <button type="button" class="@(_perspective == Perspective.Mid ? "selected" : "")"
-                        @onclick="@(() => _perspective = Perspective.Mid)"
-                        title="User → Client → AiService → LLM">Mid</button>
-                <button type="button" class="@(_perspective == Perspective.Full ? "selected" : "")"
-                        @onclick="@(() => _perspective = Perspective.Full)"
-                        title="Full harness, tools and steps">Full</button>
+                <button type="button" class="@(_perspective == Perspective.Technical ? "selected" : "")"
+                        @onclick="@(() => _perspective = Perspective.Technical)"
+                        title="User → Client → AiService → LLM">Technical</button>
+                <button type="button" class="@(_perspective == Perspective.Expert ? "selected" : "")"
+                        @onclick="@(() => _perspective = Perspective.Expert)"
+                        title="Full harness, tools and steps">Expert</button>
             </div>
         </div>
 
-        @if (_perspective == Perspective.Full)
+        @if (_perspective == Perspective.Expert)
         {
             <div class="control">
                 <label>Boundaries</label>
@@ -122,13 +122,13 @@
     </section>
 
     <section class="diagram @PerspectiveClass">
-        @if (_perspective == Perspective.Full && _showHarnessBoundary)
+        @if (_perspective == Perspective.Expert && _showHarnessBoundary)
         {
             <div class="boundary harness-b">
                 <span class="boundary-label">Harness</span>
             </div>
         }
-        @if (_perspective == Perspective.Full && _showAgentBoundary)
+        @if (_perspective == Perspective.Expert && _showAgentBoundary)
         {
             <div class="boundary agent-b">
                 <span class="boundary-label">Agent</span>
@@ -141,210 +141,179 @@
             <span class="subtitle">Human</span>
         </div>
 
-        @if (_perspective == Perspective.NonTechnical)
-        {
-            <div class="connector-group user-app">
-                <div class="connector horizontal send @ArrowClass("user-app-send")">
-                    <span class="flow-label">asks ▶</span>
-                </div>
-                <div class="connector horizontal recv @ArrowClass("user-app-recv")">
-                    <span class="flow-label">◀ answer</span>
-                </div>
+        <div class="connector-group user-node">
+            <div class="connector horizontal send @ArrowClass("user-node-send")">
+                <span class="flow-label">Input ▶</span>
             </div>
-
-            <div class="node application @NodeClass("application")">
-                <span class="icon">📦</span>
-                <span class="title">Application</span>
-                <span class="subtitle">Client + AiService</span>
+            <div class="connector horizontal recv @ArrowClass("user-node-recv")">
+                <span class="flow-label">◀ Reply</span>
             </div>
+        </div>
 
-            <div class="connector-group app-llm">
-                <div class="connector horizontal send @ArrowClass("app-llm-send")">
-                    <span class="flow-label">Prompt ▶</span>
-                </div>
-                <div class="connector horizontal recv @ArrowClass("app-llm-recv")">
-                    <span class="flow-label">◀ Response</span>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="connector-group thin">
-                <div class="connector horizontal send @ArrowClass("user-client")">
-                    <span class="flow-label">asks ▶</span>
-                </div>
-            </div>
+        <div class="column center">
+            @if (_perspective == Perspective.Expert && _expandHarness)
+            {
+                <div class="node harness anatomy @NodeClass("harness")">
+                    <span class="anatomy-heading">Harness anatomy</span>
 
-            <div class="node client @NodeClass("client")">
-                <span class="icon">💻</span>
-                <span class="title">Client</span>
-                <span class="subtitle">Blazor web app</span>
-            </div>
+                    <div class="layer app">
+                        <span class="layer-title">System Prompt</span>
+                        <span class="layer-body">Global harness prompt — operating rules + tool loop (expert coding assistant++)</span>
+                        <span class="set-by">Set by application</span>
+                    </div>
 
-            <div class="connector-group">
-                <div class="connector horizontal send @ArrowClass("client-harness-send")">
-                    <span class="flow-label">Input ▶</span>
-                </div>
-                <div class="connector horizontal recv @ArrowClass("client-harness-recv")">
-                    <span class="flow-label">◀ Reply</span>
-                </div>
-            </div>
+                    <div class="layer app">
+                        <span class="layer-title">Client</span>
+                        <span class="layer-body">Blazor web app · sends the prompt, renders the reply</span>
+                        <span class="set-by">Set by application</span>
+                    </div>
 
-            <div class="column center">
-                @if (_perspective == Perspective.Full && _expandHarness)
-                {
-                    <div class="node harness anatomy @NodeClass("harness")">
-                        <span class="anatomy-heading">Harness anatomy</span>
+                    <div class="layer agent">
+                        <span class="layer-title">Agent Persona</span>
+                        <span class="layer-body">@_selectedAgent — @SelectedAgentDescription</span>
+                        <span class="set-by">Set per agent</span>
+                    </div>
 
-                        <div class="layer app">
-                            <span class="layer-title">System Prompt</span>
-                            <span class="layer-body">Global harness prompt — operating rules + tool loop (expert coding assistant++)</span>
-                            <span class="set-by">Set by application</span>
+                    <div class="layer agent tools @NodeClass("tools")">
+                        <span class="layer-title">Tools / MCP</span>
+                        @if (SelectedAgentToolNames.Count == 0)
+                        {
+                            <span class="layer-body">none</span>
+                        }
+                        else
+                        {
+                            <ul class="tool-checks">
+                                @foreach (var tool in SelectedAgentToolNames)
+                                {
+                                    <li>@(IsToolEnabled(tool) ? "[x]" : "[ ]") @tool</li>
+                                }
+                            </ul>
+                        }
+                        <span class="set-by">Set per agent</span>
+                    </div>
+
+                    <div class="layer agent">
+                        <span class="layer-title">Settings</span>
+                        <span class="layer-body">model: Azure OpenAI · stepping: @_mode</span>
+                        <span class="set-by">Set per agent</span>
+                    </div>
+
+                    <div class="layer user">
+                        <span class="layer-title">User prompt</span>
+                        <span class="layer-body">@CurrentUserPrompt</span>
+                        <span class="set-by">Set by user</span>
+                    </div>
+
+                    <div class="context-stack">
+                        <div class="context-head">
+                            <span class="context-title">Context</span>
+                            <span class="context-meta">@ContentEvents.Count content entr@(ContentEvents.Count == 1 ? "y" : "ies") · ~@(ContextSize) chars</span>
                         </div>
-
-                        <div class="layer app">
-                            <span class="layer-title">Application</span>
-                            <span class="layer-body">function-calling · capture · tool filter @(SelectedAgentRequiresWorkspace ? "· workspace" : "")</span>
-                            <span class="set-by">Set by application</span>
-                        </div>
-
-                        <div class="layer agent">
-                            <span class="layer-title">Agent Persona</span>
-                            <span class="layer-body">@_selectedAgent — @SelectedAgentDescription</span>
-                            <span class="set-by">Set per agent</span>
-                        </div>
-
-                        <div class="layer agent tools @NodeClass("tools")">
-                            <span class="layer-title">Tools / MCP</span>
-                            @if (SelectedAgentToolNames.Count == 0)
-                            {
-                                <span class="layer-body">none</span>
-                            }
-                            else
-                            {
-                                <ul class="tool-checks">
-                                    @foreach (var tool in SelectedAgentToolNames)
-                                    {
-                                        <li>@(IsToolEnabled(tool) ? "[x]" : "[ ]") @tool</li>
-                                    }
-                                </ul>
-                            }
-                            <span class="set-by">Set per agent</span>
-                        </div>
-
-                        <div class="layer agent">
-                            <span class="layer-title">Settings</span>
-                            <span class="layer-body">model: Azure OpenAI · stepping: @_mode</span>
-                            <span class="set-by">Set per agent</span>
-                        </div>
-
-                        <div class="layer user">
-                            <span class="layer-title">User prompt</span>
-                            <span class="layer-body">@CurrentUserPrompt</span>
-                            <span class="set-by">Set by user</span>
-                        </div>
-
-                        <div class="context-stack">
-                            <div class="context-head">
-                                <span class="context-title">Context</span>
-                                <span class="context-meta">@_events.Count entr@(_events.Count == 1 ? "y" : "ies") · ~@(ContextSize) chars</span>
-                            </div>
-                            <div class="context-bar"><span style="width:@(ContextBarWidth)%"></span></div>
-                            @if (_events.Count == 0)
-                            {
-                                <span class="context-empty">grows as the agent runs…</span>
-                            }
-                            else
-                            {
-                                <ol class="context-chips">
-                                    @foreach (var e in _events)
-                                    {
-                                        var chip = ContextChip(e);
-                                        <li class="ctx @chip.Source">
+                        <div class="context-bar"><span style="width:@(ContextBarWidth)%"></span></div>
+                        @if (ContentEvents.Count == 0)
+                        {
+                            <span class="context-empty">content grows as the agent runs…</span>
+                        }
+                        else
+                        {
+                            <ol class="context-chips">
+                                @foreach (var e in ContentEvents)
+                                {
+                                    var chip = ContextChip(e);
+                                    var preview = ContextPreview(e);
+                                    <li class="ctx @chip.Source">
+                                        <div class="ctx-row">
                                             @if (e.Turn > 0)
                                             {
-                                                <span class="ctx-turn">T@e.Turn</span>
+                                                <span class="ctx-turn">T@(e.Turn)</span>
                                             }
                                             <span class="ctx-label">@chip.Label</span>
-                                        </li>
-                                    }
-                                </ol>
-                            }
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="node harness @NodeClass("harness")">
-                        <span class="icon">🛠️</span>
-                        <span class="title">@(_perspective == Perspective.Mid ? "AiService" : "Harness")</span>
-                        <span class="subtitle">@(_perspective == Perspective.Mid ? $"{_selectedAgent ?? "Agent"} harness" : $"AiService · {_selectedAgent ?? "Agent"}")</span>
-                        @if (SelectedAgentRequiresWorkspace && !string.IsNullOrWhiteSpace(_workspace))
-                        {
-                            <span class="subtitle workspace-path" title="@_workspace">📁 @_workspace</span>
-                        }
-                        @if (_perspective == Perspective.Full)
-                        {
-                            <div class="tools node-inner @NodeClass("tools")">
-                                <span class="title">Tools</span>
-                                <span class="subtitle">@SelectedAgentTools</span>
-                            </div>
-                            @if (SelectedAgentSupportsSkills)
-                            {
-                                <div class="skills node-inner">
-                                    <span class="title">Skills</span>
-                                    @if (_knownSkills.Count == 0)
-                                    {
-                                        <span class="subtitle">@(string.IsNullOrWhiteSpace(_workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
-                                    }
-                                    else
-                                    {
-                                        <div class="skill-chips">
-                                            @foreach (var skill in _knownSkills)
-                                            {
-                                                <span class="skill-chip @(_loadedSkills.Contains(skill.Name) ? "loaded" : "")"
-                                                      title="@skill.Description">
-                                                    @skill.Name
-                                                </span>
-                                            }
                                         </div>
-                                    }
-                                </div>
-                            }
+                                        @if (!string.IsNullOrEmpty(preview))
+                                        {
+                                            <span class="ctx-preview">@preview</span>
+                                        }
+                                    </li>
+                                }
+                            </ol>
                         }
                     </div>
-                }
-
-                @if (_perspective == Perspective.Full && ActiveResourceInfo is { } resource)
-                {
-                    <div class="connector vertical active"></div>
-                    <div class="resources">
-                        <div class="node resource active">
-                            <span class="icon">@resource.Icon</span>
-                            <span class="title">@resource.Title</span>
-                            <span class="subtitle">@resource.Transport</span>
+                </div>
+            }
+            else
+            {
+                <div class="node harness @NodeClass("harness")">
+                    <span class="icon">@(_perspective == Perspective.Expert ? "🛠️" : "📦")</span>
+                    <span class="title">@(_perspective == Perspective.Expert ? "Harness" : "Application")</span>
+                    <span class="subtitle">@HarnessSubtitle</span>
+                    @if (SelectedAgentRequiresWorkspace && !string.IsNullOrWhiteSpace(_workspace))
+                    {
+                        <span class="subtitle workspace-path" title="@_workspace">📁 @_workspace</span>
+                    }
+                    @if (_perspective == Perspective.Expert)
+                    {
+                        <div class="tools node-inner @NodeClass("tools")">
+                            <span class="title">Tools</span>
+                            <span class="subtitle">@SelectedAgentTools</span>
                         </div>
-                    </div>
-                }
-            </div>
+                        @if (SelectedAgentSupportsSkills)
+                        {
+                            <div class="skills node-inner">
+                                <span class="title">Skills</span>
+                                @if (_knownSkills.Count == 0)
+                                {
+                                    <span class="subtitle">@(string.IsNullOrWhiteSpace(_workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
+                                }
+                                else
+                                {
+                                    <div class="skill-chips">
+                                        @foreach (var skill in _knownSkills)
+                                        {
+                                            <span class="skill-chip @(_loadedSkills.Contains(skill.Name) ? "loaded" : "")"
+                                                  title="@skill.Description">
+                                                @skill.Name
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
 
-            <div class="connector-group loop">
+            @if (_perspective == Perspective.Expert && ActiveResourceInfo is { } resource)
+            {
+                <div class="connector vertical active"></div>
+                <div class="resources">
+                    <div class="node resource active">
+                        <span class="icon">@resource.Icon</span>
+                        <span class="title">@resource.Title</span>
+                        <span class="subtitle">@resource.Transport</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="connector-group loop">
+            @if (_perspective != Perspective.NonTechnical)
+            {
                 <div class="loop-badge @(_running && CurrentTurn > 0 ? "active" : "")">
                     <span class="loop-icon">🔁</span>
                     <span class="loop-count">@LoopLabel</span>
                 </div>
-                <div class="connector horizontal send @ArrowClass("harness-llm-send")">
-                    <span class="flow-label">Prompt + Tools ▶</span>
-                </div>
-                <div class="connector horizontal recv @ArrowClass("harness-llm-recv")">
-                    <span class="flow-label">◀ Response</span>
-                    @if (_activeArrow == "harness-llm-recv" && !string.IsNullOrEmpty(_responseHint))
-                    {
-                        <span class="response-hint">@_responseHint</span>
-                    }
-                </div>
+            }
+            <div class="connector horizontal send @ArrowClass("node-llm-send")">
+                <span class="flow-label">Prompt + Tools ▶</span>
             </div>
-        }
+            <div class="connector horizontal recv @ArrowClass("node-llm-recv")">
+                <span class="flow-label">◀ Response</span>
+                @if (_activeArrow == "node-llm-recv" && !string.IsNullOrEmpty(_responseHint))
+                {
+                    <span class="response-hint">@_responseHint</span>
+                }
+            </div>
+        </div>
 
         <div class="column right">
             <div class="node llm @NodeClass("llm")">
@@ -499,9 +468,9 @@
 
     // The level of detail shown in the diagram and Steps list.
     //   NonTechnical: User → Application → LLM (Client + AiService merged, no tools/loop).
-    //   Mid:          User → Client → AiService → LLM (no nested Tools box / resources).
-    //   Full:         the complete harness view (Tools, resources, loop badge, every step).
-    private enum Perspective { NonTechnical, Mid, Full }
+    //   Technical:    User → Client → AiService → LLM (no nested Tools box / resources).
+    //   Expert:       the complete harness view (Tools, resources, loop badge, every step).
+    private enum Perspective { NonTechnical, Technical, Expert }
 
     private readonly List<AgentInfo> _agents = new();
     private readonly List<FlowEvent> _events = new();
@@ -528,10 +497,10 @@
     private bool _showHarnessBoundary = false;
     private bool _showAgentBoundary = false;
 
-    // The currently selected detail level for the diagram and Steps list (defaults to the full view).
-    private Perspective _perspective = Perspective.Full;
+    // The currently selected detail level for the diagram and Steps list (defaults to the expert view).
+    private Perspective _perspective = Perspective.Expert;
     // Whether the Harness node is expanded into its "anatomy" (system prompt, persona, tools, settings,
-    // user prompt) — only offered in the Full perspective.
+    // user prompt) — only offered in the Expert perspective.
     private bool _expandHarness = false;
 
     private string? _activeNode;
@@ -555,17 +524,17 @@
     private string PerspectiveClass => _perspective switch
     {
         Perspective.NonTechnical => "p-nontech",
-        Perspective.Mid => "p-mid",
+        Perspective.Technical => "p-mid",
         _ => "p-full",
     };
 
     // Filters a flow's events down to those the current perspective shows:
-    //   Full shows everything; Mid hides the tool-call/result detail; NonTechnical keeps only the
+    //   Expert shows everything; Technical hides the tool-call/result detail; NonTechnical keeps only the
     //   message in and the final answer out (plus errors).
     private IReadOnlyList<FlowEvent> VisibleEvents(IEnumerable<FlowEvent> events) => _perspective switch
     {
         Perspective.NonTechnical => events.Where(e => e.Kind is "received" or "final" or "error").ToList(),
-        Perspective.Mid => events.Where(e => e.Kind is not "tool-call" and not "tool-result").ToList(),
+        Perspective.Technical => events.Where(e => e.Kind is not "tool-call" and not "tool-result").ToList(),
         _ => events as IReadOnlyList<FlowEvent> ?? events.ToList(),
     };
 
@@ -611,6 +580,15 @@
     private string SelectedAgentDescription =>
         _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.Description ?? "—";
 
+    // The subtitle of the merged Client + AiService node. Non-technical states the grouping plainly;
+    // Technical/Expert name the agent running inside it.
+    private string HarnessSubtitle => _perspective switch
+    {
+        Perspective.NonTechnical => "Client + AiService",
+        Perspective.Technical => $"Client + AiService · {_selectedAgent ?? "Agent"}",
+        _ => $"AiService · {_selectedAgent ?? "Agent"}",
+    };
+
     // The user's prompt for the current/next run, shown as the "Set by user" anatomy layer.
     private string CurrentUserPrompt =>
         !string.IsNullOrWhiteSpace(_runMessage) ? _runMessage
@@ -623,6 +601,34 @@
 
     // The width (0–100%) of the context growth bar, scaled so typical runs fill it gradually.
     private int ContextBarWidth => Math.Min(100, ContextSize / 80);
+
+    // The subset of events that carry actual conversation content (user/tool/assistant text). The
+    // structural pieces — the system prompt, the tool catalogue and the persona — are deliberately
+    // excluded here because they are already shown in the coloured anatomy boxes above; the Context
+    // stack focuses on the content that flows through the model turn by turn.
+    private IReadOnlyList<FlowEvent> ContentEvents =>
+        _events.Where(IsContentEvent).ToList();
+
+    // True for events whose payload is conversation content rather than structural scaffolding.
+    // Excludes "llm-request" (system prompt + tool schemas) and "tool-call" (the model's tool request,
+    // an agent action) — both are represented by the coloured boxes.
+    private static bool IsContentEvent(FlowEvent e) => e.Kind switch
+    {
+        "received" or "tool-result" or "llm-response" or "final" or "error" => true,
+        _ => false,
+    };
+
+    // A short, single-line preview of the actual content an event contributed, so the Context stack
+    // shows what flowed into the model — not just its category. Falls back to the detail/label.
+    private static string ContextPreview(FlowEvent e)
+    {
+        var text = !string.IsNullOrWhiteSpace(e.Data) ? e.Data
+            : !string.IsNullOrWhiteSpace(e.Detail) ? e.Detail
+            : string.Empty;
+
+        text = System.Text.RegularExpressions.Regex.Replace(text, "\\s+", " ").Trim();
+        return text.Length > 90 ? text[..90] + "…" : text;
+    }
 
     // Maps a flow event to a short context chip (what got appended to the model's context) and the
     // party that contributed it: "app" (application/harness), "agent" (the model/persona) or "user".
@@ -901,12 +907,12 @@
 
     private static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
     {
-        "received" => ("harness", "client-harness-send"),
-        "llm-request" => ("llm", "harness-llm-send"),
-        "tool-call" => ("tools", "harness-llm-recv"),
-        "tool-result" => ("harness", "harness-llm-recv"),
-        "llm-response" => ("harness", "harness-llm-recv"),
-        "final" => ("client", "client-harness-recv"),
+        "received" => ("harness", "user-node-send"),
+        "llm-request" => ("llm", "node-llm-send"),
+        "tool-call" => ("tools", "node-llm-recv"),
+        "tool-result" => ("harness", "node-llm-recv"),
+        "llm-response" => ("harness", "node-llm-recv"),
+        "final" => ("harness", "user-node-recv"),
         "error" => ("harness", null),
         _ => (null, null),
     };
@@ -939,38 +945,20 @@
         return (paren >= 0 ? name[..paren] : name).Trim();
     }
 
-    // Highlights a node when it is the active target. The Tools box lives inside the Harness, so a
-    // tool-call (active node "tools") also lights up the Harness — it is the component invoking the tool.
-    // In the non-technical view Client + AiService are merged into a single "application" node, so any of
-    // the client/harness/tools steps light that node up instead.
+    // Highlights a node when it is the active target. The Client and AiService are merged into one
+    // "harness" node (labelled "Harness" in Expert, "Application" otherwise), and the Tools box lives
+    // inside it, so received/final/tool/llm steps (active node "harness" or "tools") all light it up.
     private string NodeClass(string node)
     {
         var active = node switch
         {
             "harness" => _activeNode is "harness" or "tools",
-            "application" => _activeNode is "client" or "harness" or "tools",
             _ => _activeNode == node,
         };
         return active ? "active" : string.Empty;
     }
 
-    private string ArrowClass(string arrow)
-    {
-        // In the non-technical view the Client↔Harness and Harness↔LLM links collapse onto the two
-        // User↔Application and Application↔LLM arrows, so translate the live arrow onto those.
-        var active = _activeArrow == arrow || (_perspective == Perspective.NonTechnical && NonTechArrow(_activeArrow) == arrow);
-        return active ? "active" : string.Empty;
-    }
-
-    // Maps a logical arrow onto its non-technical equivalent (User↔Application, Application↔LLM).
-    private static string? NonTechArrow(string? arrow) => arrow switch
-    {
-        "client-harness-send" => "user-app-send",
-        "client-harness-recv" => "user-app-recv",
-        "harness-llm-send" => "app-llm-send",
-        "harness-llm-recv" => "app-llm-recv",
-        _ => null,
-    };
+    private string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
 
     // Derives a short "response type" hint for the LLM receive arrow so the kind of the latest model
     // response (a function/tool call, or final text) is visible without scrolling the transcript.
