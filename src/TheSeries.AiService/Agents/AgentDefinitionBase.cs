@@ -16,7 +16,9 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     /// an agent needs to replace the shared rules entirely.
     /// </summary>
     protected virtual string Harness =>
-        "You run inside an automated agent harness that exposes a small set of tools and relays " +
+        "You are the model inside an automated agent harness: together you and the harness form the agent. " +
+        "The harness assembles your context, exposes a bounded set of tools, runs the think→act→observe " +
+        "loop on your behalf, executes the tool calls you request, and relays the results back to you and " +
         "your replies back to the user. Follow these rules on every turn: " +
         "ground your answers in what the tools return and never fabricate facts, figures, or sources; " +
         "prefer calling a tool over answering from memory when a tool can verify the answer; " +
