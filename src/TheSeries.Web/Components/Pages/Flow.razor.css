@@ -1371,6 +1371,21 @@ button.stop {
 .context-chips .ctx.agent { border-left-color: #f1ec18; }
 .context-chips .ctx.user { border-left-color: #82e000; }
 
+/* Conversation-history chips re-sent into the model's context each turn — dimmed so the current
+   run reads as the focus, while still showing that earlier turns are carried along. */
+.context-chips .ctx.history { opacity: .5; }
+
+/* Small muted label separating the carried-over history from the current turn's content. */
+.context-chips .ctx-divider {
+    list-style: none;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: .2rem .1rem 0;
+}
+
 .context-chips .ctx-turn {
     font-size: .6rem;
     font-weight: 700;

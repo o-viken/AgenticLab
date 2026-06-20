@@ -324,33 +324,31 @@
                                 @ConceptInfo("context", "Learn about the context")
                                 <span class="context-title">Context</span>
                             </span>
-                            <span class="context-meta">@ContentEvents.Count content entr@(ContentEvents.Count == 1 ? "y" : "ies") · ~@(ContextSize) chars</span>
+                            <span class="context-meta">@TotalContextEntries content entr@(TotalContextEntries == 1 ? "y" : "ies") · ~@(ContextSize) chars</span>
                         </div>
                         <div class="context-bar"><span style="width:@(ContextBarWidth)%"></span></div>
-                        @if (ContentEvents.Count == 0)
+                        @if (TotalContextEntries == 0)
                         {
                             <span class="context-empty">content grows as the agent runs…</span>
                         }
                         else
                         {
                             <ol class="context-chips">
-                                @foreach (var e in ContentEvents)
+                                @if (HistoryEntries.Count > 0)
                                 {
-                                    var chip = ContextChip(e);
-                                    var preview = ContextPreview(e);
-                                    <li class="ctx @chip.Source">
-                                        <div class="ctx-row">
-                                            @if (e.Turn > 0)
-                                            {
-                                                <span class="ctx-turn">T@(e.Turn)</span>
-                                            }
-                                            <span class="ctx-label">@chip.Label</span>
-                                        </div>
-                                        @if (!string.IsNullOrEmpty(preview))
-                                        {
-                                            <span class="ctx-preview">@preview</span>
-                                        }
-                                    </li>
+                                    <li class="ctx-divider">Earlier in this conversation</li>
+                                    @foreach (var entry in HistoryEntries)
+                                    {
+                                        @RenderContextChip(entry)
+                                    }
+                                    @if (CurrentEntries.Count > 0)
+                                    {
+                                        <li class="ctx-divider">This turn</li>
+                                    }
+                                }
+                                @foreach (var entry in CurrentEntries)
+                                {
+                                    @RenderContextChip(entry)
                                 }
                             </ol>
                         }
@@ -855,9 +853,12 @@
         : !string.IsNullOrWhiteSpace(_message) ? _message
         : "—";
 
-    // A rough measure of how much context the model is carrying, summed from the captured step data.
-    // Drives the growing "context" bar so adding a turn visibly grows the context.
-    private int ContextSize => _events.Sum(e => (e.Data?.Length ?? 0) + e.Label.Length);
+    // A rough measure of how much context the model is carrying, summed from the captured step data
+    // plus the conversation history re-sent each turn. Drives the growing "context" bar so adding a
+    // turn visibly grows the context across the whole conversation, not just the current run.
+    private int ContextSize =>
+        _events.Sum(e => (e.Data?.Length ?? 0) + e.Label.Length)
+        + _turns.Sum(t => t.Message.Length + (t.Error?.Length ?? t.Reply.Length));
 
     // The width (0–100%) of the context growth bar, scaled so typical runs fill it gradually.
     private int ContextBarWidth => Math.Min(100, ContextSize / 80);
@@ -868,6 +869,44 @@
     // stack focuses on the content that flows through the model turn by turn.
     private IReadOnlyList<FlowEvent> ContentEvents =>
         _events.Where(IsContentEvent).ToList();
+
+    // The compact conversation history carried into the model's context from earlier exchanges:
+    // per archived turn, the user's message and the agent's final answer (or error). These are
+    // rendered as dimmed chips above the current run so the Context stack reflects the whole
+    // conversation the model sees, not only this run.
+    private IReadOnlyList<ContextEntry> HistoryEntries
+    {
+        get
+        {
+            var entries = new List<ContextEntry>(_turns.Count * 2);
+            foreach (var turn in _turns)
+            {
+                entries.Add(new ContextEntry("User message", "user", TruncatePreview(turn.Message), History: true));
+                if (!string.IsNullOrWhiteSpace(turn.Error))
+                {
+                    entries.Add(new ContextEntry("Error", "app", TruncatePreview(turn.Error), History: true));
+                }
+                else
+                {
+                    entries.Add(new ContextEntry("Final answer", "user", TruncatePreview(turn.Reply), History: true));
+                }
+            }
+
+            return entries;
+        }
+    }
+
+    // The current run's content events as Context chips (full-strength, shown below the history).
+    private IReadOnlyList<ContextEntry> CurrentEntries =>
+        ContentEvents.Select(e =>
+        {
+            var chip = ContextChip(e);
+            return new ContextEntry(chip.Label, chip.Source, ContextPreview(e), Turn: e.Turn > 0 ? e.Turn : null);
+        }).ToList();
+
+    // Total number of content chips on display (conversation history + current run), used for the
+    // meta count and to decide whether to show the empty-state hint.
+    private int TotalContextEntries => HistoryEntries.Count + CurrentEntries.Count;
 
     // True for events whose payload is conversation content rather than structural scaffolding.
     // Excludes "llm-request" (system prompt + tool schemas) and "tool-call" (the model's tool request,
@@ -885,6 +924,17 @@
         var text = !string.IsNullOrWhiteSpace(e.Data) ? e.Data
             : !string.IsNullOrWhiteSpace(e.Detail) ? e.Detail
             : string.Empty;
+
+        return TruncatePreview(text);
+    }
+
+    // Collapses whitespace and caps a string to a single short line for a Context chip preview.
+    private static string TruncatePreview(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
 
         text = System.Text.RegularExpressions.Regex.Replace(text, "\\s+", " ").Trim();
         return text.Length > 90 ? text[..90] + "…" : text;
@@ -1050,6 +1100,26 @@
 
     // Opens the learning drawer for the given concept id (a Concepts/<id> folder); ignores unknown ids.
     private void OpenConcept(string id) => _activeConcept = Concepts.Get(id);
+
+    // Renders a single Context chip (a piece of content carried into the model's context). History
+    // chips are dimmed via the extra "history" class and omit the per-turn badge.
+    private RenderFragment RenderContextChip(ContextEntry entry)
+    {
+        var cssClass = entry.History ? $"ctx {entry.Source} history" : $"ctx {entry.Source}";
+        return @<li class="@cssClass">
+            <div class="ctx-row">
+                @if (entry.Turn is int turn)
+                {
+                    <span class="ctx-turn">T@(turn)</span>
+                }
+                <span class="ctx-label">@entry.Label</span>
+            </div>
+            @if (!string.IsNullOrEmpty(entry.Preview))
+            {
+                <span class="ctx-preview">@entry.Preview</span>
+            }
+        </li>;
+    }
 
     // Renders the small ⓘ "concept-info" badge that opens a concept drawer — or nothing when concept info is hidden.
     private RenderFragment? ConceptInfo(string id, string title)
@@ -1543,4 +1613,10 @@
 
     // A skill discovered in the workspace and offered to the agent: its name and one-line description.
     private sealed record SkillChip(string Name, string Description);
+
+    // One chip in the anatomy Context stack: a piece of content carried into the model's context.
+    // History entries come from earlier conversation turns (rendered dimmed); the rest come from the
+    // current run. Source ("user"/"agent"/"app") selects the contributor colour; Turn is the LLM
+    // round-trip badge (null for compact history chips).
+    private sealed record ContextEntry(string Label, string Source, string Preview, int? Turn = null, bool History = false);
 }

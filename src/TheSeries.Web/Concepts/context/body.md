@@ -23,5 +23,10 @@ captured data size, and one chip is appended per **content** event — the user 
 results, the assistant's replies and the final answer — each colour-coded by who
 contributed it and carrying a short preview of the real content. The structural parts
 (system prompt, tool catalogue, persona) are omitted from the chips because the coloured
-boxes above already show them. It lets you watch the model's context accumulate turn by
-turn.
+boxes above already show them. When the conversation has earlier turns, they appear first as
+**dimmed** chips under an *Earlier in this conversation* divider (one for the user's message
+and one for the agent's final answer per past turn), above the current turn's live chips —
+reflecting that the harness re-sends the whole conversation each turn. The bar and the
+character count include that carried-over history, so you can watch the model's context
+accumulate turn by turn across the conversation.
+
