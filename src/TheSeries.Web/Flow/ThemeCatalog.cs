@@ -60,6 +60,7 @@ internal static class ThemeCatalog
         new("workspace", "📁", "Workspace", "Local file system", new[] { "ReadFile", "ListFiles", "WriteFile", "DeleteFile" }),
         new("shell", "⌨️", "Terminal", "Local process · allowlisted", new[] { "RunCommand" }),
         new("skills", "📚", "Skills", "Local · workspace SKILL.md", new[] { "ReadSkill" }),
+        new("microsoft365", "🗂️", "Microsoft 365", "Microsoft Graph · sample data", new[] { "SearchEmail", "SearchFiles", "SearchChats", "GetCalendar", "FindPeople", "SummarizeDocument", "SendMail" }),
     };
 
     /// <summary>
