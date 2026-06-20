@@ -1,0 +1,8 @@
+{
+  "title": "Client",
+  "category": "core",
+  "summary": "The application the user talks to — it sends the prompt to the agent service and renders the reply. It sits outside the agent itself.",
+  "links": [
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" }
+  ]
+}

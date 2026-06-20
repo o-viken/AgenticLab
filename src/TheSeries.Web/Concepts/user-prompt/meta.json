@@ -1,0 +1,8 @@
+{
+  "title": "User prompt",
+  "category": "core",
+  "summary": "The user's actual message — the only part of the context the user authors. It's what the agent is being asked to do this turn.",
+  "links": [
+    { "label": "OpenAI — Prompt engineering", "url": "https://platform.openai.com/docs/guides/prompt-engineering" }
+  ]
+}

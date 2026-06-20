@@ -235,24 +235,28 @@
                     <span class="anatomy-heading">@HarnessLabel anatomy</span>
 
                     <div class="layer app">
+                        @ConceptInfo("system-prompt", "Learn about the system prompt")
                         <span class="layer-title">System Prompt</span>
                         <span class="layer-body">Global harness prompt — operating rules + tool loop (expert coding assistant++)</span>
                         <span class="set-by">Set by application</span>
                     </div>
 
                     <div class="layer app">
+                        @ConceptInfo("client", "Learn about the client")
                         <span class="layer-title">Client</span>
                         <span class="layer-body">Blazor web app · sends the prompt, renders the reply</span>
                         <span class="set-by">Set by application</span>
                     </div>
 
                     <div class="layer agent">
+                        @ConceptInfo("persona", "Learn about the agent persona")
                         <span class="layer-title">Agent Persona</span>
                         <span class="layer-body">@_selectedAgent — @SelectedAgentDescription</span>
                         <span class="set-by">Set per agent</span>
                     </div>
 
                     <div class="layer agent tools @NodeClass("tools")">
+                        @ConceptInfo("tools", "Learn about tools")
                         <span class="layer-title">Tools / MCP</span>
                         @if (SelectedAgentToolNames.Count == 0)
                         {
@@ -271,12 +275,14 @@
                     </div>
 
                     <div class="layer agent">
+                        @ConceptInfo("settings", "Learn about settings")
                         <span class="layer-title">Settings</span>
                         <span class="layer-body">model: Azure OpenAI · stepping: @_mode</span>
                         <span class="set-by">Set per agent</span>
                     </div>
 
                     <div class="layer user">
+                        @ConceptInfo("user-prompt", "Learn about the user prompt")
                         <span class="layer-title">User prompt</span>
                         <span class="layer-body">@CurrentUserPrompt</span>
                         <span class="set-by">Set by user</span>
@@ -284,7 +290,10 @@
 
                     <div class="context-stack">
                         <div class="context-head">
-                            <span class="context-title">Context</span>
+                            <span class="context-title-group">
+                                @ConceptInfo("context", "Learn about the context")
+                                <span class="context-title">Context</span>
+                            </span>
                             <span class="context-meta">@ContentEvents.Count content entr@(ContentEvents.Count == 1 ? "y" : "ies") · ~@(ContextSize) chars</span>
                         </div>
                         <div class="context-bar"><span style="width:@(ContextBarWidth)%"></span></div>

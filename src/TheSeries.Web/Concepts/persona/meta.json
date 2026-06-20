@@ -1,0 +1,8 @@
+{
+  "title": "Agent persona",
+  "category": "core",
+  "summary": "The per-agent slice of the system prompt — the role, voice and behaviour that make one agent differ from another, layered on top of the shared harness.",
+  "links": [
+    { "label": "Anthropic — System prompts", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts" }
+  ]
+}

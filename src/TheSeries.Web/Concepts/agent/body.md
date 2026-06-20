@@ -8,7 +8,7 @@ A plain chat completion answers once and stops. An agent **keeps going** — it 
 call a tool, observe the result, and decide what to do next, repeating until the task is
 done. That think → act → observe loop is the heart of "agentic" behaviour.
 
-## In this app
+## In this application (the-series)
 
 Each agent has its own **persona** (its job and tone) layered on top of a shared harness,
 plus a bounded **toolset**:

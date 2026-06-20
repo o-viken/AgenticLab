@@ -10,7 +10,7 @@ inside the harness discovers them and makes them callable by the model — the s
 tool-call loop you see in the diagram, but the tools live in a separate process behind a
 standard protocol.
 
-## In this app
+## In this application (the-series)
 
 The LLM node is labelled "LLM (MCP)" to show *where* an MCP server would plug in, but this
 sample keeps things simple: the tools are plain **local functions** wired straight into the

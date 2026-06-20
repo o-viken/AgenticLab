@@ -16,7 +16,7 @@ calculation, read a file, or execute a command — and then read the result back
 
 This request → tool-call → result → response loop is exactly what the diagram animates.
 
-## In this app
+## In this application (the-series)
 
 Each agent is given a fixed subset of tools, for example:
 

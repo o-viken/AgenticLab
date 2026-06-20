@@ -14,7 +14,7 @@ Because the harness controls the toolset and the prompt, it's also where **safet
 limits** live: tools are scoped to a workspace, commands are allowlisted, and the model
 only ever sees the tools you leave enabled.
 
-## In the diagram
+## In this application (the-series)
 
 The **Harness** node merges the client and the AI service. Turn on **Expand harness** in
 the Expert perspective to break it into colour-coded layers — *application* (system prompt

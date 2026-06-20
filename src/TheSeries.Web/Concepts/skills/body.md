@@ -6,7 +6,7 @@ the model only a short *catalogue* — each skill's name and one-line descriptio
 the model pull in the full instructions for a skill **only when a task needs it**. This is
 called **progressive disclosure**: keep the default context small, expand it just-in-time.
 
-## How it works in this app
+## In this application (the-series)
 
 A skill is a folder under the workspace's `skills/` directory with a `SKILL.md` file:
 

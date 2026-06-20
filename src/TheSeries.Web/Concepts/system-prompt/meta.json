@@ -1,0 +1,9 @@
+{
+  "title": "System prompt",
+  "category": "core",
+  "summary": "The harness-authored instructions that frame every run — the operating rules and tool loop the model follows before it sees the user's message.",
+  "links": [
+    { "label": "OpenAI — Prompt engineering", "url": "https://platform.openai.com/docs/guides/prompt-engineering" },
+    { "label": "Anthropic — System prompts", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/system-prompts" }
+  ]
+}

@@ -9,7 +9,7 @@ the outside world by itself — everything it "knows" was baked in at training t
 can be confidently wrong. That's why we wrap it in a **harness** that supplies fresh
 context and **tools**, and grounds answers in real results.
 
-## How it fits the diagram
+## In this application (the-series)
 
 Every arrow to the **LLM** node is one round-trip: the harness sends the conversation plus
 the tool definitions, and the model replies with either a final answer or a **tool call**.
