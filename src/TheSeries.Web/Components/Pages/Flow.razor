@@ -136,33 +136,6 @@
             </div>
         </div>
 
-        <div class="control">
-            <label>Perspective</label>
-            <div class="mode-toggle perspective-toggle">
-                <button type="button" class="@(_perspective == Perspective.NonTechnical ? "selected" : "")"
-                        @onclick="@(() => _perspective = Perspective.NonTechnical)"
-                        title="User → Application → LLM">Non-technical</button>
-                <button type="button" class="@(_perspective == Perspective.Technical ? "selected" : "")"
-                        @onclick="@(() => _perspective = Perspective.Technical)"
-                        title="User → Client → AiService → LLM">Technical</button>
-                <button type="button" class="@(_perspective == Perspective.Expert ? "selected" : "")"
-                        @onclick="@(() => _perspective = Perspective.Expert)"
-                        title="Full harness, tools and steps">Expert</button>
-            </div>
-        </div>
-
-        @if (_perspective == Perspective.Expert)
-        {
-            <div class="control">
-                <label>Boundaries</label>
-                <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="_showHarnessBoundary" /> Harness</label>
-                    <label class="check"><input type="checkbox" @bind="_showAgentBoundary" /> Agent</label>
-                    <label class="check"><input type="checkbox" @bind="_expandHarness" /> Expand harness</label>
-                </div>
-            </div>
-        }
-
         <div class="control actions">
             @if (!_running)
             {
@@ -198,6 +171,35 @@
     </section>
 
     <section class="diagram @PerspectiveClass">
+        <div class="diagram-controls">
+            <div class="diagram-control">
+                <label>Perspective</label>
+                <div class="mode-toggle perspective-toggle">
+                    <button type="button" class="@(_perspective == Perspective.NonTechnical ? "selected" : "")"
+                            @onclick="@(() => _perspective = Perspective.NonTechnical)"
+                            title="User → Application → LLM">Non-technical</button>
+                    <button type="button" class="@(_perspective == Perspective.Technical ? "selected" : "")"
+                            @onclick="@(() => _perspective = Perspective.Technical)"
+                            title="User → Client → AiService → LLM">Technical</button>
+                    <button type="button" class="@(_perspective == Perspective.Expert ? "selected" : "")"
+                            @onclick="@(() => _perspective = Perspective.Expert)"
+                            title="Full harness, tools and steps">Expert</button>
+                </div>
+            </div>
+
+            @if (_perspective == Perspective.Expert)
+            {
+                <div class="diagram-control">
+                    <label>Boundaries</label>
+                    <div class="boundary-toggles">
+                        <label class="check"><input type="checkbox" @bind="_showHarnessBoundary" /> Harness</label>
+                        <label class="check"><input type="checkbox" @bind="_showAgentBoundary" /> Agent</label>
+                        <label class="check"><input type="checkbox" @bind="_expandHarness" /> Expand harness</label>
+                    </div>
+                </div>
+            }
+        </div>
+
         @if (_perspective == Perspective.Expert && _showHarnessBoundary)
         {
             <div class="boundary harness-b">
