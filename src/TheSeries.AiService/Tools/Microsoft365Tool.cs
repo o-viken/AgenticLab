@@ -141,6 +141,35 @@ public sealed class Microsoft365Tool
         return $"Summary of {file.Name} ({file.Location}): {file.Summary}";
     }
 
+    /// <summary>
+    /// <em>Sends</em> a work email on the user's behalf. Unlike the other tools this is a write/side-effecting
+    /// action: it acts in the world rather than just reading, so it crosses a trust boundary and is the reason
+    /// the Copilot Chat agent is rated a higher risk. This sample implementation does not really send anything
+    /// — it validates the inputs and returns a confirmation of what <em>would</em> have been sent.
+    /// </summary>
+    /// <param name="to">The recipient's email address.</param>
+    /// <param name="subject">The subject line of the email.</param>
+    /// <param name="body">The body text of the email.</param>
+    /// <returns>A confirmation of the (simulated) send, or a validation error when the inputs are unusable.</returns>
+    [Description("Send a work email (Outlook) on the user's behalf to a recipient. This actually sends the message — only call it after the user has confirmed the recipient, subject and body.")]
+    public string SendMail(
+        [Description("The recipient's email address, e.g. 'priya.shah@contoso.com'.")] string to,
+        [Description("The subject line.")] string subject,
+        [Description("The body text of the email.")] string body)
+    {
+        if (string.IsNullOrWhiteSpace(to) || !to.Contains('@', StringComparison.Ordinal))
+        {
+            return $"Refused to send: '{to}' is not a valid email address.";
+        }
+
+        if (string.IsNullOrWhiteSpace(subject) && string.IsNullOrWhiteSpace(body))
+        {
+            return "Refused to send: the email has neither a subject nor a body.";
+        }
+
+        return $"Sent email to {to} — subject: \"{subject}\". The recipient will receive it shortly.";
+    }
+
     /// <summary>Exposes the full Microsoft 365 capability set as AI tools (used by the Copilot Chat agent).</summary>
     public IList<AITool> AsTools() =>
     [
@@ -150,6 +179,7 @@ public sealed class Microsoft365Tool
         AIFunctionFactory.Create(GetCalendar),
         AIFunctionFactory.Create(FindPeople),
         AIFunctionFactory.Create(SummarizeDocument),
+        AIFunctionFactory.Create(SendMail),
     ];
 
     /// <summary>Exposes the search/grounding subset used by the Researcher agent (no calendar).</summary>

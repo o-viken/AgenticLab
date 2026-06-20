@@ -46,6 +46,14 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     public virtual bool SupportsSkills => false;
 
     /// <inheritdoc />
+    /// <remarks>Defaults to <see cref="AgentRiskLevel.None"/>; agents with tools that have side effects override this.</remarks>
+    public virtual AgentRiskLevel RiskLevel => AgentRiskLevel.None;
+
+    /// <inheritdoc />
+    /// <remarks>Defaults to an empty list; agents override this to surface the guardrails enforced for them.</remarks>
+    public virtual IReadOnlyList<string> Guardrails => Array.Empty<string>();
+
+    /// <inheritdoc />
     public abstract IList<AITool> Tools { get; }
 
     /// <summary>

@@ -17,6 +17,19 @@ public sealed class M365ResearcherAgent(Microsoft365Tool m365, WikiTool wiki) : 
     public override string Description => "Deep researcher that combines your Microsoft 365 work content with public web knowledge.";
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only research over work content and Wikipedia, with no side effects.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only search and lookups — never writes or sends anything",
+        "Sample, in-memory work data — no real Microsoft Graph or network calls",
+        "No file-system or command access on your machine",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Researcher, a Microsoft 365 Copilot agent for in-depth research. " +
         "You tackle open-ended questions by gathering evidence from multiple sources before answering: " +

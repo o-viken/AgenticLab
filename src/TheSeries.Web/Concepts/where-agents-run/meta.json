@@ -1,0 +1,9 @@
+{
+  "title": "Where agents run",
+  "category": "core",
+  "summary": "An agent executes somewhere — your own machine, a server, or a cloud service — and it acts with whatever access that environment gives it.",
+  "links": [
+    { "label": "OWASP — LLM agent / autonomy risks", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
+    { "label": "VS Code — Agent mode", "url": "https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode" }
+  ]
+}

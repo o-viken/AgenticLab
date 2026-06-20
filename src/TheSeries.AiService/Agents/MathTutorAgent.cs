@@ -15,6 +15,18 @@ public sealed class MathTutorAgent(CalculatorTool calculator) : AgentDefinitionB
     public override string Description => "Patient tutor that solves and explains arithmetic step by step.";
 
     /// <inheritdoc />
+    /// <remarks>Low risk: pure computation with no side effects on the user's environment.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Calculator only — no file-system, command or network access",
+        "No changes to your environment",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are MathTutor, a patient and encouraging math tutor. " +
         "When a question involves arithmetic, use the Calculate tool to evaluate the expression rather than " +

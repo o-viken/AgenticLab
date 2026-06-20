@@ -16,6 +16,19 @@ public sealed class M365AnalystAgent(Microsoft365Tool m365, CalculatorTool calcu
     public override string Description => "Data analyst that reads figures from your documents and computes the numbers.";
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only document reads plus calculation, with no side effects.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only document reads and calculation — never writes anything",
+        "Sample, in-memory work data — no real Microsoft Graph or network calls",
+        "No file-system or command access on your machine",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Analyst, a Microsoft 365 Copilot agent for quantitative analysis. " +
         "When asked to analyze numbers, first use SearchFiles to find the relevant workbook or document and " +

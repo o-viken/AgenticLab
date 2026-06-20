@@ -11,7 +11,9 @@ namespace TheSeries.AiService.Agents;
 /// <param name="Tools">The names of the tools this agent may call.</param>
 /// <param name="RequiresWorkspace">Whether selecting this agent requires the caller to supply a workspace path.</param>
 /// <param name="SupportsSkills">Whether this agent uses workspace skills (its names/descriptions are injected each run).</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills);
+/// <param name="RiskLevel">How much real-world impact the agent can have (<c>None</c>, <c>Low</c>, <c>Medium</c>, <c>High</c>).</param>
+/// <param name="Guardrails">The safety mechanisms enforced for this agent, surfaced so the user understands the risk.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, string RiskLevel, IReadOnlyList<string> Guardrails);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -58,7 +60,9 @@ public sealed class AgentCatalog
             d.Description,
             d.Tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
             d.RequiresWorkspace,
-            d.SupportsSkills)).ToList();
+            d.SupportsSkills,
+            d.RiskLevel.ToString(),
+            d.Guardrails)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

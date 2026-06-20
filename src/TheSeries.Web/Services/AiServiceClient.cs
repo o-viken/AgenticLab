@@ -116,7 +116,7 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);

@@ -1,0 +1,9 @@
+{
+  "title": "Guardrails",
+  "category": "core",
+  "summary": "The concrete limits that keep an agent inside safe bounds — allowlists, scoped access, read-only modes, approvals and timeouts.",
+  "links": [
+    { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
+    { "label": "Anthropic — Tool use", "url": "https://docs.anthropic.com/en/docs/build-with-claude/tool-use" }
+  ]
+}

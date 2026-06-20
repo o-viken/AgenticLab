@@ -21,6 +21,18 @@ public sealed class AskAgent(FileSystemTool files) : AgentDefinitionBase
     public override bool RequiresWorkspace => true;
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only file access with no writes, deletes or command execution.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only file tools — never writes, deletes or runs commands",
+        "Confined to the workspace folder (no ../ or absolute-path escape)",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Ask, a knowledgeable and concise coding assistant operating in read-only mode. " +
         "You answer questions about the user's workspace — what the code does, how it is structured, " +

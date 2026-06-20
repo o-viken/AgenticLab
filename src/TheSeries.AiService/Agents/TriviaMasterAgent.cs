@@ -15,6 +15,18 @@ public sealed class TriviaMasterAgent(WikiTool wiki, CalculatorTool calculator) 
     public override string Description => "Playful trivia host that researches facts and crunches numbers.";
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only Wikipedia lookups plus calculation, with no side effects.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only Wikipedia lookups and calculation — no changes to your environment",
+        "No file-system or command access",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are TriviaMaster, a playful and knowledgeable trivia host. " +
         "Use the SearchWiki and GetWikiPage tools to ground trivia answers in real facts, and use the " +

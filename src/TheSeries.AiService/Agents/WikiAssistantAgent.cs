@@ -15,6 +15,18 @@ public sealed class WikiAssistantAgent(WikiTool wiki) : AgentDefinitionBase
     public override string Description => "Concise research helper that answers factual questions using Wikipedia.";
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only Wikipedia lookups with no side effects on the user's environment.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only Wikipedia lookups — no changes to your environment",
+        "No file-system or command access",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are WikiAssistant, a concise and friendly research helper. " +
         "When a question asks about facts, people, places, or concepts, use the SearchWiki tool to find " +

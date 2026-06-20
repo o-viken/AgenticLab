@@ -194,6 +194,13 @@
                 </div>
             </div>
 
+            <div class="diagram-control">
+                <label>Where it runs</label>
+                <div class="boundary-toggles">
+                    <label class="check"><input type="checkbox" @bind="_showEnvironment" /> Environment &amp; risk</label>
+                </div>
+            </div>
+
             @if (_perspective == Perspective.Expert)
             {
                 <div class="diagram-control">
@@ -219,11 +226,21 @@
                 <span class="boundary-label">Agent</span>
             </div>
         }
+        @if (_showEnvironment)
+        {
+            <div class="boundary env-b">
+                <span class="boundary-label">🔒 Your environment</span>
+            </div>
+        }
 
         <div class="node user @NodeClass("user")">
             <span class="icon">🧑</span>
             <span class="title">User</span>
             <span class="subtitle">Human</span>
+            @if (_showEnvironment)
+            {
+                <span class="env-badge env-yours" title="The browser on your own device">🖥️ Your browser</span>
+            }
         </div>
 
         <div class="connector-group user-node">
@@ -240,6 +257,12 @@
             {
                 <div class="node harness anatomy @NodeClass("harness")">
                     <span class="anatomy-heading">@HarnessLabel anatomy</span>
+
+                    @if (_showEnvironment)
+                    {
+                        <span class="env-badge @EnvBadgeClass" title="@HarnessEnvTitle">@HarnessEnvLabel</span>
+                    }
+                    @EnvironmentPanel()
 
                     <div class="layer app">
                         @ConceptInfo("system-prompt", "Learn about the system prompt")
@@ -345,6 +368,11 @@
                     {
                         <span class="subtitle workspace-path" title="@_workspace">📁 @_workspace</span>
                     }
+                    @if (_showEnvironment)
+                    {
+                        <span class="env-badge @EnvBadgeClass" title="@HarnessEnvTitle">@HarnessEnvLabel</span>
+                    }
+                    @EnvironmentPanel()
                     @if (_perspective == Perspective.Expert)
                     {
                         <div class="tools node-inner @NodeClass("tools")">
@@ -418,6 +446,10 @@
                 <span class="icon">🤖</span>
                 <span class="title">LLM</span>
                 <span class="subtitle">Azure OpenAI</span>
+                @if (_showEnvironment)
+                {
+                    <span class="env-badge env-cloud" title="A model hosted by a cloud provider, outside your environment">☁️ Cloud service</span>
+                }
                 @if (_showConcepts && _perspective == Perspective.Expert)
                 {
                     <button type="button" class="concept-mcp" title="Learn about MCP"
@@ -604,6 +636,9 @@
 
     private bool _showHarnessBoundary = false;
     private bool _showAgentBoundary = false;
+    // When true the diagram surfaces where each node runs (your device / your machine / cloud), the
+    // selected agent's risk level and the guardrails enforced for it. Available in every perspective.
+    private bool _showEnvironment = false;
     // The learning concept currently shown in the slide-in drawer, or null when the drawer is closed.
     private Concept? _activeConcept;
     // When true the drawer is docked as a persistent sidebar (the flow stays visible and interactive);
@@ -753,6 +788,40 @@
     // Whether the currently selected agent uses workspace skills, so the harness Skills box is shown.
     private bool SelectedAgentSupportsSkills =>
         _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.SupportsSkills ?? false;
+
+    // The selected agent's risk level (None/Low/Medium/High), surfaced in the environment & risk view.
+    private string SelectedAgentRiskLevel =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.RiskLevel ?? "None";
+
+    // The guardrails enforced for the selected agent, shown as chips in the environment & risk view.
+    private IReadOnlyList<string> SelectedAgentGuardrails =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)?.Guardrails ?? Array.Empty<string>();
+
+    // The CSS modifier for the risk meter, matching the level (risk-none/-low/-medium/-high).
+    private string RiskLevelClass => $"risk-{SelectedAgentRiskLevel.ToLowerInvariant()}";
+
+    // How many of the three risk-meter segments are filled for the selected agent.
+    private int RiskFilledSegments => SelectedAgentRiskLevel switch
+    {
+        "High" => 3,
+        "Medium" => 2,
+        "Low" => 1,
+        _ => 0,
+    };
+
+    // The label on the merged node's environment badge: workspace agents run on your machine with file
+    // and shell access; the rest run as a server process with no access to your local files or shell.
+    private string HarnessEnvLabel => SelectedAgentRequiresWorkspace
+        ? "💻 Your machine — file + shell access"
+        : "🖧 Server process — no local access";
+
+    // The tooltip explaining the merged node's environment badge.
+    private string HarnessEnvTitle => SelectedAgentRequiresWorkspace
+        ? "This agent runs on your behalf on this machine, with access to the workspace files and the shell."
+        : "This agent runs as a service process; it has no access to your local files or shell.";
+
+    // The badge colour class: amber for an agent with local machine reach, neutral otherwise.
+    private string EnvBadgeClass => SelectedAgentRequiresWorkspace ? "env-machine" : "env-server";
 
     // The tools available to the currently selected agent, shown in the harness Tools box.
     private string SelectedAgentTools
@@ -1004,6 +1073,56 @@
 
         return @<span class="theme-info" title="@title" role="button"
                       @onclick="@(() => OpenConcept(id))" @onclick:stopPropagation="true">ⓘ</span>;
+    }
+
+    // Renders the risk meter + guardrails box shown on the merged node when the environment & risk view
+    // is on — or nothing when it is off. Used by both the compact and the anatomy harness node.
+    private RenderFragment? EnvironmentPanel()
+    {
+        if (!_showEnvironment)
+        {
+            return null;
+        }
+
+        return @<div class="env-panel">
+            <div class="risk-meter @RiskLevelClass">
+                @ConceptInfo("agent-risk", "Learn about agent risk")
+                <span class="risk-title">Risk</span>
+                <div class="risk-bar">
+                    @for (var i = 0; i < 3; i++)
+                    {
+                        <span class="risk-seg @(i < RiskFilledSegments ? "filled" : "")"></span>
+                    }
+                </div>
+                <span class="risk-level">@SelectedAgentRiskLevel</span>
+            </div>
+            <div class="guardrails node-inner">
+                @ConceptInfo("guardrails", "Learn about guardrails")
+                <span class="title">Guardrails</span>
+                @if (SelectedAgentGuardrails.Count == 0)
+                {
+                    <span class="subtitle">no extra guardrails — model reasoning only</span>
+                }
+                else
+                {
+                    <ul class="guardrail-list">
+                        @foreach (var g in SelectedAgentGuardrails)
+                        {
+                            <li class="guardrail-chip">@g</li>
+                        }
+                    </ul>
+                }
+            </div>
+            @if (_showConcepts)
+            {
+                <div class="env-learn">
+                    <button type="button" class="concept-mcp" title="Learn where agents run"
+                            @onclick="@(() => OpenConcept("where-agents-run"))" @onclick:stopPropagation="true">Where it runs</button>
+                    <button type="button" class="concept-mcp" title="Learn about sandboxing"
+                            @onclick="@(() => OpenConcept("sandbox"))" @onclick:stopPropagation="true">Sandbox</button>
+                </div>
+            }
+        </div>;
     }
 
     // Renders the merged Application/Harness node icon. Branded themes show their logo so the node

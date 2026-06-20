@@ -22,6 +22,19 @@ public sealed class PlanAgent(FileSystemTool files, AskQuestionTool ask) : Agent
     public override bool RequiresWorkspace => true;
 
     /// <inheritdoc />
+    /// <remarks>Low risk: read-only investigation; it only proposes a plan and asks before assuming.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Read-only file tools — never writes, deletes or runs commands",
+        "Confined to the workspace folder (no ../ or absolute-path escape)",
+        "Asks the user before assuming on a blocking ambiguity",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Plan, a careful software architect operating in read-only mode. " +
         "Your job is to turn a request into a clear, actionable implementation plan — not to make the change. " +

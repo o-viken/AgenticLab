@@ -60,6 +60,28 @@
     --agent-boundary: rgba(190, 160, 240, .55);
     --agent-boundary-text: #c4adf0;
 
+    --env-boundary: rgba(120, 210, 170, .5);
+    --env-boundary-text: #93e0bb;
+    --env-badge-bg: rgba(40, 60, 90, .55);
+    --env-badge-text: #b9c6e6;
+    --env-machine-bg: rgba(120, 90, 30, .45);
+    --env-machine-text: #f0cf8f;
+    --env-cloud-bg: rgba(60, 70, 120, .5);
+    --env-cloud-text: #b9c1f0;
+    --risk-none-bg: rgba(90, 110, 90, .35);
+    --risk-none-text: #b7c8b7;
+    --risk-low-bg: rgba(60, 130, 90, .35);
+    --risk-low-text: #92e0b6;
+    --risk-medium-bg: rgba(150, 120, 40, .4);
+    --risk-medium-text: #f0d28a;
+    --risk-high-bg: rgba(150, 60, 60, .4);
+    --risk-high-text: #ff9c9c;
+    --guardrails-bg: #20322a;
+    --guardrails-border: rgba(120, 210, 170, .35);
+    --guardrail-chip-bg: rgba(90, 180, 130, .18);
+    --guardrail-chip-text: #b7e6cd;
+    --guardrail-chip-border: rgba(120, 210, 170, .4);
+
     --connector: rgba(140, 160, 210, .45);
     --connector-arrow: rgba(140, 160, 210, .55);
 
@@ -290,6 +312,27 @@
     --harness-boundary-text: #b04a2c;
     --agent-boundary: rgba(150, 110, 180, .55);
     --agent-boundary-text: #7a4a9a;
+    --env-boundary: rgba(60, 150, 100, .55);
+    --env-boundary-text: #2c7a4f;
+    --env-badge-bg: rgba(150, 130, 100, .2);
+    --env-badge-text: #6a5c46;
+    --env-machine-bg: rgba(190, 130, 40, .22);
+    --env-machine-text: #8a5a14;
+    --env-cloud-bg: rgba(110, 120, 180, .22);
+    --env-cloud-text: #4a5288;
+    --risk-none-bg: rgba(120, 140, 120, .25);
+    --risk-none-text: #5a6a5a;
+    --risk-low-bg: rgba(60, 150, 100, .22);
+    --risk-low-text: #2c7a4f;
+    --risk-medium-bg: rgba(200, 150, 40, .25);
+    --risk-medium-text: #8a6310;
+    --risk-high-bg: rgba(200, 70, 70, .22);
+    --risk-high-text: #b03030;
+    --guardrails-bg: #e6efe6;
+    --guardrails-border: rgba(60, 150, 100, .35);
+    --guardrail-chip-bg: rgba(60, 150, 100, .14);
+    --guardrail-chip-text: #2c7a4f;
+    --guardrail-chip-border: rgba(60, 150, 100, .3);
     --connector: rgba(120, 110, 90, .45);
     --connector-arrow: rgba(120, 110, 90, .55);
     --purple-text: #7a4a9a;
@@ -364,6 +407,27 @@
     --harness-boundary-text: #0a7a5e;
     --agent-boundary: rgba(120, 100, 190, .55);
     --agent-boundary-text: #5a4a9a;
+    --env-boundary: rgba(16, 163, 127, .55);
+    --env-boundary-text: #0a7a5e;
+    --env-badge-bg: rgba(120, 130, 140, .18);
+    --env-badge-text: #55606a;
+    --env-machine-bg: rgba(190, 130, 40, .2);
+    --env-machine-text: #8a5a14;
+    --env-cloud-bg: rgba(100, 110, 170, .2);
+    --env-cloud-text: #454f80;
+    --risk-none-bg: rgba(120, 140, 130, .22);
+    --risk-none-text: #586660;
+    --risk-low-bg: rgba(16, 163, 127, .2);
+    --risk-low-text: #0a7a5e;
+    --risk-medium-bg: rgba(200, 150, 40, .22);
+    --risk-medium-text: #8a6310;
+    --risk-high-bg: rgba(200, 70, 70, .2);
+    --risk-high-text: #b03030;
+    --guardrails-bg: #e2f1ec;
+    --guardrails-border: rgba(16, 163, 127, .35);
+    --guardrail-chip-bg: rgba(16, 163, 127, .12);
+    --guardrail-chip-text: #0a7a5e;
+    --guardrail-chip-border: rgba(16, 163, 127, .3);
     --connector: rgba(0, 0, 0, .25);
     --connector-arrow: rgba(0, 0, 0, .35);
     --purple-text: #5a4a9a;
@@ -439,6 +503,27 @@
     --harness-boundary-text: #5a36a0;
     --agent-boundary: rgba(214, 51, 132, .5);
     --agent-boundary-text: #c01b78;
+    --env-boundary: rgba(64, 120, 220, .5);
+    --env-boundary-text: #2a5fb0;
+    --env-badge-bg: rgba(120, 120, 150, .18);
+    --env-badge-text: #55556a;
+    --env-machine-bg: rgba(190, 120, 40, .2);
+    --env-machine-text: #8a5310;
+    --env-cloud-bg: rgba(64, 120, 220, .18);
+    --env-cloud-text: #2a5fb0;
+    --risk-none-bg: rgba(120, 130, 150, .2);
+    --risk-none-text: #545a6a;
+    --risk-low-bg: rgba(40, 150, 110, .2);
+    --risk-low-text: #1c7a56;
+    --risk-medium-bg: rgba(200, 150, 40, .22);
+    --risk-medium-text: #8a6310;
+    --risk-high-bg: rgba(214, 51, 132, .2);
+    --risk-high-text: #b01b66;
+    --guardrails-bg: #e6eefb;
+    --guardrails-border: rgba(64, 120, 220, .32);
+    --guardrail-chip-bg: rgba(64, 120, 220, .12);
+    --guardrail-chip-text: #2a5fb0;
+    --guardrail-chip-border: rgba(64, 120, 220, .3);
     --connector: rgba(86, 60, 150, .25);
     --connector-arrow: rgba(86, 60, 150, .38);
     --purple-text: #5a36a0;
@@ -858,6 +943,146 @@ button.stop {
     right: .9rem;
     color: var(--agent-boundary-text);
     border: 1px solid var(--agent-boundary);
+}
+
+/* "Your environment" trust boundary — wraps the User and the merged node (everything that runs
+   on your behalf in your environment), leaving the cloud LLM outside it. */
+.boundary.env-b {
+    grid-column: 1 / 4;
+    grid-row: 2;
+    margin: -1.6rem 0;
+    border-color: var(--env-boundary);
+    border-radius: 18px;
+}
+
+.boundary.env-b .boundary-label {
+    left: .9rem;
+    top: -.8rem;
+    color: var(--env-boundary-text);
+    border: 1px solid var(--env-boundary);
+}
+
+/* Per-node "where it runs" badge. */
+.env-badge {
+    margin-top: .5rem;
+    padding: .2rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    background: var(--env-badge-bg);
+    color: var(--env-badge-text);
+}
+
+.env-badge.env-machine {
+    background: var(--env-machine-bg);
+    color: var(--env-machine-text);
+}
+
+.env-badge.env-cloud {
+    background: var(--env-cloud-bg);
+    color: var(--env-cloud-text);
+}
+
+/* Risk meter + guardrails panel inside the merged node. */
+.env-panel {
+    width: 100%;
+    margin-top: .6rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.risk-meter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .4rem .6rem;
+    border-radius: 10px;
+    background: var(--risk-none-bg);
+    color: var(--risk-none-text);
+}
+
+.risk-meter.risk-low {
+    background: var(--risk-low-bg);
+    color: var(--risk-low-text);
+}
+
+.risk-meter.risk-medium {
+    background: var(--risk-medium-bg);
+    color: var(--risk-medium-text);
+}
+
+.risk-meter.risk-high {
+    background: var(--risk-high-bg);
+    color: var(--risk-high-text);
+}
+
+.risk-meter .risk-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.risk-bar {
+    display: flex;
+    gap: .2rem;
+    margin-left: auto;
+}
+
+.risk-seg {
+    width: 16px;
+    height: 6px;
+    border-radius: 3px;
+    background: currentColor;
+    opacity: .25;
+}
+
+.risk-seg.filled {
+    opacity: 1;
+}
+
+.risk-meter .risk-level {
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.node-inner.guardrails {
+    background: var(--guardrails-bg);
+    border: 1px solid var(--guardrails-border);
+}
+
+.guardrail-list {
+    list-style: none;
+    margin: .35rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.guardrail-chip {
+    padding: .25rem .45rem;
+    border-radius: 8px;
+    font-size: .66rem;
+    line-height: 1.35;
+    background: var(--guardrail-chip-bg);
+    color: var(--guardrail-chip-text);
+    border: 1px solid var(--guardrail-chip-border);
+}
+
+.env-learn {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    justify-content: center;
+}
+
+.env-learn .concept-mcp {
+    margin-top: 0;
 }
 
 .column {

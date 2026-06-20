@@ -25,6 +25,21 @@ public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal, Skil
     public override bool SupportsSkills => true;
 
     /// <inheritdoc />
+    /// <remarks>Highest risk: it writes and deletes files and runs commands on the host it executes on.</remarks>
+    public override AgentRiskLevel RiskLevel => AgentRiskLevel.High;
+
+    /// <inheritdoc />
+    public override IReadOnlyList<string> Guardrails =>
+    [
+        "Confined to the workspace folder (no ../ or absolute-path escape)",
+        "Commands restricted to an allowlist of executables",
+        "Shell-operator chaining (& | ; etc.) is rejected",
+        "Commands time out after 60 seconds",
+        "File tools operate on files only — cannot delete directories",
+        "Individual tools can be toggled off per run",
+    ];
+
+    /// <inheritdoc />
     protected override string Harness =>
         "You run inside an automated coding harness with direct, scoped access to the user's workspace " +
         "through a small set of tools (read, list, write and delete files, and run allowlisted shell " +

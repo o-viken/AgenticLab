@@ -3,6 +3,26 @@ using Microsoft.Extensions.AI;
 namespace TheSeries.AiService.Agents;
 
 /// <summary>
+/// How much real-world impact an agent can have, used to communicate the risk of letting it run.
+/// Higher levels mean the agent can cause side effects (write files, run commands) in the
+/// environment it executes in, not just read or reason.
+/// </summary>
+public enum AgentRiskLevel
+{
+    /// <summary>No tools with side effects; the agent only reasons from its own knowledge.</summary>
+    None,
+
+    /// <summary>Read-only or computational tools (search, calculate, read files) with no side effects.</summary>
+    Low,
+
+    /// <summary>Can change state in a confined way (e.g. scoped writes) but not run arbitrary commands.</summary>
+    Medium,
+
+    /// <summary>Can write/delete files and execute commands on the host it runs on.</summary>
+    High,
+}
+
+/// <summary>
 /// Describes a selectable agent: the persona (system instructions) it runs with and the
 /// subset of tools it may call. Implementations are registered in DI and composed into
 /// concrete agents by <see cref="AgentCatalog"/>.
@@ -32,6 +52,19 @@ public interface IAgentDefinition
     /// workspace is available.
     /// </summary>
     bool SupportsSkills { get; }
+
+    /// <summary>
+    /// How much real-world impact this agent can have. Surfaced to clients so a user can understand
+    /// the risk of letting the agent run before they do.
+    /// </summary>
+    AgentRiskLevel RiskLevel { get; }
+
+    /// <summary>
+    /// Human-readable safety mechanisms that constrain this agent (e.g. command allowlist,
+    /// workspace-confined paths, read-only tools). Surfaced to clients to make the guardrails
+    /// that are already enforced in code visible to the user. Empty when the agent has none.
+    /// </summary>
+    IReadOnlyList<string> Guardrails { get; }
 
     /// <summary>The tools this agent is allowed to call.</summary>
     IList<AITool> Tools { get; }
