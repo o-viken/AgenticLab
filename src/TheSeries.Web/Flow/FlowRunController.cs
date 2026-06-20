@@ -40,10 +40,130 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private string _conversationId = Guid.NewGuid().ToString("n");
     private CancellationTokenSource? _cts;
 
+    // Render coalescing: streamed events can arrive in bursts (fast/0ms runs), and each render re-diffs
+    // the whole page over the SignalR circuit. Throttling collapses a burst into ~25 renders/sec while a
+    // trailing render still guarantees the latest state is shown.
+    private const long RenderThrottleMs = 40;
+    private long _lastNotifyTick = long.MinValue;
+    private bool _trailingScheduled;
+    private bool _disposed;
+
+    // Cache for the derived collections below, recomputed only when _events/_turns change (tracked by
+    // _stateVersion) instead of on every render — they were allocating fresh lists and running a regex
+    // per chip on each of the many renders a run triggers.
+    private int _stateVersion;
+    private int _cacheVersion = -1;
+    private IReadOnlyList<ContextEntry> _historyEntries = Array.Empty<ContextEntry>();
+    private IReadOnlyList<ContextEntry> _currentEntries = Array.Empty<ContextEntry>();
+    private int _contextSize;
+    private int _totalTurns;
+
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
 
-    private Task NotifyAsync() => Changed?.Invoke() ?? Task.CompletedTask;
+    private Task NotifyAsync()
+    {
+        if (_disposed)
+        {
+            return Task.CompletedTask;
+        }
+
+        _lastNotifyTick = Environment.TickCount64;
+        return Changed?.Invoke() ?? Task.CompletedTask;
+    }
+
+    // Coalesces a burst of streamed events: renders immediately when enough time has passed since the
+    // last render, otherwise ensures a single trailing render fires shortly after the burst settles.
+    private Task NotifyThrottledAsync()
+    {
+        if (_disposed)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (Environment.TickCount64 - _lastNotifyTick >= RenderThrottleMs)
+        {
+            return NotifyAsync();
+        }
+
+        if (!_trailingScheduled)
+        {
+            _trailingScheduled = true;
+            _ = ScheduleTrailingRenderAsync();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ScheduleTrailingRenderAsync()
+    {
+        try
+        {
+            await Task.Delay((int)RenderThrottleMs);
+            await NotifyAsync();
+        }
+        catch
+        {
+            // Best-effort trailing render; the circuit may already have gone away.
+        }
+        finally
+        {
+            _trailingScheduled = false;
+        }
+    }
+
+    // Marks the derived caches dirty after _events/_turns change.
+    private void BumpState() => _stateVersion++;
+
+    // Recomputes the cached derived collections once per state change (lazy, on first access after a bump).
+    private void EnsureComputed()
+    {
+        if (_cacheVersion == _stateVersion)
+        {
+            return;
+        }
+
+        _cacheVersion = _stateVersion;
+
+        var totalTurns = 0;
+        var contextSize = 0;
+        var current = new List<ContextEntry>();
+        foreach (var e in _events)
+        {
+            if (e.Turn > totalTurns)
+            {
+                totalTurns = e.Turn;
+            }
+
+            contextSize += (e.Data?.Length ?? 0) + e.Label.Length;
+
+            if (FlowEventMapping.IsContentEvent(e))
+            {
+                var chip = FlowEventMapping.ContextChip(e);
+                current.Add(new ContextEntry(chip.Label, chip.Source, FlowEventMapping.ContextPreview(e), Turn: e.Turn > 0 ? e.Turn : null));
+            }
+        }
+
+        var history = new List<ContextEntry>(_turns.Count * 2);
+        foreach (var turn in _turns)
+        {
+            contextSize += turn.Message.Length + (turn.Error?.Length ?? turn.Reply.Length);
+            history.Add(new ContextEntry("User message", "user", FlowEventMapping.TruncatePreview(turn.Message), History: true));
+            if (!string.IsNullOrWhiteSpace(turn.Error))
+            {
+                history.Add(new ContextEntry("Error", "app", FlowEventMapping.TruncatePreview(turn.Error), History: true));
+            }
+            else
+            {
+                history.Add(new ContextEntry("Final answer", "user", FlowEventMapping.TruncatePreview(turn.Reply), History: true));
+            }
+        }
+
+        _totalTurns = totalTurns;
+        _contextSize = contextSize;
+        _currentEntries = current;
+        _historyEntries = history;
+    }
 
     // --- Exposed state ----------------------------------------------------
 
@@ -107,18 +227,18 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     // --- Derived run values ----------------------------------------------
 
-    private int VisibleStepCount => view.VisibleEvents(_events).Count;
-
-    public string StepProgress =>
-        VisibleStepCount == 0 ? string.Empty : $"{VisibleStepCount} step{(VisibleStepCount == 1 ? "" : "s")}";
-
-    public bool HasVisibleSteps => VisibleStepCount > 0;
-
     /// <summary>The LLM round-trip of the most recent step (0 before the first request).</summary>
     public int CurrentTurn => _events.Count == 0 ? 0 : _events[^1].Turn;
 
     /// <summary>The total number of LLM round-trips seen so far.</summary>
-    public int TotalTurns => _events.Select(e => e.Turn).DefaultIfEmpty(0).Max();
+    public int TotalTurns
+    {
+        get
+        {
+            EnsureComputed();
+            return _totalTurns;
+        }
+    }
 
     /// <summary>A compact label for the loop badge: the live turn while running, or the total when finished.</summary>
     public string LoopLabel =>
@@ -139,14 +259,17 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// A rough measure of how much context the model is carrying, summed from the captured step data
     /// plus the conversation history re-sent each turn. Drives the growing "context" bar.
     /// </summary>
-    public int ContextSize =>
-        _events.Sum(e => (e.Data?.Length ?? 0) + e.Label.Length)
-        + _turns.Sum(t => t.Message.Length + (t.Error?.Length ?? t.Reply.Length));
+    public int ContextSize
+    {
+        get
+        {
+            EnsureComputed();
+            return _contextSize;
+        }
+    }
 
     /// <summary>The width (0–100%) of the context growth bar, scaled so typical runs fill it gradually.</summary>
     public int ContextBarWidth => Math.Min(100, ContextSize / 80);
-
-    private IReadOnlyList<FlowEvent> ContentEvents => _events.Where(FlowEventMapping.IsContentEvent).ToList();
 
     /// <summary>
     /// The compact conversation history carried into the model's context from earlier exchanges:
@@ -156,34 +279,30 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     {
         get
         {
-            var entries = new List<ContextEntry>(_turns.Count * 2);
-            foreach (var turn in _turns)
-            {
-                entries.Add(new ContextEntry("User message", "user", FlowEventMapping.TruncatePreview(turn.Message), History: true));
-                if (!string.IsNullOrWhiteSpace(turn.Error))
-                {
-                    entries.Add(new ContextEntry("Error", "app", FlowEventMapping.TruncatePreview(turn.Error), History: true));
-                }
-                else
-                {
-                    entries.Add(new ContextEntry("Final answer", "user", FlowEventMapping.TruncatePreview(turn.Reply), History: true));
-                }
-            }
-
-            return entries;
+            EnsureComputed();
+            return _historyEntries;
         }
     }
 
     /// <summary>The current run's content events as Context chips (full-strength, shown below the history).</summary>
-    public IReadOnlyList<ContextEntry> CurrentEntries =>
-        ContentEvents.Select(e =>
+    public IReadOnlyList<ContextEntry> CurrentEntries
+    {
+        get
         {
-            var chip = FlowEventMapping.ContextChip(e);
-            return new ContextEntry(chip.Label, chip.Source, FlowEventMapping.ContextPreview(e), Turn: e.Turn > 0 ? e.Turn : null);
-        }).ToList();
+            EnsureComputed();
+            return _currentEntries;
+        }
+    }
 
     /// <summary>Total number of content chips on display (conversation history + current run).</summary>
-    public int TotalContextEntries => HistoryEntries.Count + CurrentEntries.Count;
+    public int TotalContextEntries
+    {
+        get
+        {
+            EnsureComputed();
+            return _historyEntries.Count + _currentEntries.Count;
+        }
+    }
 
     // --- Run lifecycle ----------------------------------------------------
 
@@ -214,6 +333,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _runMessage = view.Message;
         _runAgent = view.SelectedAgent;
         _events.Clear();
+        BumpState();
         view.ClearExpanded();
         _loadedSkills.Clear();
         _sessionId = Guid.NewGuid().ToString("n");
@@ -245,6 +365,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _events.Clear();
         view.ClearExpanded();
         _turns.Clear();
+        BumpState();
         _loadedSkills.Clear();
         _runMessage = string.Empty;
         _runAgent = null;
@@ -275,6 +396,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             _reply,
             _error,
             new List<FlowEvent>(_events)));
+        BumpState();
     }
 
     private async Task ConsumeAsync(CancellationToken token)
@@ -287,6 +409,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
                 view.DisabledToolsOrNull, token))
             {
                 _events.Add(flowEvent);
+                BumpState();
                 (_activeNode, _activeArrow) = FlowEventMapping.MapTarget(flowEvent.Kind);
                 _activeTool = FlowEventMapping.ToolNameFor(flowEvent);
                 _responseHint = FlowEventMapping.ResponseHintFor(flowEvent) ?? _responseHint;
@@ -321,7 +444,16 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
                     _error = flowEvent.Detail ?? flowEvent.Label;
                 }
 
-                await NotifyAsync();
+                // Render promptly for discrete state transitions the user is waiting on; coalesce the
+                // high-frequency streaming steps so a burst doesn't re-render the whole page per event.
+                if (flowEvent.Kind is "final" or "error" or "ask-question")
+                {
+                    await NotifyAsync();
+                }
+                else
+                {
+                    await NotifyThrottledAsync();
+                }
             }
         }
         catch (OperationCanceledException)
@@ -518,6 +650,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     public void Dispose()
     {
+        _disposed = true;
         _cts?.Cancel();
         _cts?.Dispose();
     }

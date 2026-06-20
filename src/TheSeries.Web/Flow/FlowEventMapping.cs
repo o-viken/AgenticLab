@@ -7,8 +7,11 @@ namespace TheSeries.Web.Flow;
 /// which node/arrow it lights up, the tool it concerns, a short "response type" hint, and how it maps
 /// into the growing Context stack. No UI or state dependency.
 /// </summary>
-internal static class FlowEventMapping
+internal static partial class FlowEventMapping
 {
+    [GeneratedRegex("\\s+")]
+    private static partial Regex WhitespaceRegex();
+
     /// <summary>Maps a flow event kind to the diagram node it targets and the arrow it animates.</summary>
     public static (string? Node, string? Arrow) MapTarget(string kind) => kind switch
     {
@@ -112,7 +115,7 @@ internal static class FlowEventMapping
             return string.Empty;
         }
 
-        text = Regex.Replace(text, "\\s+", " ").Trim();
+        text = WhitespaceRegex().Replace(text, " ").Trim();
         return text.Length > 90 ? text[..90] + "…" : text;
     }
 }

@@ -1,16 +1,22 @@
 @* The two-column output panel below the diagram: the live Steps list (expandable rows) on the left
    and the agent's final Reply on the right. *@
 
+@{
+    // Compute the perspective-filtered events once and reuse for the count and the list (each call
+    // allocates a fresh list).
+    var visibleSteps = View.VisibleEvents(Run.Events);
+}
+
 <section class="output">
     <div class="log">
         <h2>
-            Steps <span class="progress">@Run.StepProgress</span>
+            Steps <span class="progress">@(visibleSteps.Count == 0 ? "" : $"{visibleSteps.Count} step{(visibleSteps.Count == 1 ? "" : "s")}")</span>
             @if (Run.TotalTurns > 0)
             {
                 <span class="turns">· 🔁 @Run.TotalTurns turn@(Run.TotalTurns == 1 ? "" : "s")</span>
             }
         </h2>
-        @if (!Run.HasVisibleSteps)
+        @if (visibleSteps.Count == 0)
         {
             <p class="empty">
                 @(Run.Running && View.Mode == FlowMode.Manual
@@ -21,7 +27,7 @@
         else
         {
             <ol>
-                <FlowStepList Events="View.VisibleEvents(Run.Events)" Expandable="true" />
+                <FlowStepList Events="visibleSteps" Expandable="true" />
             </ol>
         }
     </div>

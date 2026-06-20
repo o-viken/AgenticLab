@@ -9,7 +9,7 @@
     {
         var expanded = View.IsStepExpanded(e.Sequence);
         var rowClass = hasData ? (expanded ? "step expandable expanded" : "step expandable") : "step";
-        <li class="@rowClass @e.Kind">
+        <li class="@rowClass @e.Kind" @key="e.Sequence">
             <div class="step-row" @onclick="@(() => View.ToggleStep(e.Sequence))">
                 <span class="kind">@e.Kind</span>
                 @if (e.Turn > 0)
@@ -34,7 +34,7 @@
     }
     else
     {
-        <li class="step @e.Kind">
+        <li class="step @e.Kind" @key="e.Sequence">
             <div class="step-row">
                 <span class="kind">@e.Kind</span>
                 @if (e.Turn > 0)

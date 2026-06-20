@@ -10,7 +10,7 @@
             {
                 var visibleTurnEvents = View.VisibleEvents(turn.Events);
                 var turnCount = turn.Events.Select(e => e.Turn).DefaultIfEmpty(0).Max();
-                <div class="turn">
+                <div class="turn" @key="turn">
                     <div class="bubble user">
                         <span class="who">🧑 You</span>
                         <p>@turn.Message</p>
