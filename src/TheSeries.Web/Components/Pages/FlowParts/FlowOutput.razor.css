@@ -1,0 +1,59 @@
+/* Output panel (FlowOutput): the Steps log and the Reply box. The <li class="step"> items inside the
+   <ol> are styled by FlowStepList. */
+.output {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 1.25rem;
+}
+
+@media (max-width: 820px) {
+    .output { grid-template-columns: 1fr; }
+}
+
+.log,
+.reply {
+    padding: 1rem 1.25rem;
+    background: var(--surface-panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+}
+
+.log h2,
+.reply h2 {
+    margin: 0 0 .75rem;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text-dim);
+}
+
+.log h2 .progress {
+    margin-left: .5rem;
+    font-size: .78rem;
+    letter-spacing: .4px;
+    color: var(--accent-soft);
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+}
+
+.log h2 .turns {
+    margin-left: .35rem;
+    font-size: .74rem;
+    letter-spacing: .3px;
+    color: var(--purple-text);
+    text-transform: none;
+}
+
+.log ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.reply p {
+    margin: 0;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}

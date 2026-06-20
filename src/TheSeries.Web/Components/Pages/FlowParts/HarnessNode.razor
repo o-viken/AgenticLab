@@ -1,0 +1,67 @@
+@* The compact merged Client + AiService (Harness/Application) node: its icon (brand logo or the
+   Default emoji), label/subtitle, optional workspace path and environment badge, and — in Expert —
+   the Tools box and (for skill-using agents) the Skills catalogue. *@
+
+<div class="node harness @Run.NodeClass("harness")">
+    <ConceptInfoButton Id="harness" Title="Learn about the harness" />
+    <span class="icon">
+        @if (View.Theme == Theme.Default)
+        {
+            @(View.Perspective == Perspective.Expert ? "🛠️" : "📦")
+        }
+        else
+        {
+            <ThemeIcon Theme="View.Theme" />
+        }
+    </span>
+    <span class="title">@View.HarnessLabel</span>
+    <span class="subtitle">@View.HarnessSubtitle</span>
+    @if (View.SelectedAgentRequiresWorkspace && !string.IsNullOrWhiteSpace(View.Workspace))
+    {
+        <span class="subtitle workspace-path" title="@View.Workspace">📁 @View.Workspace</span>
+    }
+    @if (View.ShowEnvironment)
+    {
+        <span class="env-badge @View.EnvBadgeClass" title="@View.HarnessEnvTitle">@View.HarnessEnvLabel</span>
+    }
+    <EnvironmentPanel />
+    @if (View.Perspective == Perspective.Expert)
+    {
+        <div class="tools node-inner @Run.NodeClass("tools")">
+            <ConceptInfoButton Id="tools" Title="Learn about tools" />
+            <span class="title">Tools</span>
+            <span class="subtitle">@View.SelectedAgentTools</span>
+        </div>
+        @if (View.SelectedAgentSupportsSkills)
+        {
+            <div class="skills node-inner">
+                <ConceptInfoButton Id="skills" Title="Learn about skills" />
+                <span class="title">Skills</span>
+                @if (Run.KnownSkills.Count == 0)
+                {
+                    <span class="subtitle">@(string.IsNullOrWhiteSpace(View.Workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
+                }
+                else
+                {
+                    <div class="skill-chips">
+                        @foreach (var skill in Run.KnownSkills)
+                        {
+                            <span class="skill-chip @(Run.IsSkillLoaded(skill.Name) ? "loaded" : "")"
+                                  title="@skill.Description">
+                                @skill.Name
+                            </span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+}

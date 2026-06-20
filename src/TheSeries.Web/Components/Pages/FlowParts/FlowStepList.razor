@@ -1,0 +1,75 @@
+@* Renders the ordered <li class="step"> items for a flow. In Expandable mode (the live Steps panel)
+   each row toggles an inline data panel; otherwise (the transcript) the data sits in a <details> box.
+   The parent supplies the surrounding <ol>. *@
+
+@foreach (var e in Events)
+{
+    var hasData = !string.IsNullOrWhiteSpace(e.Data);
+    if (Expandable)
+    {
+        var expanded = View.IsStepExpanded(e.Sequence);
+        var rowClass = hasData ? (expanded ? "step expandable expanded" : "step expandable") : "step";
+        <li class="@rowClass @e.Kind">
+            <div class="step-row" @onclick="@(() => View.ToggleStep(e.Sequence))">
+                <span class="kind">@e.Kind</span>
+                @if (e.Turn > 0)
+                {
+                    <span class="turn-badge">T@e.Turn</span>
+                }
+                <span class="label">@e.Label</span>
+                @if (hasData)
+                {
+                    <span class="expand-icon">@(expanded ? "▾" : "▸")</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                {
+                    <span class="detail">@e.Detail</span>
+                }
+            </div>
+            @if (hasData && expanded)
+            {
+                <pre class="step-data">@e.Data</pre>
+            }
+        </li>
+    }
+    else
+    {
+        <li class="step @e.Kind">
+            <div class="step-row">
+                <span class="kind">@e.Kind</span>
+                @if (e.Turn > 0)
+                {
+                    <span class="turn-badge">T@e.Turn</span>
+                }
+                <span class="label">@e.Label</span>
+                @if (!string.IsNullOrWhiteSpace(e.Detail) && e.Kind != "final")
+                {
+                    <span class="detail">@e.Detail</span>
+                }
+            </div>
+            @if (hasData)
+            {
+                <details class="step-data-wrap">
+                    <summary>data</summary>
+                    <pre class="step-data">@e.Data</pre>
+                </details>
+            }
+        </li>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    /// <summary>The events to render as steps (already filtered for the active perspective).</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<FlowEvent> Events { get; set; } = Array.Empty<FlowEvent>();
+
+    /// <summary>
+    /// When true (the live Steps panel) each row is clickable to reveal an inline data panel; when
+    /// false (the transcript) the captured data is shown in a nested &lt;details&gt; box instead.
+    /// </summary>
+    [Parameter]
+    public bool Expandable { get; set; }
+}

@@ -1,0 +1,184 @@
+@* The controls bar above the diagram: theme picker, message box, run/stepping buttons, the agent
+   picker, per-tool toggles, the optional workspace input, the auto-step delay, the stepping mode and
+   the inline answer / last-response echoes. Reads and writes the shared view/run state. *@
+
+<section class="controls">
+    <div class="control theme-control">
+        <label for="theme">Theme</label>
+        <div class="theme-select-row">
+            <select id="theme" value="@View.Theme" @onchange="OnThemeChangedAsync" disabled="@Run.Running">
+                <option value="@Theme.Default">Default</option>
+                <option value="@Theme.ChatGpt">ChatGPT</option>
+                <option value="@Theme.Copilot">GitHub Copilot</option>
+                <option value="@Theme.ClaudeCode">Claude Code</option>
+                <option value="@Theme.Claude">Claude</option>
+                <option value="@Theme.Microsoft365">Microsoft 365</option>
+            </select>
+            @if (ThemeConceptId(View.Theme) is { } conceptId)
+            {
+                <ConceptInfoButton Id="@conceptId" Title="Learn about the selected theme's product" />
+            }
+        </div>
+    </div>
+
+    <div class="control message">
+        <label for="message">Message</label>
+        <input id="message" @bind="View.Message" @bind:event="oninput"
+               placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
+               disabled="@Run.Running" @onkeydown="OnKeyDownAsync" />
+    </div>
+
+    <div class="control actions">
+        @if (!Run.Running)
+        {
+            <button class="send" @onclick="Run.SendAsync" disabled="@(string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">Send</button>
+            <button class="stop" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
+        }
+        else if (View.Mode == FlowMode.Manual)
+        {
+            <button class="send" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">@(Run.AwaitingStep ? "Waiting…" : "Next ▶")</button>
+            <button class="stop" @onclick="Run.StopAsync">Stop</button>
+        }
+        else
+        {
+            <button class="send" @onclick="Run.TogglePauseAsync">@(Run.Paused ? "Resume ▶" : "Pause ⏸")</button>
+            <button class="stop" @onclick="Run.StopAsync">Stop</button>
+        }
+    </div>
+
+    @if (Run.AwaitingAnswer)
+    {
+        <div class="control message ask-question">
+            <label for="answer">The agent is asking</label>
+            <p class="ask-question-text">@Run.PendingQuestion</p>
+            <div class="ask-question-row">
+                <input id="answer" @bind="Run.AnswerText" @bind:event="oninput"
+                       placeholder="Type your answer…" @onkeydown="OnAnswerKeyDownAsync" />
+                <button class="send" @onclick="Run.SubmitAnswerAsync"
+                        disabled="@string.IsNullOrWhiteSpace(Run.AnswerText)">Answer ▶</button>
+            </div>
+        </div>
+    }
+
+    <div class="control">
+        <label for="agent">Agent</label>
+        <select id="agent" @bind="View.SelectedAgent" @bind:after="Run.RefreshKnownSkillsAsync" disabled="@Run.Running">
+            @foreach (var agent in View.AvailableAgents)
+            {
+                <option value="@agent.Name">@agent.Label</option>
+            }
+        </select>
+    </div>
+
+    <div class="control">
+        <label for="delay">Auto step delay <span>@View.StepDelayMs ms</span></label>
+        <input id="delay" type="range" min="0" max="3000" step="50"
+               @bind="View.StepDelayMs" @bind:event="oninput" @bind:after="Run.SetDelayAsync"
+               disabled="@(View.Mode == FlowMode.Manual)" />
+    </div>
+
+    <div class="control">
+        <label>Stepping</label>
+        <div class="mode-toggle">
+            <button type="button" class="@(View.Mode == FlowMode.Auto ? "selected" : "")"
+                    disabled="@Run.Running" @onclick="@(() => View.Mode = FlowMode.Auto)">Auto</button>
+            <button type="button" class="@(View.Mode == FlowMode.Manual ? "selected" : "")"
+                    disabled="@Run.Running" @onclick="@(() => View.Mode = FlowMode.Manual)">Manual</button>
+        </div>
+    </div>
+
+    @* Tools always occupies its own full-width row (with a placeholder when the agent
+       has none) so switching agents never reflows the primary controls above. *@
+    <div class="control tools-control">
+        <label>Tools</label>
+        @if (View.SelectedAgentToolNames.Count > 0)
+        {
+            <div class="tool-toggles">
+                @foreach (var tool in View.SelectedAgentToolNames)
+                {
+                    <label class="check">
+                        <input type="checkbox" checked="@View.IsToolEnabled(tool)" disabled="@Run.Running"
+                               @onchange="@(e => View.SetToolEnabled(tool, (bool)e.Value!))" />
+                        @tool
+                    </label>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="tools-empty">No tools for this agent</p>
+        }
+    </div>
+
+    @if (View.SelectedAgentRequiresWorkspace)
+    {
+        <div class="control message workspace-control">
+            <label for="workspace">Workspace</label>
+            <input id="workspace" @bind="View.Workspace" @bind:event="oninput" @onblur="Run.RefreshKnownSkillsAsync"
+                   placeholder="Absolute path to a folder the agent may edit, e.g. C:\code\my-app"
+                   disabled="@Run.Running" />
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Run.Error) || !string.IsNullOrWhiteSpace(Run.Reply))
+    {
+        <div class="control message last-response">
+            <label>Last response</label>
+            @if (!string.IsNullOrWhiteSpace(Run.Error))
+            {
+                <p class="last-response-text error">@Run.Error</p>
+            }
+            else
+            {
+                <p class="last-response-text">@Run.Reply</p>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    /// <summary>Raised when the user picks a theme; the page persists it and refreshes the agent roster.</summary>
+    [Parameter, EditorRequired]
+    public EventCallback<Theme> OnSelectTheme { get; set; }
+
+    private async Task OnThemeChangedAsync(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<Theme>(args.Value?.ToString(), out var theme))
+        {
+            await OnSelectTheme.InvokeAsync(theme);
+        }
+    }
+
+    /// <summary>The product concept id for a theme (for the ⓘ beside the picker), or null for the non-product Default theme.</summary>
+    private static string? ThemeConceptId(Theme theme) => theme switch
+    {
+        Theme.ChatGpt => "chatgpt",
+        Theme.Copilot => "github-copilot",
+        Theme.ClaudeCode => "claude-code",
+        Theme.Claude => "claude",
+        Theme.Microsoft365 => "microsoft-365-copilot",
+        _ => null,
+    };
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !Run.Running && !string.IsNullOrWhiteSpace(View.Message))
+        {
+            await Run.SendAsync();
+        }
+    }
+
+    private async Task OnAnswerKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && Run.AwaitingAnswer && !string.IsNullOrWhiteSpace(Run.AnswerText))
+        {
+            await Run.SubmitAnswerAsync();
+        }
+    }
+}

@@ -1,0 +1,50 @@
+@* The risk meter + guardrails box shown on the merged node when the environment & risk view is on.
+   Renders nothing when the view is off. Used by both the compact and the anatomy harness node. *@
+
+@if (View.ShowEnvironment)
+{
+    <div class="env-panel">
+        <div class="risk-meter @View.RiskLevelClass">
+            <ConceptInfoButton Id="agent-risk" Title="Learn about agent risk" />
+            <span class="risk-title">Risk</span>
+            <div class="risk-bar">
+                @for (var i = 0; i < 3; i++)
+                {
+                    <span class="risk-seg @(i < View.RiskFilledSegments ? "filled" : "")"></span>
+                }
+            </div>
+            <span class="risk-level">@View.SelectedAgentRiskLevel</span>
+        </div>
+        <div class="guardrails node-inner">
+            <ConceptInfoButton Id="guardrails" Title="Learn about guardrails" />
+            <span class="title">Guardrails</span>
+            @if (View.SelectedAgentGuardrails.Count == 0)
+            {
+                <span class="subtitle">no extra guardrails — model reasoning only</span>
+            }
+            else
+            {
+                <ul class="guardrail-list">
+                    @foreach (var g in View.SelectedAgentGuardrails)
+                    {
+                        <li class="guardrail-chip">@g</li>
+                    }
+                </ul>
+            }
+        </div>
+        @if (View.ShowConcepts)
+        {
+            <div class="env-learn">
+                <button type="button" class="concept-mcp" title="Learn where agents run"
+                        @onclick="@(() => View.OpenConcept("where-agents-run"))" @onclick:stopPropagation="true">Where it runs</button>
+                <button type="button" class="concept-mcp" title="Learn about sandboxing"
+                        @onclick="@(() => View.OpenConcept("sandbox"))" @onclick:stopPropagation="true">Sandbox</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+}

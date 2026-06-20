@@ -1,0 +1,90 @@
+/* Step rows (FlowStepList). The surrounding <ol>/.mini-steps wrapper is styled by the parent
+   (FlowOutput / ConversationTranscript); this file styles the <li class="step"> items themselves. */
+.step {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.step-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem .55rem;
+}
+
+.step.expandable > .step-row { cursor: pointer; }
+
+.step .kind {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: .12rem .45rem;
+    border-radius: 999px;
+    background: var(--kind-bg);
+    color: var(--kind-text);
+    white-space: nowrap;
+}
+
+.step.tool-call .kind,
+.step.tool-result .kind { background: var(--tool-chip-bg); color: var(--tool-chip-text); }
+
+.step.llm-request .kind,
+.step.llm-response .kind { background: var(--llm-chip-bg); color: var(--llm-chip-text); }
+
+.step.final .kind { background: var(--accent-strong); color: #1a1206; }
+
+.step.error .kind { background: var(--error-bg); color: var(--error-text); }
+
+.step .turn-badge {
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .4px;
+    padding: .1rem .35rem;
+    border-radius: 999px;
+    background: var(--purple-soft);
+    color: var(--purple-text);
+    white-space: nowrap;
+}
+
+.step .label { font-weight: 600; }
+
+.step .expand-icon {
+    margin-left: auto;
+    color: var(--text-dim);
+    font-size: .8rem;
+}
+
+.step .detail {
+    flex-basis: 100%;
+    font-size: .82rem;
+    color: var(--text-muted);
+    word-break: break-word;
+}
+
+.step-data {
+    margin: 0;
+    padding: .65rem .8rem;
+    max-height: 320px;
+    overflow: auto;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: .76rem;
+    line-height: 1.45;
+    color: var(--code-text);
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.step-data-wrap > summary {
+    cursor: pointer;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-dim);
+    user-select: none;
+}
+
+.step-data-wrap[open] { margin-top: .35rem; }

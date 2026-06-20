@@ -1,0 +1,37 @@
+@* The small circled-i badge that opens a concept in the learning drawer. Two variants:
+   a standalone <button class="concept-info"> anchored to a node/box, or an inline
+   <span class="theme-info"> nested inside a theme button (where a <button> cannot nest).
+   Renders nothing when the learning UI is switched off. *@
+
+@if (View.ShowConcepts)
+{
+    if (Inline)
+    {
+        <span class="theme-info" title="@Title" role="button"
+              @onclick="Open" @onclick:stopPropagation="true">ⓘ</span>
+    }
+    else
+    {
+        <button type="button" class="concept-info" title="@Title"
+                @onclick="Open" @onclick:stopPropagation="true">ⓘ</button>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    /// <summary>The concept id to open (a Concepts/&lt;id&gt; folder).</summary>
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    /// <summary>The tooltip text shown on the badge.</summary>
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    /// <summary>When true renders the inline span variant (for nesting inside a theme button).</summary>
+    [Parameter]
+    public bool Inline { get; set; }
+
+    private void Open() => View.OpenConcept(Id);
+}

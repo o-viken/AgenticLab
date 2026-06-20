@@ -1,0 +1,76 @@
+@* The expanded "anatomy" of the harness node (Expert · Expand harness): colour-coded layers showing
+   who contributes each part of the context, plus the environment panel and the growing context stack. *@
+
+<div class="node harness anatomy @Run.NodeClass("harness")">
+    <span class="anatomy-heading">@View.HarnessLabel anatomy</span>
+
+    @if (View.ShowEnvironment)
+    {
+        <span class="env-badge @View.EnvBadgeClass" title="@View.HarnessEnvTitle">@View.HarnessEnvLabel</span>
+    }
+    <EnvironmentPanel />
+
+    <div class="layer app">
+        <ConceptInfoButton Id="system-prompt" Title="Learn about the system prompt" />
+        <span class="layer-title">System Prompt</span>
+        <span class="layer-body">Global harness prompt — operating rules + tool loop (expert coding assistant++)</span>
+        <span class="set-by">Set by application</span>
+    </div>
+
+    <div class="layer app">
+        <ConceptInfoButton Id="client" Title="Learn about the client" />
+        <span class="layer-title">Client</span>
+        <span class="layer-body">Blazor web app · sends the prompt, renders the reply</span>
+        <span class="set-by">Set by application</span>
+    </div>
+
+    <div class="layer agent">
+        <ConceptInfoButton Id="persona" Title="Learn about the agent persona" />
+        <span class="layer-title">Agent Persona</span>
+        <span class="layer-body">@View.SelectedAgent — @View.SelectedAgentDescription</span>
+        <span class="set-by">Set per agent</span>
+    </div>
+
+    <div class="layer agent tools @Run.NodeClass("tools")">
+        <ConceptInfoButton Id="tools" Title="Learn about tools" />
+        <span class="layer-title">Tools / MCP</span>
+        @if (View.SelectedAgentToolNames.Count == 0)
+        {
+            <span class="layer-body">none</span>
+        }
+        else
+        {
+            <ul class="tool-checks">
+                @foreach (var tool in View.SelectedAgentToolNames)
+                {
+                    <li>@(View.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool</li>
+                }
+            </ul>
+        }
+        <span class="set-by">Set per agent</span>
+    </div>
+
+    <div class="layer agent">
+        <ConceptInfoButton Id="settings" Title="Learn about settings" />
+        <span class="layer-title">Settings</span>
+        <span class="layer-body">model: Azure OpenAI · stepping: @View.Mode</span>
+        <span class="set-by">Set per agent</span>
+    </div>
+
+    <div class="layer user">
+        <ConceptInfoButton Id="user-prompt" Title="Learn about the user prompt" />
+        <span class="layer-title">User prompt</span>
+        <span class="layer-body">@Run.CurrentUserPrompt</span>
+        <span class="set-by">Set by user</span>
+    </div>
+
+    <ContextStack />
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+}

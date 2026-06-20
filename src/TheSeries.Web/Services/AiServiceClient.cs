@@ -124,4 +124,4 @@ internal sealed record SkillInfo(string Name, string Description);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
-internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

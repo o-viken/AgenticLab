@@ -1,0 +1,64 @@
+@* The growing "context" visualization inside the harness anatomy: a bar scaled to the captured
+   step-data size plus one chip per content event, with the carried-over conversation history shown
+   first as dimmed chips. *@
+
+<div class="context-stack">
+    <div class="context-head">
+        <span class="context-title-group">
+            <ConceptInfoButton Id="context" Title="Learn about the context" />
+            <span class="context-title">Context</span>
+        </span>
+        <span class="context-meta">@Run.TotalContextEntries content entr@(Run.TotalContextEntries == 1 ? "y" : "ies") · ~@(Run.ContextSize) chars</span>
+    </div>
+    <div class="context-bar"><span style="width:@(Run.ContextBarWidth)%"></span></div>
+    @if (Run.TotalContextEntries == 0)
+    {
+        <span class="context-empty">content grows as the agent runs…</span>
+    }
+    else
+    {
+        <ol class="context-chips">
+            @if (Run.HistoryEntries.Count > 0)
+            {
+                <li class="ctx-divider">Earlier in this conversation</li>
+                @foreach (var entry in Run.HistoryEntries)
+                {
+                    @ContextChip(entry)
+                }
+                @if (Run.CurrentEntries.Count > 0)
+                {
+                    <li class="ctx-divider">This turn</li>
+                }
+            }
+            @foreach (var entry in Run.CurrentEntries)
+            {
+                @ContextChip(entry)
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    // Renders a single Context chip. History chips are dimmed via the extra "history" class and omit
+    // the per-turn badge.
+    private RenderFragment ContextChip(ContextEntry entry)
+    {
+        var cssClass = entry.History ? $"ctx {entry.Source} history" : $"ctx {entry.Source}";
+        return @<li class="@cssClass">
+            <div class="ctx-row">
+                @if (entry.Turn is int turn)
+                {
+                    <span class="ctx-turn">T@(turn)</span>
+                }
+                <span class="ctx-label">@entry.Label</span>
+            </div>
+            @if (!string.IsNullOrEmpty(entry.Preview))
+            {
+                <span class="ctx-preview">@entry.Preview</span>
+            }
+        </li>;
+    }
+}
