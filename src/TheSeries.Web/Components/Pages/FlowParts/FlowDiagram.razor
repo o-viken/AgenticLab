@@ -95,6 +95,18 @@
                     <span class="icon">@resource.Icon</span>
                     <span class="title">@resource.Title</span>
                     <span class="subtitle">@resource.Transport</span>
+                    @if (!string.IsNullOrEmpty(Run.ActiveToolName))
+                    {
+                        <span class="resource-tool">🔧 @Run.ActiveToolName</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Run.ActiveToolArgs))
+                    {
+                        <span class="resource-detail args" title="@Run.ActiveToolArgs">▶ @Run.ActiveToolArgs</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Run.ActiveToolResult))
+                    {
+                        <span class="resource-detail result" title="@Run.ActiveToolResult">◀ @Run.ActiveToolResult</span>
+                    }
                 </div>
             </div>
         }

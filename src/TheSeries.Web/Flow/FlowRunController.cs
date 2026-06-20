@@ -24,6 +24,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private string? _activeNode;
     private string? _activeArrow;
     private string? _activeTool;
+    private string? _activeToolArgs;
+    private string? _activeToolResult;
     private string? _responseHint;
 
     private bool _running;
@@ -93,6 +95,15 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>The resource currently being used, based on the active tool, or null when none is active.</summary>
     public ResourceInfo? ActiveResourceInfo => ThemeCatalog.ActiveResource(_activeTool);
+
+    /// <summary>The specific tool function that contacted the active resource (e.g. "FindPeople"), or null.</summary>
+    public string? ActiveToolName => _activeTool;
+
+    /// <summary>A short preview of the arguments the model passed to the active tool call, or null.</summary>
+    public string? ActiveToolArgs => _activeToolArgs;
+
+    /// <summary>A short preview of the result the active tool returned to the harness, or null.</summary>
+    public string? ActiveToolResult => _activeToolResult;
 
     // --- Derived run values ----------------------------------------------
 
@@ -197,6 +208,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _activeToolArgs = null;
+        _activeToolResult = null;
         _responseHint = null;
         _runMessage = view.Message;
         _runAgent = view.SelectedAgent;
@@ -226,6 +239,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _activeToolArgs = null;
+        _activeToolResult = null;
         _responseHint = null;
         _events.Clear();
         view.ClearExpanded();
@@ -276,6 +291,17 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
                 _activeTool = FlowEventMapping.ToolNameFor(flowEvent);
                 _responseHint = FlowEventMapping.ResponseHintFor(flowEvent) ?? _responseHint;
                 _awaitingStep = false;
+
+                // Capture the call arguments and result so the resource box can show what the tool did.
+                if (flowEvent.Kind == "tool-call")
+                {
+                    _activeToolArgs = FlowEventMapping.TruncatePreview(flowEvent.Detail ?? flowEvent.Data);
+                    _activeToolResult = null;
+                }
+                else if (flowEvent.Kind == "tool-result")
+                {
+                    _activeToolResult = FlowEventMapping.TruncatePreview(flowEvent.Detail ?? flowEvent.Data);
+                }
 
                 TrackSkills(flowEvent);
 
@@ -398,6 +424,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
+        _activeToolArgs = null;
+        _activeToolResult = null;
         _responseHint = null;
     }
 

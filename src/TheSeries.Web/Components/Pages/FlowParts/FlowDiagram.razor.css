@@ -642,6 +642,25 @@
 
 .diagram ::deep .node.resource .subtitle { font-size: .68rem; }
 
+/* The specific tool call surfaced inside the resource box while it runs. */
+.diagram ::deep .node.resource .resource-tool {
+    margin-top: .35rem;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.diagram ::deep .node.resource .resource-detail {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .66rem;
+    line-height: 1.3;
+    color: var(--text);
+    opacity: .9;
+}
+
 .diagram ::deep .node.resource.active {
     border-style: solid;
     border-color: var(--accent-soft);
