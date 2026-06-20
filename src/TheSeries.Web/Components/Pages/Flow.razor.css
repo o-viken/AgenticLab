@@ -444,6 +444,63 @@
     flex: 1 1 320px;
 }
 
+/* The inline answer box shown when an agent's AskQuestion tool is waiting for the user's reply. */
+.control.message.ask-question {
+    flex: 1 1 100%;
+    padding: .75rem .85rem;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: rgba(var(--accent-rgb), .08);
+}
+
+.control.message.ask-question label {
+    color: var(--accent-soft);
+}
+
+.ask-question-text {
+    margin: .35rem 0 .6rem;
+    font-size: .95rem;
+    color: var(--text);
+}
+
+.ask-question-row {
+    display: flex;
+    gap: .6rem;
+    align-items: stretch;
+}
+
+.ask-question-row input {
+    flex: 1 1 auto;
+}
+
+/* A compact echo of the latest answer under the message input, so it's easy to follow the flow. */
+.control.message.last-response {
+    flex: 1 1 100%;
+    padding: .65rem .85rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+}
+
+.last-response-text {
+    margin: .35rem 0 0;
+    font-size: .95rem;
+    line-height: 1.45;
+    color: var(--text);
+    white-space: pre-wrap;
+    max-height: 9rem;
+    overflow-y: auto;
+}
+
+.last-response-text.error {
+    color: var(--error);
+}
+
+/* The theme picker sits at the very top of the controls bar, spanning its own full-width row. */
+.control.theme-control {
+    flex: 1 1 100%;
+}
+
 .control label {
     font-size: .8rem;
     text-transform: uppercase;

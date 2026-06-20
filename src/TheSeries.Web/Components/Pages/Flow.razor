@@ -21,6 +21,46 @@
     </header>
 
     <section class="controls">
+        <div class="control theme-control">
+            <label>Theme</label>
+            <div class="mode-toggle theme-toggle">
+                <button type="button" class="@(_theme == Theme.Default ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.Default))" title="The original look">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9.5" cy="9.5" r="5.5" opacity=".55" /><circle cx="14.5" cy="14.5" r="5.5" opacity=".95" /></svg>
+                    </span>Default
+                </button>
+                <button type="button" class="@(_theme == Theme.Copilot ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.Copilot))" title="GitHub Copilot">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5c-3.9 0-6.8 1.7-6.8 6.3 0 .5.1 1 .2 1.5-.7.4-1.2 1-1.2 1.9v2.2c0 .8.6 1.4 1.5 1.9C7.4 19.5 9.5 20 12 20s4.6-.5 6.3-1.4c.9-.5 1.5-1.1 1.5-1.9v-2.2c0-.9-.5-1.5-1.2-1.9.1-.5.2-1 .2-1.5C18.8 6.7 15.9 5 12 5Zm-3.1 7.8c.8 0 1.4.8 1.4 1.9s-.6 1.9-1.4 1.9-1.4-.8-1.4-1.9.6-1.9 1.4-1.9Zm6.2 0c.8 0 1.4.8 1.4 1.9s-.6 1.9-1.4 1.9-1.4-.8-1.4-1.9.6-1.9 1.4-1.9Z" /></svg>
+                    </span>GitHub Copilot
+                    @ThemeInfo("github-copilot", "Learn about GitHub Copilot")
+                </button>
+                <button type="button" class="@(_theme == Theme.ClaudeCode ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.ClaudeCode))" title="Claude Code">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 3.6 3.6L5 15.2" /><path d="M11.5 16h6.5" /></svg>
+                    </span>Claude Code
+                    @ThemeInfo("claude-code", "Learn about Claude Code")
+                </button>
+                <button type="button" class="@(_theme == Theme.Claude ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.Claude))" title="Claude">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" /></svg>
+                    </span>Claude
+                    @ThemeInfo("claude", "Learn about Claude")
+                </button>
+                <button type="button" class="@(_theme == Theme.ChatGpt ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.ChatGpt))" title="ChatGPT">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-4 2.9 6.05 6.05 0 0 0 .75 7.1 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.21 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.07Zm-9.02 12.6a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.79.79 0 0 0 .39-.68v-6.74l2.02 1.17a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.5 4.5ZM3.6 18.3a4.47 4.47 0 0 1-.53-3.01l.14.08 4.78 2.76a.77.77 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.74 19.95a4.5 4.5 0 0 1-6.14-1.64ZM2.34 7.9a4.49 4.49 0 0 1 2.37-1.98v5.68a.77.77 0 0 0 .39.68l5.81 3.35-2.02 1.17a.08.08 0 0 1-.07 0L4 13.97a4.5 4.5 0 0 1-1.66-6.07Zm16.6 3.86-5.84-3.4L15.12 7.2a.08.08 0 0 1 .07 0l4.83 2.79a4.49 4.49 0 0 1-.68 8.1v-5.67a.79.79 0 0 0-.4-.67Zm2.01-3.02-.14-.09-4.77-2.78a.78.78 0 0 0-.79 0L9.41 9.23V6.9a.07.07 0 0 1 .03-.07l4.83-2.78a4.5 4.5 0 0 1 6.68 4.66ZM8.31 12.86l-2.02-1.16a.08.08 0 0 1-.04-.06V6.07a4.5 4.5 0 0 1 7.38-3.45l-.14.08-4.78 2.76a.79.79 0 0 0-.39.68Zm1.1-2.37 2.6-1.5 2.61 1.5v3l-2.6 1.5-2.6-1.5Z" /></svg>
+                    </span>ChatGPT
+                    @ThemeInfo("chatgpt", "Learn about ChatGPT")
+                </button>
+            </div>
+        </div>
+
         <div class="control message">
             <label for="message">Message</label>
             <input id="message" @bind="_message" @bind:event="oninput"
@@ -28,12 +68,26 @@
                    disabled="@_running" @onkeydown="OnKeyDownAsync" />
         </div>
 
+        @if (_awaitingAnswer)
+        {
+            <div class="control message ask-question">
+                <label for="answer">The agent is asking</label>
+                <p class="ask-question-text">@_pendingQuestion</p>
+                <div class="ask-question-row">
+                    <input id="answer" @bind="_answerText" @bind:event="oninput"
+                           placeholder="Type your answer…" @onkeydown="OnAnswerKeyDownAsync" />
+                    <button class="send" @onclick="SubmitAnswerAsync"
+                            disabled="@string.IsNullOrWhiteSpace(_answerText)">Answer ▶</button>
+                </div>
+            </div>
+        }
+
         <div class="control">
             <label for="agent">Agent</label>
             <select id="agent" @bind="SelectedAgent" @bind:after="RefreshKnownSkillsAsync" disabled="@_running">
-                @foreach (var agent in _agents)
+                @foreach (var agent in AvailableAgents)
                 {
-                    <option value="@agent.Name">@agent.Name</option>
+                    <option value="@agent.Name">@agent.Label</option>
                 }
             </select>
         </div>
@@ -97,46 +151,6 @@
             </div>
         </div>
 
-        <div class="control">
-            <label>Theme</label>
-            <div class="mode-toggle theme-toggle">
-                <button type="button" class="@(_theme == Theme.Default ? "selected" : "")"
-                        @onclick="@(() => SetThemeAsync(Theme.Default))" title="The original look">
-                    <span class="theme-logo">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9.5" cy="9.5" r="5.5" opacity=".55" /><circle cx="14.5" cy="14.5" r="5.5" opacity=".95" /></svg>
-                    </span>Default
-                </button>
-                <button type="button" class="@(_theme == Theme.Copilot ? "selected" : "")"
-                        @onclick="@(() => SetThemeAsync(Theme.Copilot))" title="GitHub Copilot">
-                    <span class="theme-logo">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5c-3.9 0-6.8 1.7-6.8 6.3 0 .5.1 1 .2 1.5-.7.4-1.2 1-1.2 1.9v2.2c0 .8.6 1.4 1.5 1.9C7.4 19.5 9.5 20 12 20s4.6-.5 6.3-1.4c.9-.5 1.5-1.1 1.5-1.9v-2.2c0-.9-.5-1.5-1.2-1.9.1-.5.2-1 .2-1.5C18.8 6.7 15.9 5 12 5Zm-3.1 7.8c.8 0 1.4.8 1.4 1.9s-.6 1.9-1.4 1.9-1.4-.8-1.4-1.9.6-1.9 1.4-1.9Zm6.2 0c.8 0 1.4.8 1.4 1.9s-.6 1.9-1.4 1.9-1.4-.8-1.4-1.9.6-1.9 1.4-1.9Z" /></svg>
-                    </span>GitHub Copilot
-                    @ThemeInfo("github-copilot", "Learn about GitHub Copilot")
-                </button>
-                <button type="button" class="@(_theme == Theme.ClaudeCode ? "selected" : "")"
-                        @onclick="@(() => SetThemeAsync(Theme.ClaudeCode))" title="Claude Code">
-                    <span class="theme-logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 3.6 3.6L5 15.2" /><path d="M11.5 16h6.5" /></svg>
-                    </span>Claude Code
-                    @ThemeInfo("claude-code", "Learn about Claude Code")
-                </button>
-                <button type="button" class="@(_theme == Theme.Claude ? "selected" : "")"
-                        @onclick="@(() => SetThemeAsync(Theme.Claude))" title="Claude">
-                    <span class="theme-logo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4" /></svg>
-                    </span>Claude
-                    @ThemeInfo("claude", "Learn about Claude")
-                </button>
-                <button type="button" class="@(_theme == Theme.ChatGpt ? "selected" : "")"
-                        @onclick="@(() => SetThemeAsync(Theme.ChatGpt))" title="ChatGPT">
-                    <span class="theme-logo">
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-4 2.9 6.05 6.05 0 0 0 .75 7.1 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.21 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.07Zm-9.02 12.6a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.79.79 0 0 0 .39-.68v-6.74l2.02 1.17a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.5 4.5ZM3.6 18.3a4.47 4.47 0 0 1-.53-3.01l.14.08 4.78 2.76a.77.77 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.74 19.95a4.5 4.5 0 0 1-6.14-1.64ZM2.34 7.9a4.49 4.49 0 0 1 2.37-1.98v5.68a.77.77 0 0 0 .39.68l5.81 3.35-2.02 1.17a.08.08 0 0 1-.07 0L4 13.97a4.5 4.5 0 0 1-1.66-6.07Zm16.6 3.86-5.84-3.4L15.12 7.2a.08.08 0 0 1 .07 0l4.83 2.79a4.49 4.49 0 0 1-.68 8.1v-5.67a.79.79 0 0 0-.4-.67Zm2.01-3.02-.14-.09-4.77-2.78a.78.78 0 0 0-.79 0L9.41 9.23V6.9a.07.07 0 0 1 .03-.07l4.83-2.78a4.5 4.5 0 0 1 6.68 4.66ZM8.31 12.86l-2.02-1.16a.08.08 0 0 1-.04-.06V6.07a4.5 4.5 0 0 1 7.38-3.45l-.14.08-4.78 2.76a.79.79 0 0 0-.39.68Zm1.1-2.37 2.6-1.5 2.61 1.5v3l-2.6 1.5-2.6-1.5Z" /></svg>
-                    </span>ChatGPT
-                    @ThemeInfo("chatgpt", "Learn about ChatGPT")
-                </button>
-            </div>
-        </div>
-
         @if (_perspective == Perspective.Expert)
         {
             <div class="control">
@@ -166,6 +180,21 @@
                 <button class="stop" @onclick="StopAsync">Stop</button>
             }
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error) || !string.IsNullOrWhiteSpace(_reply))
+        {
+            <div class="control message last-response">
+                <label>Last response</label>
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <p class="last-response-text error">@_error</p>
+                }
+                else
+                {
+                    <p class="last-response-text">@_reply</p>
+                }
+            </div>
+        }
     </section>
 
     <section class="diagram @PerspectiveClass">
@@ -583,6 +612,11 @@
     private bool _paused;
     private bool _awaitingStep;
 
+    // True while a tool has asked the user a question and is waiting for an answer; holds the question.
+    private bool _awaitingAnswer;
+    private string? _pendingQuestion;
+    private string _answerText = string.Empty;
+
     private string _sessionId = string.Empty;
     // Stays the same across sends so the agent remembers prior turns; reset by "New conversation".
     private string _conversationId = Guid.NewGuid().ToString("n");
@@ -632,6 +666,31 @@
         Theme.ChatGpt => "ChatGPT",
         _ => "Default",
     };
+
+    // A theme-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
+    private sealed record AgentChoice(string Name, string Label);
+
+    // Which agents each theme offers, in display order. The label is what the picker shows (the product's
+    // "mode" name); the name is the backend agent it maps to. Several themes may reuse the same agent.
+    private static readonly IReadOnlyDictionary<Theme, AgentChoice[]> ThemeAgents = new Dictionary<Theme, AgentChoice[]>
+    {
+        [Theme.Default] = new[] { new AgentChoice("WikiAssistant", "wiki"), new AgentChoice("ChatBot", "chat") },
+        [Theme.Copilot] = new[] { new AgentChoice("Ask", "ask"), new AgentChoice("Plan", "plan"), new AgentChoice("Coder", "agent") },
+        [Theme.ChatGpt] = new[] { new AgentChoice("ChatBot", "chat") },
+        [Theme.Claude] = new[] { new AgentChoice("ChatBot", "chat") },
+        [Theme.ClaudeCode] = new[] { new AgentChoice("Plan", "plan"), new AgentChoice("Coder", "agent") },
+    };
+
+    // The agents offered by the current theme, restricted to those the service actually registered
+    // (an unknown name in the roster is silently skipped). Order follows the roster.
+    private IReadOnlyList<AgentChoice> AvailableAgents =>
+        (ThemeAgents.TryGetValue(_theme, out var roster) ? roster : Array.Empty<AgentChoice>())
+            .Where(c => _agents.Any(a => string.Equals(a.Name, c.Name, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+    // The name of the current theme's default (first available) agent, or null when the theme offers none.
+    private string? ThemeDefaultAgent => AvailableAgents.Count > 0 ? AvailableAgents[0].Name : null;
+
 
     // The label shown on the merged Client + AiService node: the brand theme name when one is picked,
     // otherwise the perspective's standard label (Harness in Expert, Application elsewhere).
@@ -814,7 +873,8 @@
             if (response is not null)
             {
                 _agents.AddRange(response.Agents);
-                _selectedAgent = response.Default;
+                // Start on the current theme's first agent, falling back to the service default.
+                _selectedAgent = ThemeDefaultAgent ?? response.Default;
             }
         }
         catch (Exception ex)
@@ -837,6 +897,9 @@
             if (!string.IsNullOrEmpty(stored) && Enum.TryParse<Theme>(stored, out var theme) && theme != _theme)
             {
                 _theme = theme;
+                // The restored theme may offer a different agent roster than the default theme did.
+                SelectedAgent = ThemeDefaultAgent ?? _selectedAgent;
+                await RefreshKnownSkillsAsync();
                 StateHasChanged();
             }
         }
@@ -846,10 +909,12 @@
         }
     }
 
-    // Switch the active theme and remember the choice across reloads.
+    // Switch the active theme and remember the choice across reloads. Each theme curates its own agent
+    // roster, so switching also moves the selection to that theme's default (first) agent.
     private async Task SetThemeAsync(Theme theme)
     {
         _theme = theme;
+        SelectedAgent = ThemeDefaultAgent ?? _selectedAgent;
         try
         {
             await JS.InvokeVoidAsync("localStorage.setItem", "theseries-theme", theme.ToString());
@@ -858,6 +923,8 @@
         {
             // Persistence is best-effort; the in-memory selection still applies.
         }
+
+        await RefreshKnownSkillsAsync();
     }
 
     private async Task OnKeyDownAsync(KeyboardEventArgs args)
@@ -866,6 +933,29 @@
         {
             await SendAsync();
         }
+    }
+
+    private async Task OnAnswerKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && _awaitingAnswer && !string.IsNullOrWhiteSpace(_answerText))
+        {
+            await SubmitAnswerAsync();
+        }
+    }
+
+    // Sends the user's reply to a tool's question back to the paused run, which then resumes.
+    private async Task SubmitAnswerAsync()
+    {
+        if (!_awaitingAnswer || string.IsNullOrWhiteSpace(_answerText))
+        {
+            return;
+        }
+
+        var answer = _answerText;
+        _awaitingAnswer = false;
+        _pendingQuestion = null;
+        _answerText = string.Empty;
+        await SafeControlAsync("answer", answer: answer);
     }
 
     // Opens the learning drawer for the given concept id (a Concepts/<id> folder); ignores unknown ids.
@@ -909,15 +999,19 @@
         }
 
         _running = true;
+        // Archive the just-finished run (with its reply/error/events intact) before resetting them.
+        ArchiveCurrentRun();
         _paused = false;
         _awaitingStep = false;
+        _awaitingAnswer = false;
+        _pendingQuestion = null;
+        _answerText = string.Empty;
         _error = null;
         _reply = string.Empty;
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
         _responseHint = null;
-        ArchiveCurrentRun();
         _runMessage = _message;
         _runAgent = _selectedAgent;
         _events.Clear();
@@ -994,7 +1088,14 @@
 
                 TrackSkills(flowEvent);
 
-                if (flowEvent.Kind == "final")
+                if (flowEvent.Kind == "ask-question")
+                {
+                    // The agent paused to ask the user something; show the inline answer box.
+                    _pendingQuestion = flowEvent.Detail ?? flowEvent.Data ?? "The agent asked a question.";
+                    _answerText = string.Empty;
+                    _awaitingAnswer = true;
+                }
+                else if (flowEvent.Kind == "final")
                 {
                     _reply = flowEvent.Detail ?? string.Empty;
                 }
@@ -1058,7 +1159,7 @@
         await SafeControlAsync("stop");
     }
 
-    private async Task SafeControlAsync(string? action, int? delayMs = null)
+    private async Task SafeControlAsync(string? action, int? delayMs = null, string? answer = null)
     {
         if (string.IsNullOrEmpty(_sessionId))
         {
@@ -1067,7 +1168,7 @@
 
         try
         {
-            await Ai.SendControlAsync(_sessionId, action, delayMs: delayMs);
+            await Ai.SendControlAsync(_sessionId, action, delayMs: delayMs, answer: answer);
         }
         catch
         {
@@ -1080,6 +1181,8 @@
         _running = false;
         _paused = false;
         _awaitingStep = false;
+        _awaitingAnswer = false;
+        _pendingQuestion = null;
         _activeNode = null;
         _activeArrow = null;
         _activeTool = null;
@@ -1091,6 +1194,7 @@
         "received" => ("harness", "user-node-send"),
         "llm-request" => ("llm", "node-llm-send"),
         "tool-call" => ("tools", "node-llm-recv"),
+        "ask-question" => ("harness", "user-node-recv"),
         "tool-result" => ("harness", "node-llm-recv"),
         "llm-response" => ("harness", "node-llm-recv"),
         "final" => ("harness", "user-node-recv"),

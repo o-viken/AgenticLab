@@ -109,6 +109,10 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
                 ? ToolFilterScope.Begin(disabledTools)
                 : null;
 
+            // Lets an AskQuestion tool call pause the run and resume when the user answers (via /chat/control).
+            using var userInput = UserInputScope.Begin();
+            session.UserInput = userInput;
+
             var finalText = new StringBuilder();
             var callNames = new Dictionary<string, string>();
             var emittedTurns = 0;
@@ -132,6 +136,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
                 capture.Activate();
                 workspaceScope?.Activate();
                 toolScope?.Activate();
+                userInput.Activate();
                 if (!await updates.MoveNextAsync())
                 {
                     break;
@@ -157,6 +162,19 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
                         case FunctionCallContent call:
                             callNames[call.CallId] = call.Name;
                             await session.WaitForStepAsync(token);
+                            if (string.Equals(call.Name, "AskQuestion", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // A blocking question: the tool now waits for the user's answer. Surface
+                                // the question text so the UI can prompt for and submit a reply.
+                                var question = QuestionText(call.Arguments);
+                                yield return Step(
+                                    "ask-question",
+                                    "Agent → User: question",
+                                    question,
+                                    question);
+                                break;
+                            }
+
                             yield return Step(
                                 "tool-call",
                                 $"LLM → Tool: {DescribeCall(call.Name, call.Arguments)}",
@@ -231,6 +249,15 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
 
     private static string DescribeTurn(int turnNumber) =>
         turnNumber <= 1 ? "Harness → LLM" : $"Harness → LLM (turn {turnNumber})";
+
+    // Extracts the question text from an AskQuestion tool call's arguments.
+    private static string QuestionText(IDictionary<string, object?>? arguments)
+    {
+        var question = arguments is not null && arguments.TryGetValue("question", out var value)
+            ? value?.ToString()
+            : null;
+        return string.IsNullOrWhiteSpace(question) ? "(no question)" : question.Trim();
+    }
 
     // A compact call signature for a step label, e.g. Calculate(expression: "2 + 2").
     private static string DescribeCall(string name, IDictionary<string, object?>? arguments) =>

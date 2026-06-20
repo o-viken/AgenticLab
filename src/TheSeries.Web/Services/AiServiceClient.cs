@@ -83,20 +83,22 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <c>stop</c>, and optionally switches mode or changes the auto delay.
     /// </summary>
     /// <param name="sessionId">The id of the run to control.</param>
-    /// <param name="action">The action: <c>next</c>, <c>pause</c>, <c>resume</c> or <c>stop</c>.</param>
+    /// <param name="action">The action: <c>next</c>, <c>pause</c>, <c>resume</c>, <c>stop</c> or <c>answer</c>.</param>
     /// <param name="manual">Optionally switch the stepping mode.</param>
     /// <param name="delayMs">Optionally change the auto-mode step delay.</param>
+    /// <param name="answer">The user's reply for an <c>answer</c> action (to a tool's question).</param>
     /// <param name="cancellationToken">A token to cancel the request.</param>
     public async Task SendControlAsync(
         string sessionId,
         string? action = null,
         bool? manual = null,
         int? delayMs = null,
+        string? answer = null,
         CancellationToken cancellationToken = default)
     {
         using var response = await http.PostAsJsonAsync(
             "/chat/control",
-            new FlowControlRequest(sessionId, action, manual, delayMs),
+            new FlowControlRequest(sessionId, action, manual, delayMs, answer),
             JsonOptions,
             cancellationToken);
     }
@@ -120,6 +122,6 @@ internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
-internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs);
+internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 internal sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

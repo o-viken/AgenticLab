@@ -117,4 +117,14 @@ public sealed class FileSystemTool
         AIFunctionFactory.Create(WriteFile),
         AIFunctionFactory.Create(DeleteFile),
     ];
+
+    /// <summary>
+    /// Exposes only the read-only subset of this tool (<see cref="ReadFile"/> and
+    /// <see cref="ListFiles"/>), for agents that may inspect the workspace but must not change it.
+    /// </summary>
+    public IList<AITool> AsReadOnlyTools() =>
+    [
+        AIFunctionFactory.Create(ReadFile),
+        AIFunctionFactory.Create(ListFiles),
+    ];
 }

@@ -29,6 +29,9 @@ builder.Services.AddSingleton<CalculatorTool>();
 builder.Services.AddSingleton<FileSystemTool>();
 builder.Services.AddSingleton<TerminalTool>();
 
+// Lets an agent pause a streaming run to ask the user a clarifying question.
+builder.Services.AddSingleton<AskQuestionTool>();
+
 // Workspace skills: discovered per run from the active workspace, their names/descriptions injected
 // into the agent's context and their full instructions loaded on demand via SkillsTool.
 builder.Services.AddSingleton<SkillLoader>();
@@ -40,6 +43,8 @@ builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
 builder.Services.AddSingleton<IAgentDefinition, MathTutorAgent>();
 // builder.Services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
+builder.Services.AddSingleton<IAgentDefinition, AskAgent>();
+builder.Services.AddSingleton<IAgentDefinition, PlanAgent>();
 builder.Services.AddSingleton<IAgentDefinition, CoderAgent>();
 
 // The shared chat client and the catalog of agents are stateless and safe to share as singletons.
@@ -165,6 +170,9 @@ app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry re
         case "stop":
             session.Stop();
             break;
+        case "answer":
+            session.UserInput?.ProvideAnswer(request.Answer ?? string.Empty);
+            break;
     }
 
     return Results.NoContent();
@@ -220,5 +228,5 @@ internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
-internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null);
+internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);

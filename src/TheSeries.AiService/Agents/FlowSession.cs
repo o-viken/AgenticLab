@@ -36,6 +36,13 @@ public sealed class FlowSession : IDisposable
     /// <summary>The auto-mode delay applied before each step, in milliseconds.</summary>
     public volatile int DelayMs;
 
+    /// <summary>
+    /// The run's interactive user-input scope, set by the <see cref="FlowTracer"/>, so the
+    /// <c>POST /chat/control</c> endpoint can deliver an answer to a tool that asked the user a
+    /// question. Null until the run opens one.
+    /// </summary>
+    public UserInputScope? UserInput { get; set; }
+
     /// <summary>A token that is cancelled when the run is stopped by the client.</summary>
     public CancellationToken StopToken => _stop.Token;
 
