@@ -58,6 +58,13 @@
                     </span>Claude
                     @ThemeInfo("claude", "Learn about Claude")
                 </button>
+                <button type="button" class="@(_theme == Theme.Microsoft365 ? "selected" : "")"
+                        @onclick="@(() => SetThemeAsync(Theme.Microsoft365))" title="Microsoft 365 Copilot">
+                    <span class="theme-logo">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5c-2.5 0-4.6 1.5-5.6 3.7a5.6 5.6 0 0 0-3.3 9.3 5.6 5.6 0 0 0 6 8.3 5.6 5.6 0 0 0 9.8 0 5.6 5.6 0 0 0 6-8.3 5.6 5.6 0 0 0-3.3-9.3A6.2 6.2 0 0 0 12 2.5Zm0 4.1a3 3 0 0 1 2.6 1.5l-5.2 9a3 3 0 0 1-2.6-4.5l2.6-4.5A3 3 0 0 1 12 6.6Zm3 1.8a3 3 0 0 1 2.6 4.5l-2.6 4.5a3 3 0 0 1-5.2 0l5.2-9Z" opacity=".9" /></svg>
+                    </span>Microsoft 365
+                    @ThemeInfo("microsoft-365-copilot", "Learn about Microsoft 365 Copilot")
+                </button>
             </div>
         </div>
 
@@ -571,7 +578,7 @@
     private enum Perspective { NonTechnical, Technical, Expert }
 
     // The visual theme applied to the page (a brand palette, or the original "Default" look).
-    private enum Theme { Default, Copilot, ClaudeCode, Claude, ChatGpt }
+    private enum Theme { Default, Copilot, ClaudeCode, Claude, ChatGpt, Microsoft365 }
 
     private readonly List<AgentInfo> _agents = new();
     private readonly List<FlowEvent> _events = new();
@@ -648,6 +655,7 @@
         Theme.ClaudeCode => "theme-claude-code",
         Theme.Claude => "theme-claude",
         Theme.ChatGpt => "theme-chatgpt",
+        Theme.Microsoft365 => "theme-m365",
         _ => string.Empty,
     };
 
@@ -675,6 +683,7 @@
         Theme.ClaudeCode => "Claude Code",
         Theme.Claude => "Claude",
         Theme.ChatGpt => "ChatGPT",
+        Theme.Microsoft365 => "Microsoft 365 Copilot",
         _ => "Default",
     };
 
@@ -690,6 +699,7 @@
         [Theme.ChatGpt] = new[] { new AgentChoice("ChatBot", "chat") },
         [Theme.Claude] = new[] { new AgentChoice("ChatBot", "chat") },
         [Theme.ClaudeCode] = new[] { new AgentChoice("Plan", "plan"), new AgentChoice("Coder", "agent") },
+        [Theme.Microsoft365] = new[] { new AgentChoice("M365Copilot", "chat"), new AgentChoice("M365Researcher", "researcher"), new AgentChoice("M365Analyst", "analyst") },
     };
 
     // The agents offered by the current theme, restricted to those the service actually registered

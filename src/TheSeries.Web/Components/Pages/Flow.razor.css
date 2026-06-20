@@ -385,6 +385,81 @@
     --code-text: #2a2a2a;
 }
 
+/* Microsoft 365 Copilot: a light theme tinted with the Copilot "swoosh" gradient
+   (pink → purple → blue → teal). Purple is the primary accent. */
+.flow-app.theme-m365 {
+    --page-bg: radial-gradient(circle at 18% 0%, #fdf0f9 0%, #f2eefb 38%, #eaf3fc 72%, #e7f8fb 100%);
+    --text: #1b1a22;
+    --text-muted: #5f5b6b;
+    --text-dim: #7c7789;
+    --text-faint: #a39ead;
+    --heading: #1b1a22;
+    --accent: #8661c5;
+    --accent-rgb: 134, 97, 197;
+    --accent-soft: #6f48b5;
+    --accent-bright: #5a36a0;
+    --accent-strong: #5a36a0;
+    --link-accent: #7a52c0;
+    --surface: rgba(255, 255, 255, .82);
+    --surface-2: rgba(247, 244, 252, .72);
+    --surface-panel: rgba(255, 255, 255, .78);
+    --panel-border: rgba(134, 97, 197, .18);
+    --border: rgba(86, 60, 150, .22);
+    --border-soft: rgba(86, 60, 150, .1);
+    --input-bg: #ffffff;
+    --btn-primary-bg: #8661c5;
+    --btn-primary-text: #ffffff;
+    --btn-secondary-bg: #efeaf8;
+    --code-bg: #f6f3fb;
+    --label-bg: rgba(255, 255, 255, .9);
+    --node-bg: #e7ddf6;
+    --node-border: rgba(134, 97, 197, .4);
+    --node-subtitle: #5f5b6b;
+    --node-harness-bg: #eadff7;
+    --node-anatomy-bg: #f4f0fa;
+    --node-llm-bg: #dfe6fb;
+    --node-llm-border: rgba(64, 120, 220, .4);
+    --node-user-bg: #dcf3f1;
+    --node-user-border: rgba(20, 170, 170, .45);
+    --node-user-subtitle: #0c8f8f;
+    --node-application-bg: #e7ddf6;
+    --node-application-border: rgba(134, 97, 197, .45);
+    --node-client-border: rgba(134, 97, 197, .45);
+    --node-resource-bg: #f1eef6;
+    --node-resource-border: rgba(86, 60, 150, .25);
+    --tools-bg: #dcf3f1;
+    --tools-border: rgba(20, 170, 170, .4);
+    --tools-active-bg: #bfe9e5;
+    --skills-bg: #dfe6fb;
+    --skills-border: rgba(64, 120, 220, .4);
+    --skill-chip-text: #355db8;
+    --skill-chip-bg: rgba(64, 120, 220, .15);
+    --skill-chip-border: rgba(64, 120, 220, .4);
+    --harness-boundary: rgba(134, 97, 197, .5);
+    --harness-boundary-text: #5a36a0;
+    --agent-boundary: rgba(214, 51, 132, .5);
+    --agent-boundary-text: #c01b78;
+    --connector: rgba(86, 60, 150, .25);
+    --connector-arrow: rgba(86, 60, 150, .38);
+    --purple-text: #5a36a0;
+    --purple-soft: rgba(134, 97, 197, .15);
+    --llm-chip-bg: #dfe6fb;
+    --llm-chip-text: #355db8;
+    --tool-chip-bg: #dcf3f1;
+    --tool-chip-text: #0c8f8f;
+    --kind-bg: #efeaf8;
+    --kind-text: #4a4458;
+    --error-bg: #f8d7d7;
+    --error-text: #b02525;
+    --error: #c83535;
+    --workspace-text: #7a6a4a;
+    --anatomy-heading: #2a2730;
+    --check-text: #3a3646;
+    --response-hint-bg: rgba(223, 230, 251, .9);
+    --loop-bg: rgba(223, 230, 251, .85);
+    --code-text: #2a2730;
+}
+
 .flow-header h1 {
     margin: 0 0 .25rem;
     font-size: clamp(1.4rem, 3vw, 2.2rem);

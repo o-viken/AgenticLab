@@ -25,6 +25,9 @@ builder.Services.AddSingleton(sp =>
     new WikiTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("wikipedia")));
 builder.Services.AddSingleton<CalculatorTool>();
 
+// Fake Microsoft 365 / Graph tool set (canned, in-memory) used by the Microsoft 365 Copilot agents.
+builder.Services.AddSingleton<Microsoft365Tool>();
+
 // Workspace-scoped tools for the coding agent.
 builder.Services.AddSingleton<FileSystemTool>();
 builder.Services.AddSingleton<TerminalTool>();
@@ -46,6 +49,9 @@ builder.Services.AddSingleton<IAgentDefinition, MathTutorAgent>();
 builder.Services.AddSingleton<IAgentDefinition, AskAgent>();
 builder.Services.AddSingleton<IAgentDefinition, PlanAgent>();
 builder.Services.AddSingleton<IAgentDefinition, CoderAgent>();
+builder.Services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
+builder.Services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
+builder.Services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
 
 // The shared chat client and the catalog of agents are stateless and safe to share as singletons.
 builder.Services.AddSingleton(sp =>

@@ -1,0 +1,10 @@
+{
+  "title": "Microsoft 365 Copilot",
+  "category": "product",
+  "summary": "Microsoft's AI assistant for work. It grounds answers in your organization's content — email, files, Teams chats, calendar and people — through Microsoft Graph, and adds specialist agents like Researcher and Analyst.",
+  "links": [
+    { "label": "Microsoft 365 Copilot", "url": "https://www.microsoft.com/en-us/microsoft-365/copilot" },
+    { "label": "Microsoft Copilot Studio", "url": "https://www.microsoft.com/en-us/microsoft-365-copilot/microsoft-copilot-studio" },
+    { "label": "Microsoft Graph", "url": "https://learn.microsoft.com/en-us/graph/overview" }
+  ]
+}
