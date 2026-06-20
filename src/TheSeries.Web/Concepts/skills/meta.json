@@ -1,0 +1,9 @@
+{
+  "title": "Skills",
+  "category": "core",
+  "summary": "Named, on-demand playbooks stored in the workspace. The model loads one only when a task needs it — progressive disclosure.",
+  "links": [
+    { "label": "Anthropic — Agent Skills", "url": "https://www.anthropic.com/news/skills" },
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" }
+  ]
+}

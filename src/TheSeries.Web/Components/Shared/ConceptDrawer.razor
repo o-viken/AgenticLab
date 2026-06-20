@@ -1,0 +1,74 @@
+@namespace TheSeries.Web.Components.Shared
+
+@* Slide-in drawer that explains a single diagram concept. Renders nothing when Concept is null.
+   Floats over the page with a backdrop, or docks as a persistent sidebar when Pinned. *@
+@if (Concept is { } concept)
+{
+    @if (!Pinned)
+    {
+        <div class="concept-backdrop" @onclick="Close"></div>
+    }
+    <aside class="concept-drawer @(Pinned ? "pinned" : "")" role="@(Pinned ? "complementary" : "dialog")"
+           aria-modal="@(Pinned ? "false" : "true")" aria-label="@concept.Title">
+        <header class="concept-head">
+            <div class="concept-titles">
+                <span class="concept-eyebrow">@CategoryLabel(concept.Category)</span>
+                <h2>@concept.Title</h2>
+            </div>
+            <div class="concept-actions">
+                <button class="concept-pin @(Pinned ? "active" : "")" @onclick="TogglePin"
+                        title="@(Pinned ? "Unpin (float over the page)" : "Pin as a sidebar")"
+                        aria-pressed="@Pinned" aria-label="@(Pinned ? "Unpin drawer" : "Pin drawer as sidebar")">📌</button>
+                <button class="concept-close" @onclick="Close" title="Close" aria-label="Close">✕</button>
+            </div>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(concept.Summary))
+        {
+            <p class="concept-summary">@concept.Summary</p>
+        }
+
+        <div class="concept-body">
+            @((MarkupString)concept.BodyHtml)
+        </div>
+
+        @if (concept.Links.Count > 0)
+        {
+            <div class="concept-links">
+                <span class="concept-links-title">Learn more</span>
+                <ul>
+                    @foreach (var link in concept.Links)
+                    {
+                        <li>
+                            <a href="@link.Url" target="_blank" rel="noopener noreferrer">@link.Label</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </aside>
+}
+
+@code {
+    /// <summary>The concept to display. When <c>null</c> the drawer is hidden.</summary>
+    [Parameter] public Concept? Concept { get; set; }
+
+    /// <summary>When <c>true</c> the drawer is docked as a sidebar (no backdrop); otherwise it floats over the page.</summary>
+    [Parameter] public bool Pinned { get; set; }
+
+    /// <summary>Invoked when the user closes the drawer (close button or backdrop).</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Invoked when the user toggles between the docked sidebar and the floating overlay.</summary>
+    [Parameter] public EventCallback OnTogglePin { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+
+    private Task TogglePin() => OnTogglePin.InvokeAsync();
+
+    private static string CategoryLabel(string category) => category switch
+    {
+        "product" => "Tool / Harness",
+        _ => "Concept",
+    };
+}

@@ -1,0 +1,10 @@
+{
+  "title": "GitHub Copilot",
+  "category": "product",
+  "summary": "GitHub's AI pair programmer. Its agent mode plans, edits files and runs tools across your project right inside the editor.",
+  "links": [
+    { "label": "GitHub Copilot", "url": "https://github.com/features/copilot" },
+    { "label": "Copilot in VS Code", "url": "https://code.visualstudio.com/docs/copilot/overview" },
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" }
+  ]
+}

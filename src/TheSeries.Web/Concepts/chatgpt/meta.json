@@ -1,0 +1,9 @@
+{
+  "title": "ChatGPT",
+  "category": "product",
+  "summary": "OpenAI's conversational assistant. Beyond chat it can browse, run code, use tools and act agentically on multi-step tasks.",
+  "links": [
+    { "label": "ChatGPT", "url": "https://chatgpt.com" },
+    { "label": "OpenAI Platform docs", "url": "https://platform.openai.com/docs" }
+  ]
+}

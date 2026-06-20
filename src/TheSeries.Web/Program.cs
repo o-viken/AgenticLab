@@ -10,6 +10,9 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Loads the in-app learning content (Concepts/<id>/meta.json + body.md) for the concept drawer.
+builder.Services.AddSingleton<ConceptCatalog>();
+
 // Talks to the AI service. Under Aspire orchestration the name resolves via service discovery;
 // when run standalone, override with AiService:Url (e.g. https://localhost:7123).
 var serviceUrl = builder.Configuration["AiService:Url"] ?? "https+http://aiservice";

@@ -1,0 +1,9 @@
+{
+  "title": "Agentic coding harness",
+  "category": "product",
+  "summary": "A category of tools that wrap an LLM with a coding-focused harness — file access, terminal, repo context — so it can build and edit software, not just chat about it.",
+  "links": [
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
+    { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }
+  ]
+}

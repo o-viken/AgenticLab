@@ -1,0 +1,9 @@
+{
+  "title": "Agent",
+  "category": "core",
+  "summary": "A model plus a harness: the LLM does the thinking, the harness gives it context, tools and a loop to actually get things done.",
+  "links": [
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
+    { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }
+  ]
+}

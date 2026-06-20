@@ -1,0 +1,9 @@
+{
+  "title": "Claude Code",
+  "category": "product",
+  "summary": "Anthropic's terminal-based coding agent. It reads your repo, edits files and runs commands to complete coding tasks end to end.",
+  "links": [
+    { "label": "Claude Code", "url": "https://claude.com/product/claude-code" },
+    { "label": "Claude Code docs", "url": "https://docs.claude.com/en/docs/claude-code/overview" }
+  ]
+}

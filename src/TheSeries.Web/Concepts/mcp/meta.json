@@ -1,0 +1,9 @@
+{
+  "title": "MCP (Model Context Protocol)",
+  "category": "core",
+  "summary": "An open standard for connecting agents to external tools and data through a common interface — like a USB-C port for AI.",
+  "links": [
+    { "label": "Introduction to MCP", "url": "https://modelcontextprotocol.io/docs/getting-started/intro" },
+    { "label": "MCP specification", "url": "https://modelcontextprotocol.io/specification" }
+  ]
+}

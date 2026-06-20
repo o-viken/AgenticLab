@@ -1,0 +1,9 @@
+{
+  "title": "Cursor",
+  "category": "product",
+  "summary": "An AI-first code editor (a VS Code fork) with deep codebase awareness and an agent that can plan and apply multi-file changes.",
+  "links": [
+    { "label": "Cursor", "url": "https://cursor.com" },
+    { "label": "Cursor docs", "url": "https://docs.cursor.com" }
+  ]
+}
