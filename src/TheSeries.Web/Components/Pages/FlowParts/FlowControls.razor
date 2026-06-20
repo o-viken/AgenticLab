@@ -67,6 +67,14 @@
             {
                 <option value="@agent.Name">@agent.Label</option>
             }
+            @if (View.WorkspaceAgentChoices.Count > 0)
+            {
+                <option disabled>──────────</option>
+                @foreach (var agent in View.WorkspaceAgentChoices)
+                {
+                    <option value="@agent.Name">@agent.Label</option>
+                }
+            }
         </select>
     </div>
 
@@ -114,7 +122,7 @@
     {
         <div class="control message workspace-control">
             <label for="workspace">Workspace</label>
-            <input id="workspace" @bind="View.Workspace" @bind:event="oninput" @onblur="Run.RefreshKnownSkillsAsync"
+            <input id="workspace" @bind="View.Workspace" @bind:event="oninput" @onblur="Run.RefreshWorkspaceContextAsync"
                    placeholder="Absolute path to a folder the agent may edit, e.g. C:\code\my-app"
                    disabled="@Run.Running" />
         </div>

@@ -435,6 +435,41 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         await NotifyAsync();
     }
 
+    /// <summary>
+    /// Loads the workspace's user-authored agents so the picker can append them after the theme roster.
+    /// Clears them when the current theme has no workspace-requiring agent or no workspace is set. Called
+    /// when the workspace or theme changes.
+    /// </summary>
+    public async Task RefreshWorkspaceAgentsAsync()
+    {
+        if (!view.ThemeHasWorkspaceAgent || string.IsNullOrWhiteSpace(view.Workspace))
+        {
+            view.SetWorkspaceAgents(Array.Empty<AgentInfo>());
+            return;
+        }
+
+        try
+        {
+            var response = await ai.GetWorkspaceAgentsAsync(view.Workspace);
+            view.SetWorkspaceAgents(response?.Agents ?? Array.Empty<AgentInfo>());
+        }
+        catch
+        {
+            // Best-effort: the roster is informational and the path may still be mid-edit.
+            view.SetWorkspaceAgents(Array.Empty<AgentInfo>());
+        }
+    }
+
+    /// <summary>
+    /// Refreshes everything that depends on the workspace path — the skill catalogue and the user-authored
+    /// agent roster — in one call. Wired to the workspace input losing focus and to theme changes.
+    /// </summary>
+    public async Task RefreshWorkspaceContextAsync()
+    {
+        await RefreshKnownSkillsAsync();
+        await RefreshWorkspaceAgentsAsync();
+    }
+
     // Keeps the harness Skills box in sync with the run: the catalogue of skills the workspace offers
     // (parsed once from the first llm-request's instructions) and the ones the model has actually loaded.
     private void TrackSkills(FlowEvent flowEvent)

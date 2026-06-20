@@ -43,6 +43,11 @@ builder.Services.AddSingleton<SkillLoader>();
 builder.Services.AddSingleton<SkillMatcher>();
 builder.Services.AddSingleton<SkillsTool>();
 
+// Workspace agents: user-authored agents discovered per run from the active workspace's agents/ folder
+// and built into runnable agents on the shared chat client.
+builder.Services.AddSingleton<WorkspaceAgentLoader>();
+builder.Services.AddSingleton<WorkspaceAgentResolver>();
+
 // Each agent declares its own persona and tool subset; the first registered is the default.
 builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
@@ -93,46 +98,60 @@ app.MapPost("/skills", (SkillsRequest request, SkillLoader skills) =>
     return Results.Ok(new SkillsResponse(discovered));
 });
 
-app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken) =>
+// Lists the user-authored agents declared in a given workspace's agents/ folder so a client can offer
+// them alongside the built-in agents. Returns an empty list when the path is missing/invalid or the
+// workspace declares no agents.
+app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgentResolver workspaceAgents) =>
+{
+    using var workspace = OpenWorkspace(request.Workspace);
+    return workspace is null
+        ? Results.Ok(new AgentsResponse(Array.Empty<AgentInfo>(), string.Empty))
+        : Results.Ok(new AgentsResponse(workspaceAgents.ListAgents(), string.Empty));
+});
+
+app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
     {
         return Results.BadRequest("Message must not be empty.");
     }
 
-    if (!catalog.TryResolve(request.Agent, out var agent, out var resolvedName))
+    // A built-in agent: resolve it and open a workspace only when it requires one.
+    if (catalog.TryResolve(request.Agent, out var agent, out var resolvedName))
+    {
+        if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
+        {
+            return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
+        }
+
+        using var workspace = catalog.RequiresWorkspace(resolvedName) ? OpenWorkspace(request.Workspace) : null;
+        if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
+        {
+            return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+        }
+
+        return await RunChat(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, cancellationToken);
+    }
+
+    // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
+    // only be discovered once a (valid) workspace is open.
+    if (string.IsNullOrWhiteSpace(request.Workspace))
     {
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
 
-    if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
-    {
-        return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
-    }
-
-    using var workspace = catalog.RequiresWorkspace(resolvedName) ? OpenWorkspace(request.Workspace) : null;
-    if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
+    using var agentWorkspace = OpenWorkspace(request.Workspace);
+    if (agentWorkspace is null)
     {
         return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
     }
 
-    // Continue the existing conversation (remembering prior turns) when an id is supplied; otherwise mint
-    // a new one and return it so the client can keep the conversation going.
-    var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
-        ? Guid.NewGuid().ToString("n")
-        : request.ConversationId.Trim();
-    var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
+    if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition))
+    {
+        return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
+    }
 
-    // Surface the workspace's skills to the agent for this run (names + descriptions only).
-    var runOptions = BuildSkillRunOptions(catalog, resolvedName, skills);
-
-    // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
-    using var toolScope = request.DisabledTools is { Count: > 0 } disabled
-        ? ToolFilterScope.Begin(disabled)
-        : null;
-
-    var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
-    return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
+    return await RunChat(workspaceAgent, definition.Name, definition.SupportsSkills, request, conversations, skills, cancellationToken);
 });
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
@@ -213,16 +232,35 @@ static WorkspaceScope? OpenWorkspace(string? path)
     }
 }
 
-// Builds run options that inject the active workspace's skill catalogue into the agent's instructions
-// for a single run. Returns null when the agent does not use skills or the workspace declares none, so
-// the agent runs with just its base instructions. Must be called while the workspace scope is active.
-static AgentRunOptions? BuildSkillRunOptions(AgentCatalog catalog, string agentName, SkillLoader skills)
+// Runs a (built-in or workspace-defined) agent for one /chat turn, continuing the supplied conversation,
+// injecting the workspace skill catalogue when the agent uses skills, and hiding any tools the caller
+// disabled for this run. Any required workspace scope must already be active on the calling context.
+static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supportsSkills, ChatRequest request, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken)
 {
-    if (!catalog.SupportsSkills(agentName))
-    {
-        return null;
-    }
+    // Continue the existing conversation (remembering prior turns) when an id is supplied; otherwise mint
+    // a new one and return it so the client can keep the conversation going.
+    var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
+        ? Guid.NewGuid().ToString("n")
+        : request.ConversationId.Trim();
+    var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
 
+    // Surface the workspace's skills to the agent for this run (names + descriptions only).
+    var runOptions = supportsSkills ? BuildSkillRunOptions(skills) : null;
+
+    // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
+    using var toolScope = request.DisabledTools is { Count: > 0 } disabled
+        ? ToolFilterScope.Begin(disabled)
+        : null;
+
+    var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
+    return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
+}
+
+// Builds run options that inject the active workspace's skill catalogue into the agent's instructions
+// for a single run. Returns null when the workspace declares no skills, so the agent runs with just its
+// base instructions. Must be called while the workspace scope is active.
+static AgentRunOptions? BuildSkillRunOptions(SkillLoader skills)
+{
     var block = skills.BuildContextBlock();
     return string.IsNullOrEmpty(block)
         ? null
@@ -235,6 +273,7 @@ internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string De
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
+internal sealed record WorkspaceAgentsRequest(string? Workspace);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);

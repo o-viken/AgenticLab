@@ -11,6 +11,7 @@ namespace TheSeries.Web.Flow;
 internal sealed class FlowViewState(ConceptCatalog concepts)
 {
     private readonly List<AgentInfo> _agents = new();
+    private readonly List<AgentInfo> _workspaceAgents = new();
     private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<int> _expanded = new();
 
@@ -45,6 +46,17 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     {
         _agents.Clear();
         _agents.AddRange(agents);
+        Notify();
+    }
+
+    /// <summary>The user-authored agents discovered in the active workspace's agents/ folder.</summary>
+    public IReadOnlyList<AgentInfo> WorkspaceAgents => _workspaceAgents;
+
+    /// <summary>Replaces the workspace-discovered agents (called when the workspace changes).</summary>
+    public void SetWorkspaceAgents(IEnumerable<AgentInfo> agents)
+    {
+        _workspaceAgents.Clear();
+        _workspaceAgents.AddRange(agents);
         Notify();
     }
 
@@ -277,6 +289,23 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     public string? ThemeDefaultAgent => AvailableAgents.Count > 0 ? AvailableAgents[0].Name : null;
 
     /// <summary>
+    /// Whether the current theme offers a workspace-requiring agent, so workspace-discovered agents are
+    /// relevant and should be fetched and appended to the picker.
+    /// </summary>
+    public bool ThemeHasWorkspaceAgent =>
+        AvailableAgents.Any(c => _agents.Any(a =>
+            string.Equals(a.Name, c.Name, StringComparison.OrdinalIgnoreCase) && a.RequiresWorkspace));
+
+    /// <summary>
+    /// The workspace-discovered agents as picker choices (label = name), appended to the dropdown after a
+    /// separator. Empty unless the current theme offers a workspace agent and some were discovered.
+    /// </summary>
+    public IReadOnlyList<AgentChoice> WorkspaceAgentChoices =>
+        ThemeHasWorkspaceAgent
+            ? _workspaceAgents.Select(a => new AgentChoice(a.Name, a.Name)).ToList()
+            : Array.Empty<AgentChoice>();
+
+    /// <summary>
     /// The label shown on the merged Client + AiService node: the brand theme name when one is picked,
     /// otherwise the perspective's standard label (Harness in Expert, Application elsewhere).
     /// </summary>
@@ -284,7 +313,9 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         ? (_perspective == Perspective.Expert ? "Harness" : "Application")
         : ThemeName;
 
-    private AgentInfo? Selected => _agents.FirstOrDefault(a => a.Name == _selectedAgent);
+    private AgentInfo? Selected =>
+        _agents.FirstOrDefault(a => a.Name == _selectedAgent)
+        ?? _workspaceAgents.FirstOrDefault(a => a.Name == _selectedAgent);
 
     /// <summary>Whether the currently selected agent requires a workspace path before it can run.</summary>
     public bool SelectedAgentRequiresWorkspace => Selected?.RequiresWorkspace ?? false;
@@ -320,13 +351,23 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>The badge colour class: amber for an agent with local machine reach, neutral otherwise.</summary>
     public string EnvBadgeClass => SelectedAgentRequiresWorkspace ? "env-machine" : "env-server";
 
-    /// <summary>The tools available to the currently selected agent, shown in the harness Tools box.</summary>
+    /// <summary>A compact count of the selected agent's enabled tools, shown in the harness Tools box
+    /// (the full names would grow the node too much). Reads e.g. "6 tools" or "4 of 6 tools" when some
+    /// are toggled off, and "—" when the agent has none.</summary>
     public string SelectedAgentTools
     {
         get
         {
             var tools = Selected?.Tools;
-            return tools is { Count: > 0 } ? string.Join(" · ", tools) : "—";
+            if (tools is not { Count: > 0 })
+            {
+                return "—";
+            }
+
+            var total = tools.Count;
+            var enabled = tools.Count(IsToolEnabled);
+            var label = total == 1 ? "tool" : "tools";
+            return enabled == total ? $"{total} {label}" : $"{enabled} of {total} {label}";
         }
     }
 

@@ -68,7 +68,7 @@ public partial class Flow : IDisposable
             {
                 _view.Theme = theme;
                 _view.SelectedAgent = _view.ThemeDefaultAgent ?? _view.SelectedAgent;
-                await _run.RefreshKnownSkillsAsync();
+                await _run.RefreshWorkspaceContextAsync();
                 StateHasChanged();
             }
 
@@ -100,7 +100,7 @@ public partial class Flow : IDisposable
             // Persisting the theme is best-effort.
         }
 
-        await _run.RefreshKnownSkillsAsync();
+        await _run.RefreshWorkspaceContextAsync();
     }
 
     private async Task SetLayoutAsync(FlowLayout layout)

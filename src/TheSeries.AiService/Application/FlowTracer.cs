@@ -31,10 +31,11 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 /// animation in sync with the agent (and its telemetry).
 /// </summary>
 /// <param name="catalog">The catalog used to resolve the requested agent.</param>
+/// <param name="workspaceAgents">Resolves user-authored agents declared in the active workspace's agents/ folder.</param>
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
 /// <param name="conversations">The store holding each conversation's thread so the run can continue prior turns.</param>
 /// <param name="skills">Discovers the active workspace's skills so their catalogue can be injected into the run.</param>
-public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills)
+public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -69,28 +70,40 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             yield break;
         }
 
-        if (!catalog.TryResolve(agentName, out var agent, out var resolvedName))
+        // A built-in agent resolves from the catalog; an unknown name may be a user-authored agent in the
+        // workspace's agents/ folder, which can only be discovered once the workspace scope is open.
+        var fromCatalog = catalog.TryResolve(agentName, out var agent, out var resolvedName);
+        var requiresWorkspace = !fromCatalog || catalog.RequiresWorkspace(resolvedName);
+        var supportsSkills = fromCatalog && catalog.SupportsSkills(resolvedName);
+
+        if (requiresWorkspace && string.IsNullOrWhiteSpace(workspace))
         {
-            yield return Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
+            yield return fromCatalog
+                ? Step("error", $"Agent '{resolvedName}' requires a workspace", "Set a workspace path before running this agent.")
+                : Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
             registry.Remove(session.Id);
             yield break;
         }
 
-        if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(workspace))
-        {
-            yield return Step("error", $"Agent '{resolvedName}' requires a workspace", "Set a workspace path before running this agent.");
-            registry.Remove(session.Id);
-            yield break;
-        }
-
-        using var workspaceScope = catalog.RequiresWorkspace(resolvedName)
-            ? OpenWorkspace(workspace)
-            : null;
-        if (catalog.RequiresWorkspace(resolvedName) && workspaceScope is null)
+        using var workspaceScope = requiresWorkspace ? OpenWorkspace(workspace) : null;
+        if (requiresWorkspace && workspaceScope is null)
         {
             yield return Step("error", "Invalid workspace", $"Workspace path '{workspace}' is not an existing directory.");
             registry.Remove(session.Id);
             yield break;
+        }
+
+        if (!fromCatalog)
+        {
+            if (!workspaceAgents.TryResolve(agentName, out agent, out var definition))
+            {
+                yield return Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
+                registry.Remove(session.Id);
+                yield break;
+            }
+
+            resolvedName = definition.Name;
+            supportsSkills = definition.SupportsSkills;
         }
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, session.StopToken);
@@ -126,7 +139,7 @@ public sealed class FlowTracer(AgentCatalog catalog, FlowControlRegistry registr
             // Surface the workspace's skills (names + descriptions) to the agent for this run only. The
             // scope's AsyncLocal is reset by the earlier yields, so re-assert it before reading skills.
             workspaceScope?.Activate();
-            var runOptions = catalog.SupportsSkills(resolvedName) ? BuildSkillRunOptions() : null;
+            var runOptions = supportsSkills ? BuildSkillRunOptions() : null;
 
             await using var updates = agent.RunStreamingAsync(message, agentSession, runOptions, token)
                 .GetAsyncEnumerator(token);
