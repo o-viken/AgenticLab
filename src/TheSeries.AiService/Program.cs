@@ -1,8 +1,10 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using TheSeries.AiService;
-using TheSeries.AiService.Agents;
-using TheSeries.AiService.Tools;
+using TheSeries.AiService.Application;
+using TheSeries.AiService.Application.Tools;
+using TheSeries.AiService.Demo.Agents;
+using TheSeries.AiService.Demo.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
 

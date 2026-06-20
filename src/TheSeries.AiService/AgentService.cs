@@ -1,7 +1,7 @@
 using System.ClientModel;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.AI;
-using TheSeries.AiService.Agents;
+using TheSeries.AiService.Application;
 
 namespace TheSeries.AiService;
 
