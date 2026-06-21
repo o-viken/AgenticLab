@@ -35,12 +35,28 @@
         <span class="set-by">Set by application</span>
     </div>
 
+    @if (View.SelectedAgentSupportsInstructions && Run.KnownInstructions.Count > 0)
+    {
+        <div class="layer user instructions">
+            <ConceptInfoButton Id="custom-instructions" Title="Learn about custom instructions" />
+            <span class="layer-title">Custom Instructions</span>
+            <ul class="instruction-list">
+                @foreach (var instruction in Run.KnownInstructions)
+                {
+                    <li title="@instruction.Description">✓ @instruction.Name</li>
+                }
+            </ul>
+            <span class="set-by">Set by workspace</span>
+        </div>
+    }
+
     <div class="layer agent">
         <ConceptInfoButton Id="persona" Title="Learn about the agent persona" />
         <span class="layer-title">Agent Persona</span>
         <span class="layer-body">@View.SelectedAgent — @View.SelectedAgentDescription</span>
         <span class="set-by">Set per agent</span>
     </div>
+
 
     <div class="layer agent tools @Run.NodeClass("tools")">
         <ConceptInfoButton Id="tools" Title="Learn about tools" />

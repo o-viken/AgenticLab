@@ -14,6 +14,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private readonly List<ConversationTurn> _turns = new();
     private readonly List<SkillChip> _knownSkills = new();
     private readonly HashSet<string> _loadedSkills = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<InstructionChip> _knownInstructions = new();
 
     // The message/agent of the run currently shown in the live panels, archived into _turns on next send.
     private string _runMessage = string.Empty;
@@ -117,6 +118,9 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public IReadOnlyList<ConversationTurn> Turns => _turns;
     public IReadOnlyList<SkillChip> KnownSkills => _knownSkills;
     public bool IsSkillLoaded(string name) => _loadedSkills.Contains(name);
+
+    /// <summary>The workspace's custom instructions, always injected into the agent's context when present.</summary>
+    public IReadOnlyList<InstructionChip> KnownInstructions => _knownInstructions;
 
     public string Reply => _reply;
     public string? Error => _error;
@@ -532,6 +536,40 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         await NotifyAsync();
     }
 
+    // --- Custom instructions ----------------------------------------------
+
+    /// <summary>
+    /// Loads the workspace's custom instructions so the harness anatomy can list them before a run. Clears
+    /// the list when the selected agent does not use a workspace or no workspace is set. Their full content
+    /// is always injected into the agent's context per run by the backend. Called when the agent or
+    /// workspace changes.
+    /// </summary>
+    public async Task RefreshKnownInstructionsAsync()
+    {
+        _knownInstructions.Clear();
+
+        if (!view.SelectedAgentSupportsInstructions || string.IsNullOrWhiteSpace(view.Workspace))
+        {
+            await NotifyAsync();
+            return;
+        }
+
+        try
+        {
+            var response = await ai.GetInstructionsAsync(view.Workspace);
+            if (response is not null)
+            {
+                _knownInstructions.AddRange(response.Instructions.Select(i => new InstructionChip(i.Name, i.Description)));
+            }
+        }
+        catch
+        {
+            // Best-effort: the list is informational and the path may still be mid-edit.
+        }
+
+        await NotifyAsync();
+    }
+
     /// <summary>
     /// Loads the workspace's user-authored agents so the picker can append them after the vendor roster.
     /// Clears them when the current vendor has no workspace-requiring agent or no workspace is set. Called
@@ -564,6 +602,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public async Task RefreshWorkspaceContextAsync()
     {
         await RefreshKnownSkillsAsync();
+        await RefreshKnownInstructionsAsync();
         await RefreshWorkspaceAgentsAsync();
         await RefreshHarnessPromptAsync();
     }
@@ -594,6 +633,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public async Task OnAgentChangedAsync()
     {
         await RefreshKnownSkillsAsync();
+        await RefreshKnownInstructionsAsync();
         await RefreshHarnessPromptAsync();
     }
 

@@ -490,6 +490,22 @@
     color: #1a1a1a;
 }
 
+/* Custom instruction files always injected into the agent's context (anatomy "Custom Instructions" box). */
+.diagram ::deep .anatomy .instruction-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    font-size: .74rem;
+    color: #1a1a1a;
+}
+
+.diagram ::deep .anatomy .instruction-list li {
+    font-weight: 600;
+}
+
 .diagram ::deep .anatomy .layer.tools.active {
     box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .55), 0 0 16px 2px rgba(var(--accent-rgb), .5);
     animation: pulse 1s ease-in-out infinite;

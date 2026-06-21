@@ -56,6 +56,21 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 
     /// <summary>
+    /// Lists the custom instructions discovered in the given workspace (names + descriptions) so they can
+    /// be shown in the harness anatomy before a run. Returns an empty list when the path is missing or
+    /// declares none. The instructions' full content is always injected into the agent's context per run.
+    /// </summary>
+    /// <param name="workspace">The workspace path to scan for custom instructions; null/blank yields an empty list.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<InstructionsResponse?> GetInstructionsAsync(string? workspace, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync("/instructions", new InstructionsRequest(workspace), JsonOptions, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<InstructionsResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
     /// Gets the effective harness (system) prompt for the given agent and vendor so the harness anatomy can
     /// show the active system prompt before a run. A selected vendor's harness replaces the agent's own.
     /// </summary>
@@ -161,6 +176,9 @@ internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string De
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
+internal sealed record InstructionsRequest(string? Workspace);
+internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
+internal sealed record InstructionInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);

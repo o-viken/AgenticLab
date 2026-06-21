@@ -59,6 +59,9 @@ internal sealed record ConversationTurn(
 /// <summary>A skill discovered in the workspace and offered to the agent: its name and one-line description.</summary>
 internal sealed record SkillChip(string Name, string Description);
 
+/// <summary>A custom instruction discovered in the workspace and always injected: its name and one-line description.</summary>
+internal sealed record InstructionChip(string Name, string Description);
+
 /// <summary>
 /// One chip in the anatomy Context stack: a piece of content carried into the model's context.
 /// History entries come from earlier conversation turns (rendered dimmed); the rest come from the

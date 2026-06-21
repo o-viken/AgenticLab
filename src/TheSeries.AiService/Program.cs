@@ -44,6 +44,10 @@ builder.Services.AddSingleton<SkillLoader>();
 builder.Services.AddSingleton<SkillMatcher>();
 builder.Services.AddSingleton<SkillsTool>();
 
+// Workspace custom instructions (GitHub Copilot style): discovered per run from the active workspace's
+// instructions/ folder, their full content always injected into the agent's context when present.
+builder.Services.AddSingleton<InstructionLoader>();
+
 // Workspace agents: user-authored agents discovered per run from the active workspace's agents/ folder
 // and built into runnable agents on the shared chat client.
 builder.Services.AddSingleton<WorkspaceAgentLoader>();
@@ -113,6 +117,23 @@ app.MapPost("/skills", (SkillsRequest request, SkillLoader skills) =>
     return Results.Ok(new SkillsResponse(discovered));
 });
 
+// Lists the custom instructions discovered in a given workspace's instructions/ folder (names +
+// descriptions) so a client can show them before a run. Their full content is always injected into the
+// agent's context when present. Returns an empty list when the path is missing/invalid or there are none.
+app.MapPost("/instructions", (InstructionsRequest request, InstructionLoader instructions) =>
+{
+    using var workspace = OpenWorkspace(request.Workspace);
+    if (workspace is null)
+    {
+        return Results.Ok(new InstructionsResponse(Array.Empty<InstructionInfo>()));
+    }
+
+    var discovered = instructions.Load()
+        .Select(i => new InstructionInfo(i.Name, i.Description))
+        .ToList();
+    return Results.Ok(new InstructionsResponse(discovered));
+});
+
 // Lists the user-authored agents declared in a given workspace's agents/ folder so a client can offer
 // them alongside the built-in agents. Returns an empty list when the path is missing/invalid or the
 // workspace declares no agents.
@@ -148,7 +169,7 @@ app.MapGet("/vendors", (VendorHarnessCatalog vendors) =>
             v.Modes.Select(m => new VendorModeInfo(m.Agent, m.Label)).ToList()))
         .ToList())));
 
-app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, VendorHarnessCatalog vendors, CancellationToken cancellationToken) =>
+app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
     {
@@ -172,7 +193,7 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Workspace
             return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
         }
 
-        return await RunChat(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, cancellationToken);
+        return await RunChat(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, instructions, cancellationToken);
     }
 
     // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
@@ -193,7 +214,7 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Workspace
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
 
-    return await RunChat(workspaceAgent, definition.Name, definition.SupportsSkills, request, conversations, skills, cancellationToken);
+    return await RunChat(workspaceAgent, definition.Name, definition.SupportsSkills, request, conversations, skills, instructions, cancellationToken);
 });
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
@@ -275,9 +296,10 @@ static WorkspaceScope? OpenWorkspace(string? path)
 }
 
 // Runs a (built-in or workspace-defined) agent for one /chat turn, continuing the supplied conversation,
-// injecting the workspace skill catalogue when the agent uses skills, and hiding any tools the caller
-// disabled for this run. Any required workspace scope must already be active on the calling context.
-static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supportsSkills, ChatRequest request, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken)
+// injecting the workspace's custom instructions (always, when present) and its skill catalogue (when the
+// agent uses skills), and hiding any tools the caller disabled for this run. Any required workspace scope
+// must already be active on the calling context.
+static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supportsSkills, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
 {
     // Continue the existing conversation (remembering prior turns) when an id is supplied; otherwise mint
     // a new one and return it so the client can keep the conversation going.
@@ -286,8 +308,9 @@ static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supp
         : request.ConversationId.Trim();
     var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
 
-    // Surface the workspace's skills to the agent for this run (names + descriptions only).
-    var runOptions = supportsSkills ? BuildSkillRunOptions(skills) : null;
+    // Surface the workspace's custom instructions (always, when present) and its skills (names +
+    // descriptions, when the agent uses them) to the agent for this run only.
+    var runOptions = BuildRunOptions(supportsSkills, skills, instructions);
 
     // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
     using var toolScope = request.DisabledTools is { Count: > 0 } disabled
@@ -298,15 +321,18 @@ static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supp
     return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
 }
 
-// Builds run options that inject the active workspace's skill catalogue into the agent's instructions
-// for a single run. Returns null when the workspace declares no skills, so the agent runs with just its
-// base instructions. Must be called while the workspace scope is active.
-static AgentRunOptions? BuildSkillRunOptions(SkillLoader skills)
+// Builds run options that inject the active workspace's custom instructions (always, when present) and
+// its skill catalogue (only when the agent supports skills) into the agent's instructions for a single
+// run. Returns null when neither is present, so the agent runs with just its base instructions. Must be
+// called while the workspace scope is active.
+static AgentRunOptions? BuildRunOptions(bool supportsSkills, SkillLoader skills, InstructionLoader instructions)
 {
-    var block = skills.BuildContextBlock();
-    return string.IsNullOrEmpty(block)
+    var instructionBlock = instructions.BuildContextBlock();
+    var skillBlock = supportsSkills ? skills.BuildContextBlock() : null;
+    var combined = string.Join("\n", new[] { instructionBlock, skillBlock }.Where(b => !string.IsNullOrEmpty(b)));
+    return string.IsNullOrEmpty(combined)
         ? null
-        : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
+        : new ChatClientAgentRunOptions(new ChatOptions { Instructions = combined });
 }
 
 internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
@@ -315,6 +341,9 @@ internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string De
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
+internal sealed record InstructionsRequest(string? Workspace);
+internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
+internal sealed record InstructionInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);

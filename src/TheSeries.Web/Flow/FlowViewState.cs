@@ -525,6 +525,13 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>Whether the currently selected agent uses workspace skills, so the harness Skills box is shown.</summary>
     public bool SelectedAgentSupportsSkills => Selected?.SupportsSkills ?? false;
 
+    /// <summary>
+    /// Whether the currently selected agent picks up the workspace's custom instructions. These apply to
+    /// any agent that runs with a workspace, so the harness anatomy's Custom Instructions box can show
+    /// when instructions are present.
+    /// </summary>
+    public bool SelectedAgentSupportsInstructions => Selected?.RequiresWorkspace ?? false;
+
     /// <summary>The selected agent's risk level (None/Low/Medium/High), surfaced in the environment &amp; risk view.</summary>
     public string SelectedAgentRiskLevel => Selected?.RiskLevel ?? "None";
 

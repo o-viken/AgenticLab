@@ -35,8 +35,9 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
 /// <param name="conversations">The store holding each conversation's thread so the run can continue prior turns.</param>
 /// <param name="skills">Discovers the active workspace's skills so their catalogue can be injected into the run.</param>
+/// <param name="instructions">Discovers the active workspace's custom instructions so their content can be injected into the run.</param>
 /// <param name="vendors">Resolves a brand/vendor key to a harness prompt that replaces the shared harness for the run.</param>
-public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills, VendorHarnessCatalog vendors)
+public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -141,10 +142,11 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             // recorded and the later turns (the calls made after each tool result) are silently lost.
             var agentSession = await conversations.GetOrCreateAsync(conversationId, agent, token);
 
-            // Surface the workspace's skills (names + descriptions) to the agent for this run only. The
-            // scope's AsyncLocal is reset by the earlier yields, so re-assert it before reading skills.
+            // Surface the workspace's custom instructions (always, when present) and its skills (names +
+            // descriptions, when the agent uses them) to the agent for this run only. The scope's
+            // AsyncLocal is reset by the earlier yields, so re-assert it before reading them.
             workspaceScope?.Activate();
-            var runOptions = supportsSkills ? BuildSkillRunOptions() : null;
+            var runOptions = BuildRunOptions(supportsSkills);
 
             await using var updates = agent.RunStreamingAsync(message, agentSession, runOptions, token)
                 .GetAsyncEnumerator(token);
@@ -255,14 +257,17 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         }
     }
 
-    // Builds run options that append the active workspace's skill catalogue to the agent's instructions
-    // for this run, or null when the workspace declares no skills. Assumes the workspace scope is active.
-    private AgentRunOptions? BuildSkillRunOptions()
+    // Builds run options that append the active workspace's custom instructions (always, when present)
+    // and its skill catalogue (only when the agent supports skills) to the agent's instructions for this
+    // run, or null when neither is present. Assumes the workspace scope is active.
+    private AgentRunOptions? BuildRunOptions(bool supportsSkills)
     {
-        var block = skills.BuildContextBlock();
-        return string.IsNullOrEmpty(block)
+        var instructionBlock = instructions.BuildContextBlock();
+        var skillBlock = supportsSkills ? skills.BuildContextBlock() : null;
+        var combined = string.Join("\n", new[] { instructionBlock, skillBlock }.Where(b => !string.IsNullOrEmpty(b)));
+        return string.IsNullOrEmpty(combined)
             ? null
-            : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
+            : new ChatClientAgentRunOptions(new ChatOptions { Instructions = combined });
     }
 
     private static string DescribeTurn(int turnNumber) =>
