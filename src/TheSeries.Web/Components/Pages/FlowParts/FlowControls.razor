@@ -67,7 +67,7 @@
             <div class="tool-toggles">
                 @foreach (var tool in View.SelectedAgentToolNames)
                 {
-                    <label class="check">
+                    <label class="check tool-check @View.ToolRiskClass(tool)" title="@View.ToolRiskTitle(tool)">
                         <input type="checkbox" checked="@View.IsToolEnabled(tool)" disabled="@Run.Running"
                                @onchange="@(e => View.SetToolEnabled(tool, (bool)e.Value!))" />
                         @tool

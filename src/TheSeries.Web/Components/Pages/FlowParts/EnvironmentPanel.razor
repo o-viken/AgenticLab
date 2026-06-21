@@ -37,8 +37,12 @@
             <div class="env-learn">
                 <button type="button" class="concept-mcp" title="Learn where agents run"
                         @onclick="@(() => View.OpenConcept("where-agents-run"))" @onclick:stopPropagation="true">Where it runs</button>
+                <button type="button" class="concept-mcp" title="Learn about the environment"
+                        @onclick="@(() => View.OpenConcept("environment"))" @onclick:stopPropagation="true">Environment</button>
                 <button type="button" class="concept-mcp" title="Learn about sandboxing"
                         @onclick="@(() => View.OpenConcept("sandbox"))" @onclick:stopPropagation="true">Sandbox</button>
+                <button type="button" class="concept-mcp" title="Learn how to protect against agent risks"
+                        @onclick="@(() => View.OpenConcept("securing-agents"))" @onclick:stopPropagation="true">Protect</button>
             </div>
         }
     </div>

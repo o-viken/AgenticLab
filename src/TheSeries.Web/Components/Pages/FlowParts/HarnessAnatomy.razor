@@ -70,7 +70,10 @@
             <ul class="tool-checks">
                 @foreach (var tool in View.SelectedAgentToolNames)
                 {
-                    <li>@(View.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool</li>
+                    <li class="@View.ToolRiskClass(tool)" title="@View.ToolRiskTitle(tool)">
+                        <span class="risk-dot" aria-hidden="true"></span>
+                        @(View.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool
+                    </li>
                 }
             </ul>
         }

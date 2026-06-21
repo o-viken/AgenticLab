@@ -583,6 +583,14 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>The full tool list of the selected agent, used to render the per-tool on/off checkboxes.</summary>
     public IReadOnlyList<string> SelectedAgentToolNames => Selected?.Tools ?? Array.Empty<string>();
 
+    /// <summary>The CSS risk class (<c>risk-low</c>/<c>risk-medium</c>/<c>risk-high</c>) for a tool, so the
+    /// harness can colour-code tools by how much they can do rather than showing them as a flat list.</summary>
+    public string ToolRiskClass(string tool) => ToolRiskCatalog.CssClass(tool);
+
+    /// <summary>A tooltip explaining a tool's risk tier and why (e.g. read-only vs. runs commands on the host).</summary>
+    public string ToolRiskTitle(string tool) => $"{tool} — {ToolRiskCatalog.Reason(tool)}";
+
+
     /// <summary>The selected agent's persona/description, shown in the harness anatomy view.</summary>
     public string SelectedAgentDescription => Selected?.Description ?? "—";
 

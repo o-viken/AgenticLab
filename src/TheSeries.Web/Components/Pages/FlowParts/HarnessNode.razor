@@ -31,6 +31,18 @@
             <ConceptInfoButton Id="tools" Title="Learn about tools" />
             <span class="title">Tools</span>
             <span class="subtitle">@View.SelectedAgentTools</span>
+            @if (View.SelectedAgentToolNames.Count > 0)
+            {
+                <div class="tool-chips">
+                    @foreach (var tool in View.SelectedAgentToolNames)
+                    {
+                        <span class="tool-chip @View.ToolRiskClass(tool) @(View.IsToolEnabled(tool) ? "" : "off")"
+                              title="@View.ToolRiskTitle(tool)">
+                            @tool
+                        </span>
+                    }
+                </div>
+            }
         </div>
         @if (View.SelectedAgentSupportsSkills)
         {

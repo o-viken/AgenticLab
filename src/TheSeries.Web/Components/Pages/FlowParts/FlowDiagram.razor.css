@@ -490,6 +490,34 @@
     color: #1a1a1a;
 }
 
+/* Each tool in the anatomy list carries a coloured dot marking its risk tier (read-only vs.
+   side-effecting vs. writes/runs), reusing the themed risk palette so it follows the vendor. */
+.diagram ::deep .anatomy .tool-checks li {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.diagram ::deep .anatomy .tool-checks .risk-dot {
+    width: .45rem;
+    height: .45rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--text-dim);
+}
+
+.diagram ::deep .anatomy .tool-checks li.risk-low .risk-dot {
+    background: var(--risk-low-text);
+}
+
+.diagram ::deep .anatomy .tool-checks li.risk-medium .risk-dot {
+    background: var(--risk-medium-text);
+}
+
+.diagram ::deep .anatomy .tool-checks li.risk-high .risk-dot {
+    background: var(--risk-high-text);
+}
+
 /* Custom instruction files always injected into the agent's context (anatomy "Custom Instructions" box). */
 .diagram ::deep .anatomy .instruction-list {
     list-style: none;
@@ -678,6 +706,49 @@
     background: var(--accent-soft);
     border-color: var(--accent-soft);
     box-shadow: 0 0 12px 1px rgba(var(--accent-rgb), .5);
+}
+
+/* Tool chips in the compact harness Tools box, tinted by each tool's risk tier (read-only vs.
+   side-effecting vs. writes/runs) so capabilities aren't shown as a flat count. Colours reuse the
+   themed risk palette so they follow the active vendor. */
+.diagram ::deep .tool-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .3rem;
+    margin-top: .4rem;
+}
+
+.diagram ::deep .tool-chip {
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.diagram ::deep .tool-chip.risk-low {
+    color: var(--risk-low-text);
+    background: var(--risk-low-bg);
+    border-color: var(--risk-low-text);
+}
+
+.diagram ::deep .tool-chip.risk-medium {
+    color: var(--risk-medium-text);
+    background: var(--risk-medium-bg);
+    border-color: var(--risk-medium-text);
+}
+
+.diagram ::deep .tool-chip.risk-high {
+    color: var(--risk-high-text);
+    background: var(--risk-high-bg);
+    border-color: var(--risk-high-text);
+}
+
+/* A tool toggled off for the run is dimmed and struck through. */
+.diagram ::deep .tool-chip.off {
+    opacity: .45;
+    text-decoration: line-through;
 }
 
 /* External resources (below the harness) ------------------------------ */

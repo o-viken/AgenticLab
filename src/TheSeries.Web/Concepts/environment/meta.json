@@ -1,0 +1,9 @@
+{
+  "title": "Environment",
+  "category": "core",
+  "summary": "The surroundings an agent acts in — the identity it runs as and everything it can reach (files, shell, network, secrets) — and the trust boundary you draw around them.",
+  "links": [
+    { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
+    { "label": "NIST — Zero Trust Architecture", "url": "https://csrc.nist.gov/pubs/sp/800/207/final" }
+  ]
+}
