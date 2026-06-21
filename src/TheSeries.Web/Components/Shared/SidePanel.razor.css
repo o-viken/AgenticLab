@@ -1,0 +1,183 @@
+/* SidePanel — collapsible/resizable docked panel chrome. Colours come from the themed
+   .flow-app CSS variables (inherited), so panels follow the active vendor palette. */
+
+.side-panel {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+}
+
+/* The panel surface (everything except the splitter). */
+.panel-inner {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface, #11152400);
+    border: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
+    border-radius: 12px;
+}
+
+/* Header bar: title on the left, actions (incl. collapse button) on the right. */
+.panel-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .5rem .45rem .5rem .8rem;
+    border-bottom: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
+}
+
+.panel-title {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--node-subtitle, #9fb0d6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+    flex: 0 0 auto;
+}
+
+.panel-collapse {
+    background: none;
+    border: none;
+    color: var(--node-subtitle, #9fb0d6);
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    border-radius: 6px;
+    padding: .15rem .45rem;
+}
+
+.panel-collapse:hover {
+    background: var(--input-bg, rgba(120, 140, 190, .12));
+    color: var(--heading, #fff);
+}
+
+/* Scrollable content area. */
+.panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: .9rem;
+}
+
+/* ---- Splitter (drag-to-resize handle on the inner edge) ---- */
+.panel-splitter {
+    flex: 0 0 7px;
+    align-self: stretch;
+    cursor: col-resize;
+    position: relative;
+    touch-action: none;
+}
+
+.panel-splitter::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    background: var(--panel-border, rgba(120, 140, 190, .3));
+    transition: background .15s ease;
+}
+
+.panel-splitter:hover::after {
+    background: var(--accent, #6aa6ff);
+}
+
+/* ---- Collapsed rail ---- */
+.side-panel.collapsed {
+    overflow: hidden;
+}
+
+.panel-rail {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .65rem;
+    padding: .8rem .15rem;
+    background: var(--surface, transparent);
+    border: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
+    border-radius: 12px;
+    color: var(--node-subtitle, #9fb0d6);
+    cursor: pointer;
+}
+
+.panel-rail:hover {
+    color: var(--heading, #fff);
+    border-color: var(--accent, #6aa6ff);
+}
+
+.rail-chevron {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.rail-title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    white-space: nowrap;
+}
+
+/* ---- Bottom-docked variant (resizes height instead of width) ---- */
+.side-panel.side-bottom {
+    flex: 0 0 auto;
+    flex-direction: column;
+    width: 100%;
+    height: var(--bottom-h, 240px);
+}
+
+/* The splitter sits on the panel's top edge and drags vertically. */
+.side-bottom .panel-splitter {
+    flex: 0 0 7px;
+    width: 100%;
+    height: 7px;
+    align-self: stretch;
+    cursor: row-resize;
+}
+
+.side-bottom .panel-splitter::after {
+    top: 50%;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+/* Collapsed bottom panel: a short horizontal rail rather than a vertical one. */
+.side-bottom.collapsed {
+    height: var(--bottom-h, 40px);
+}
+
+.side-bottom .panel-rail {
+    flex-direction: row;
+    gap: .5rem;
+    padding: .3rem .85rem;
+}
+
+.side-bottom .rail-title {
+    writing-mode: horizontal-tb;
+}

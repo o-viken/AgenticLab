@@ -1,0 +1,85 @@
+@namespace TheSeries.Web.Components.Pages.FlowParts
+@inject ConceptCatalog Concepts
+
+@* The right "Learn" panel's content. Shows the selected concept, or — when none is selected —
+   a short hint plus an index of every concept as clickable entry points. Reads the cascaded view. *@
+@if (View.ActiveConcept is { } concept)
+{
+    <article class="concept-content">
+        <div class="concept-eyebrow-row">
+            <span class="concept-eyebrow">@CategoryLabel(concept.Category)</span>
+            <button type="button" class="concept-back" @onclick="View.CloseConcept"
+                    title="Back to all topics">← All topics</button>
+        </div>
+        <h2 class="concept-h2">@concept.Title</h2>
+
+        @if (!string.IsNullOrWhiteSpace(concept.Summary))
+        {
+            <p class="concept-summary">@concept.Summary</p>
+        }
+
+        <div class="concept-body">
+            @((MarkupString)concept.BodyHtml)
+        </div>
+
+        @if (concept.Links.Count > 0)
+        {
+            <div class="concept-links">
+                <span class="concept-links-title">Learn more</span>
+                <ul>
+                    @foreach (var link in concept.Links)
+                    {
+                        <li><a href="@link.Url" target="_blank" rel="noopener noreferrer">@link.Label</a></li>
+                    }
+                </ul>
+            </div>
+        }
+    </article>
+}
+else
+{
+    <div class="concept-index">
+        <p class="concept-hint">
+            Click any <span class="info-glyph">ⓘ</span> button in the diagram, or pick a topic below,
+            to learn how it works.
+        </p>
+        @foreach (var group in Concepts.All.GroupBy(c => c.Category).OrderBy(g => CategoryOrder(g.Key)))
+        {
+            <div class="concept-group">
+                <span class="concept-group-title">@CategoryLabel(group.Key)</span>
+                <ul class="concept-list">
+                    @foreach (var item in group)
+                    {
+                        <li>
+                            <button type="button" class="concept-link-btn" @onclick="@(() => View.OpenConcept(item.Id))">
+                                <span class="cl-title">@item.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(item.Summary))
+                                {
+                                    <span class="cl-summary">@item.Summary</span>
+                                }
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    private static string CategoryLabel(string category) => category switch
+    {
+        "product" => "Products",
+        _ => "Concepts",
+    };
+
+    private static int CategoryOrder(string category) => category switch
+    {
+        "core" => 0,
+        "product" => 1,
+        _ => 2,
+    };
+}

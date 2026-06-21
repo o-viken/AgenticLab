@@ -3,20 +3,14 @@
 
 <PageTitle>TheSeries — @_view.VendorName</PageTitle>
 
-<div class="flow-app @_view.VendorClass @_view.PinnedClass">
+<div class="flow-app @_view.VendorClass">
     <header class="flow-header">
         <div class="flow-header-text">
             <h1>Agent Application Flow — @_view.VendorName</h1>
             <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back. Stepping pauses the <em>real</em> backend execution, so it stays in sync with the telemetry.</p>
         </div>
         <div class="flow-header-actions">
-            <div class="mode-toggle layout-toggle" title="Choose how the controls and the flow are arranged">
-                <button type="button" class="@(_view.Layout == FlowLayout.Stacked ? "selected" : "")"
-                        @onclick="@(() => SetLayoutAsync(FlowLayout.Stacked))" title="Controls above the flow">Stacked</button>
-                <button type="button" class="@(_view.Layout == FlowLayout.Split ? "selected" : "")"
-                        @onclick="@(() => SetLayoutAsync(FlowLayout.Split))" title="Controls beside the flow">Side by side</button>
-            </div>
-            <label class="check concept-toggle" title="Show or hide all the learning info across the page">
+            <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
                 <input type="checkbox" @bind="_view.ShowConcepts" /> Show concept info
             </label>
         </div>
@@ -24,19 +18,47 @@
 
     <CascadingValue Value="_view">
         <CascadingValue Value="_run">
-            <div class="flow-body @_view.LayoutClass">
-                <div class="flow-controls-col">
+            <div class="flow-body" style="@_view.BodyStyle">
+                <SidePanel Side="PanelSide.Left" Title="Controls"
+                           Collapsed="_view.LeftPanelCollapsed"
+                           OnToggleCollapse="ToggleLeftPanelAsync"
+                           OnResize="SetLeftWidthAsync">
+                    <FlowChat />
                     <FlowControls OnSelectVendor="SetVendorAsync" />
-                </div>
-                <div class="flow-main-col">
-                    <FlowDiagram />
-                    <ConversationTranscript />
-                    <FlowOutput />
-                </div>
+                </SidePanel>
+
+                <section class="flow-main-col" aria-label="Main">
+                    <header class="main-panel-head">
+                        <span class="main-panel-title">Main</span>
+                    </header>
+                    <div class="main-panel-body">
+                        <div class="flow-main-panel">
+                            <FlowDiagram />
+                            <FlowOutput />
+                        </div>
+
+                        @if (_run.Turns.Count > 0)
+                        {
+                            <SidePanel Side="PanelSide.Bottom" Title="Conversation"
+                                       Collapsed="_view.BottomPanelCollapsed"
+                                       OnToggleCollapse="ToggleBottomPanelAsync"
+                                       OnResize="SetBottomHeightAsync">
+                                <ConversationTranscript />
+                            </SidePanel>
+                        }
+                    </div>
+                </section>
+
+                @if (_view.RightPanelVisible)
+                {
+                    <SidePanel Side="PanelSide.Right" Title="Learn"
+                               Collapsed="_view.RightPanelCollapsed"
+                               OnToggleCollapse="ToggleRightPanelAsync"
+                               OnResize="SetRightWidthAsync">
+                        <ConceptPanel />
+                    </SidePanel>
+                }
             </div>
         </CascadingValue>
     </CascadingValue>
-
-    <ConceptDrawer Concept="_view.ActiveConcept" Pinned="_view.ConceptPinned"
-                   OnClose="_view.CloseConcept" OnTogglePin="_view.ToggleConceptPin" />
 </div>

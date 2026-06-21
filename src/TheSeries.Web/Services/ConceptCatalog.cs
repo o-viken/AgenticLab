@@ -32,6 +32,7 @@ public sealed class ConceptCatalog
         .Build();
 
     private readonly ImmutableDictionary<string, Concept> _concepts;
+    private readonly ImmutableArray<Concept> _all;
 
     /// <summary>
     /// Discovers and renders every concept under the app's <c>Concepts/</c> folder. Folders without a
@@ -88,7 +89,14 @@ public sealed class ConceptCatalog
         }
 
         _concepts = builder.ToImmutable();
+        _all = _concepts.Values
+            .OrderBy(c => c.Category, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(c => c.Title, StringComparer.OrdinalIgnoreCase)
+            .ToImmutableArray();
     }
+
+    /// <summary>Every loaded concept, ordered by category then title (used by the Learn panel's index).</summary>
+    public IReadOnlyList<Concept> All => _all;
 
     /// <summary>Returns the concept with the given id (case-insensitive), or <c>null</c> if none exists.</summary>
     public Concept? Get(string id) =>

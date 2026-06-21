@@ -13,7 +13,7 @@ namespace TheSeries.Web.Components.Pages;
 public partial class Flow : IDisposable
 {
     private const string VendorStorageKey = "theseries-vendor";
-    private const string LayoutStorageKey = "theseries-layout";
+    private const string PanelStorageKey = "theseries-panels";
 
     [Inject]
     private AiServiceClient Ai { get; set; } = default!;
@@ -80,12 +80,11 @@ public partial class Flow : IDisposable
                 StateHasChanged();
             }
 
-            var storedLayout = await JS.InvokeAsync<string?>("localStorage.getItem", LayoutStorageKey);
-            if (!string.IsNullOrEmpty(storedLayout)
-                && Enum.TryParse<FlowLayout>(storedLayout, out var layout)
-                && layout != _view.Layout)
+            var storedPanels = await JS.InvokeAsync<string?>("localStorage.getItem", PanelStorageKey);
+            if (!string.IsNullOrEmpty(storedPanels) && PanelState.TryParse(storedPanels, out var panels))
             {
-                _view.Layout = layout;
+                _view.InitPanels(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
+                    panels.LeftWidth, panels.RightWidth, panels.BottomHeight);
                 StateHasChanged();
             }
         }
@@ -111,16 +110,58 @@ public partial class Flow : IDisposable
         await _run.RefreshWorkspaceContextAsync();
     }
 
-    private async Task SetLayoutAsync(FlowLayout layout)
+    private Task ToggleLeftPanelAsync()
     {
-        _view.Layout = layout;
+        _view.ToggleLeftPanel();
+        return SavePanelsAsync();
+    }
+
+    private Task ToggleRightPanelAsync()
+    {
+        _view.ToggleRightPanel();
+        return SavePanelsAsync();
+    }
+
+    private Task SetLeftWidthAsync(int width)
+    {
+        _view.LeftPanelWidth = width;
+        return SavePanelsAsync();
+    }
+
+    private Task SetRightWidthAsync(int width)
+    {
+        _view.RightPanelWidth = width;
+        return SavePanelsAsync();
+    }
+
+    private Task ToggleBottomPanelAsync()
+    {
+        _view.ToggleBottomPanel();
+        return SavePanelsAsync();
+    }
+
+    private Task SetBottomHeightAsync(int height)
+    {
+        _view.BottomPanelHeight = height;
+        return SavePanelsAsync();
+    }
+
+    private async Task SavePanelsAsync()
+    {
+        var state = new PanelState(
+            _view.LeftPanelCollapsed,
+            _view.RightPanelCollapsed,
+            _view.BottomPanelCollapsed,
+            _view.LeftPanelWidth,
+            _view.RightPanelWidth,
+            _view.BottomPanelHeight);
         try
         {
-            await JS.InvokeVoidAsync("localStorage.setItem", LayoutStorageKey, layout.ToString());
+            await JS.InvokeVoidAsync("localStorage.setItem", PanelStorageKey, state.Serialize());
         }
         catch
         {
-            // Persisting the layout is best-effort.
+            // Persisting the panel layout is best-effort.
         }
     }
 
@@ -133,5 +174,41 @@ public partial class Flow : IDisposable
         _view.Changed -= OnViewChanged;
         _run.Changed -= OnRunChangedAsync;
         _run.Dispose();
+    }
+}
+
+/// <summary>The persisted panel layout (collapsed flags + sizes) stored in localStorage.</summary>
+internal readonly record struct PanelState(
+    bool LeftCollapsed,
+    bool RightCollapsed,
+    bool BottomCollapsed,
+    int LeftWidth,
+    int RightWidth,
+    int BottomHeight)
+{
+    /// <summary>Serialises to a compact <c>L|R|B|leftW|rightW|bottomH</c> string (1/0 for the collapsed flags).</summary>
+    public string Serialize() =>
+        $"{(LeftCollapsed ? 1 : 0)}|{(RightCollapsed ? 1 : 0)}|{(BottomCollapsed ? 1 : 0)}|{LeftWidth}|{RightWidth}|{BottomHeight}";
+
+    /// <summary>Parses the <see cref="Serialize"/> format; returns false for any malformed value.</summary>
+    public static bool TryParse(string? value, out PanelState state)
+    {
+        state = default;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var parts = value.Split('|');
+        if (parts.Length != 6
+            || !int.TryParse(parts[3], out var leftWidth)
+            || !int.TryParse(parts[4], out var rightWidth)
+            || !int.TryParse(parts[5], out var bottomHeight))
+        {
+            return false;
+        }
+
+        state = new PanelState(parts[0] == "1", parts[1] == "1", parts[2] == "1", leftWidth, rightWidth, bottomHeight);
+        return true;
     }
 }

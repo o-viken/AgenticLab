@@ -16,18 +16,40 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<int> _expanded = new();
 
+    /// <summary>The narrowest a side panel may be dragged before it should be collapsed instead.</summary>
+    private const int MinPanelWidth = 240;
+
+    /// <summary>The widest a side panel may be dragged.</summary>
+    private const int MaxPanelWidth = 640;
+
+    /// <summary>The shortest the bottom panel may be dragged.</summary>
+    private const int MinPanelHeight = 120;
+
+    /// <summary>The tallest the bottom panel may be dragged.</summary>
+    private const int MaxPanelHeight = 600;
+
+    /// <summary>The width of a collapsed panel's thin rail (matches the CSS rail width).</summary>
+    private const int RailWidth = 44;
+
+    /// <summary>The height of the collapsed bottom panel's thin rail (matches the CSS rail height).</summary>
+    private const int RailHeight = 40;
+
     private string _message = string.Empty;
     private string? _selectedAgent;
     private string _workspace = string.Empty;
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
-    private FlowLayout _layout = FlowLayout.Stacked;
+    private bool _leftPanelCollapsed;
+    private bool _rightPanelCollapsed;
+    private int _leftPanelWidth = 360;
+    private int _rightPanelWidth = 380;
+    private bool _bottomPanelCollapsed;
+    private int _bottomPanelHeight = 240;
     private bool _showHarnessBoundary;
     private bool _showAgentBoundary;
     private bool _showEnvironment;
     private bool _showConcepts;
     private bool _expandHarness;
-    private bool _conceptPinned;
     private bool _showFullHarnessPrompt;
     private string _harnessPromptText = string.Empty;
     private Concept? _activeConcept;
@@ -135,11 +157,87 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         set { _mode = value; Notify(); }
     }
 
-    /// <summary>How the page arranges the controls relative to the flow (stacked or side by side).</summary>
-    public FlowLayout Layout
+    // --- Side panels ------------------------------------------------------
+
+    /// <summary>Whether the left (run controls) panel is collapsed to a thin rail.</summary>
+    public bool LeftPanelCollapsed
     {
-        get => _layout;
-        set { _layout = value; Notify(); }
+        get => _leftPanelCollapsed;
+        set { _leftPanelCollapsed = value; Notify(); }
+    }
+
+    /// <summary>Whether the right (learning) panel is collapsed to a thin rail.</summary>
+    public bool RightPanelCollapsed
+    {
+        get => _rightPanelCollapsed;
+        set { _rightPanelCollapsed = value; Notify(); }
+    }
+
+    /// <summary>The expanded width (px) of the left panel, clamped to the allowed range.</summary>
+    public int LeftPanelWidth
+    {
+        get => _leftPanelWidth;
+        set { _leftPanelWidth = Math.Clamp(value, MinPanelWidth, MaxPanelWidth); Notify(); }
+    }
+
+    /// <summary>The expanded width (px) of the right panel, clamped to the allowed range.</summary>
+    public int RightPanelWidth
+    {
+        get => _rightPanelWidth;
+        set { _rightPanelWidth = Math.Clamp(value, MinPanelWidth, MaxPanelWidth); Notify(); }
+    }
+
+    /// <summary>Whether the bottom (conversation) panel is collapsed to a thin rail.</summary>
+    public bool BottomPanelCollapsed
+    {
+        get => _bottomPanelCollapsed;
+        set { _bottomPanelCollapsed = value; Notify(); }
+    }
+
+    /// <summary>The expanded height (px) of the bottom panel, clamped to the allowed range.</summary>
+    public int BottomPanelHeight
+    {
+        get => _bottomPanelHeight;
+        set { _bottomPanelHeight = Math.Clamp(value, MinPanelHeight, MaxPanelHeight); Notify(); }
+    }
+
+    /// <summary>Whether the right (learning) panel is rendered at all (gated by the concept switch).</summary>
+    public bool RightPanelVisible => _showConcepts;
+
+    /// <summary>Collapses or expands the left panel.</summary>
+    public void ToggleLeftPanel() { _leftPanelCollapsed = !_leftPanelCollapsed; Notify(); }
+
+    /// <summary>Collapses or expands the right panel.</summary>
+    public void ToggleRightPanel() { _rightPanelCollapsed = !_rightPanelCollapsed; Notify(); }
+
+    /// <summary>Collapses or expands the bottom panel.</summary>
+    public void ToggleBottomPanel() { _bottomPanelCollapsed = !_bottomPanelCollapsed; Notify(); }
+
+    /// <summary>Restores persisted panel state without raising change notifications (used during initial load).</summary>
+    public void InitPanels(bool leftCollapsed, bool rightCollapsed, bool bottomCollapsed, int leftWidth, int rightWidth, int bottomHeight)
+    {
+        _leftPanelCollapsed = leftCollapsed;
+        _rightPanelCollapsed = rightCollapsed;
+        _bottomPanelCollapsed = bottomCollapsed;
+        _leftPanelWidth = Math.Clamp(leftWidth, MinPanelWidth, MaxPanelWidth);
+        _rightPanelWidth = Math.Clamp(rightWidth, MinPanelWidth, MaxPanelWidth);
+        _bottomPanelHeight = Math.Clamp(bottomHeight, MinPanelHeight, MaxPanelHeight);
+    }
+
+    /// <summary>
+    /// Inline CSS custom properties carrying the live panel sizes to the body grid: a collapsed (or hidden)
+    /// side panel reports the rail width (or zero) so the centre flow reclaims the space, and the bottom
+    /// panel reports its height (or rail height when collapsed).
+    /// </summary>
+    public string BodyStyle
+    {
+        get
+        {
+            var left = _leftPanelCollapsed ? RailWidth : _leftPanelWidth;
+            var right = !_showConcepts ? 0 : _rightPanelCollapsed ? RailWidth : _rightPanelWidth;
+            var bottom = _bottomPanelCollapsed ? RailHeight : _bottomPanelHeight;
+            return $"--left-w: {left}px; --right-w: {right}px; --bottom-h: {bottom}px;";
+        }
     }
 
     // --- Tool toggles -----------------------------------------------------
@@ -233,30 +331,31 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         }
     }
 
-    /// <summary>The learning concept currently shown in the slide-in drawer, or null when it is closed.</summary>
+    /// <summary>The learning concept currently shown in the right learning panel, or null when none is selected.</summary>
     public Concept? ActiveConcept => _activeConcept;
 
-    /// <summary>When true the drawer docks as a persistent sidebar; when false it floats over the page.</summary>
-    public bool ConceptPinned => _conceptPinned;
-
-    /// <summary>Opens the learning drawer for the given concept id (a Concepts/&lt;id&gt; folder); ignores unknown ids.</summary>
+    /// <summary>
+    /// Opens the given concept (a Concepts/&lt;id&gt; folder) in the right learning panel, making sure that
+    /// panel is visible and expanded; ignores unknown ids.
+    /// </summary>
     public void OpenConcept(string id)
     {
-        _activeConcept = concepts.Get(id);
+        var concept = concepts.Get(id);
+        if (concept is null)
+        {
+            return;
+        }
+
+        _activeConcept = concept;
+        _showConcepts = true;
+        _rightPanelCollapsed = false;
         Notify();
     }
 
-    /// <summary>Closes the learning drawer.</summary>
+    /// <summary>Clears the selected concept (the learning panel falls back to its hint + legend).</summary>
     public void CloseConcept()
     {
         _activeConcept = null;
-        Notify();
-    }
-
-    /// <summary>Toggles between the docked sidebar and the floating overlay presentation of the drawer.</summary>
-    public void ToggleConceptPin()
-    {
-        _conceptPinned = !_conceptPinned;
         Notify();
     }
 
@@ -288,9 +387,6 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         Perspective.Technical => "p-mid",
         _ => "p-full",
     };
-
-    /// <summary>The CSS class applied to the page body so the controls sit beside the flow in the split layout.</summary>
-    public string LayoutClass => _layout == FlowLayout.Split ? "layout-split" : string.Empty;
 
     /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
     public string VendorClass => VendorCatalog.CssClass(_vendor);
@@ -359,9 +455,6 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         _showFullHarnessPrompt = false;
         Notify();
     }
-
-    /// <summary>Reserves room on the right for the docked concept sidebar (only when a concept is open and pinned).</summary>
-    public string PinnedClass => _activeConcept is not null && _conceptPinned ? "drawer-pinned" : string.Empty;
 
     /// <summary>
     /// The agents offered by the current vendor, restricted to those the service actually registered

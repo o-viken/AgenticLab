@@ -1,8 +1,9 @@
-@* The controls bar above the diagram: vendor picker, message box, run/stepping buttons, the agent
-   picker, per-tool toggles, the optional workspace input, the auto-step delay, the stepping mode and
-   the inline answer / last-response echoes. Reads and writes the shared view/run state. *@
+@* The control part of the left panel: vendor picker, agent picker, per-tool toggles, the optional
+   workspace input, the auto-step delay and the stepping mode. Reads and writes the shared view/run
+   state. The chat (message box, run buttons, answer box, last-response echo) lives in the sibling
+   FlowChat component. *@
 
-<section class="controls">
+<section class="controls settings-controls">
     <div class="control theme-control">
         <label for="vendor">Vendor</label>
         <div class="theme-select-row">
@@ -21,45 +22,6 @@
             }
         </div>
     </div>
-
-    <div class="control message">
-        <label for="message">Message</label>
-        <input id="message" @bind="View.Message" @bind:event="oninput"
-               placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
-               disabled="@Run.Running" @onkeydown="OnKeyDownAsync" />
-    </div>
-
-    <div class="control actions">
-        @if (!Run.Running)
-        {
-            <button class="send" @onclick="Run.SendAsync" disabled="@(string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">Send</button>
-            <button class="stop" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
-        }
-        else if (View.Mode == FlowMode.Manual)
-        {
-            <button class="send" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">@(Run.AwaitingStep ? "Waiting…" : "Next ▶")</button>
-            <button class="stop" @onclick="Run.StopAsync">Stop</button>
-        }
-        else
-        {
-            <button class="send" @onclick="Run.TogglePauseAsync">@(Run.Paused ? "Resume ▶" : "Pause ⏸")</button>
-            <button class="stop" @onclick="Run.StopAsync">Stop</button>
-        }
-    </div>
-
-    @if (Run.AwaitingAnswer)
-    {
-        <div class="control message ask-question">
-            <label for="answer">The agent is asking</label>
-            <p class="ask-question-text">@Run.PendingQuestion</p>
-            <div class="ask-question-row">
-                <input id="answer" @bind="Run.AnswerText" @bind:event="oninput"
-                       placeholder="Type your answer…" @onkeydown="OnAnswerKeyDownAsync" />
-                <button class="send" @onclick="Run.SubmitAnswerAsync"
-                        disabled="@string.IsNullOrWhiteSpace(Run.AnswerText)">Answer ▶</button>
-            </div>
-        </div>
-    }
 
     <div class="control">
         <label for="agent">Agent</label>
@@ -128,21 +90,6 @@
                    disabled="@Run.Running" />
         </div>
     }
-
-    @if (!string.IsNullOrWhiteSpace(Run.Error) || !string.IsNullOrWhiteSpace(Run.Reply))
-    {
-        <div class="control message last-response">
-            <label>Last response</label>
-            @if (!string.IsNullOrWhiteSpace(Run.Error))
-            {
-                <p class="last-response-text error">@Run.Error</p>
-            }
-            else
-            {
-                <p class="last-response-text">@Run.Reply</p>
-            }
-        </div>
-    }
 </section>
 
 @code {
@@ -175,20 +122,4 @@
         Vendor.Microsoft365 => "microsoft-365-copilot",
         _ => null,
     };
-
-    private async Task OnKeyDownAsync(KeyboardEventArgs args)
-    {
-        if (args.Key == "Enter" && !Run.Running && !string.IsNullOrWhiteSpace(View.Message))
-        {
-            await Run.SendAsync();
-        }
-    }
-
-    private async Task OnAnswerKeyDownAsync(KeyboardEventArgs args)
-    {
-        if (args.Key == "Enter" && Run.AwaitingAnswer && !string.IsNullOrWhiteSpace(Run.AnswerText))
-        {
-            await Run.SubmitAnswerAsync();
-        }
-    }
 }

@@ -6,7 +6,8 @@
     <section class="transcript">
         <h2>Conversation <span class="count">@Run.Turns.Count message@(Run.Turns.Count == 1 ? "" : "s")</span></h2>
         <div class="turns">
-            @foreach (var turn in Run.Turns)
+            @* Newest turn first, so the latest exchange sits next to the live flow above. *@
+            @foreach (var turn in Run.Turns.Reverse())
             {
                 var visibleTurnEvents = View.VisibleEvents(turn.Events);
                 var turnCount = turn.Events.Select(e => e.Turn).DefaultIfEmpty(0).Max();

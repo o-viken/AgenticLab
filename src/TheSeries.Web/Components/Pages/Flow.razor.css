@@ -103,7 +103,11 @@
     --loop-bg: rgba(44, 35, 80, .8);
     --code-text: #cdd6ee;
 
-    min-height: 100vh;
+    box-sizing: border-box;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 1.5rem clamp(1rem, 4vw, 3rem);
     color: var(--text);
     background: var(--page-bg);
@@ -654,6 +658,7 @@
 }
 
 .flow-header {
+    flex: 0 0 auto;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
@@ -690,26 +695,122 @@
 }
 
 /* ============================================================
-   Page body layout. The controls column and the flow column
-   stack by default; the "Side by side" view option lays them
-   out as two columns on wide enough viewports.
+   Page body layout. Three columns — a left (controls) panel, the
+   centre flow, and a right (learning) panel — driven by the
+   --left-w / --right-w CSS variables that the panels' splitters
+   resize. A collapsed or hidden panel reports a rail width (or 0).
+   The centre column itself stacks a main panel (the flow) over a
+   bottom (conversation) panel whose height is driven by --bottom-h.
    ============================================================ */
 .flow-body {
-    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: var(--left-w, 360px) minmax(0, 1fr) var(--right-w, 0px);
+    gap: 1.25rem;
+    align-items: stretch;
 }
 
-@media (min-width: 1100px) {
-    .flow-body.layout-split {
-        display: grid;
-        grid-template-columns: clamp(320px, 32vw, 460px) minmax(0, 1fr);
-        gap: 1.5rem;
-        align-items: start;
+/* The centre column is its own "Main" panel (header + border), matching the side panels' chrome.
+   It stacks a main panel (the flow) over the bottom (conversation) panel inside its body. */
+.flow-main-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.main-panel-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .8rem;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.main-panel-title {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--node-subtitle);
+}
+
+.main-panel-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1rem;
+}
+
+/* The flow (diagram + steps/reply) is the centre panel's own scroll region. */
+.flow-main-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* While a splitter is being dragged, suppress text selection across the page. */
+.flow-body.resizing { cursor: col-resize; }
+.flow-body.resizing-y { cursor: row-resize; }
+.flow-body.resizing ::deep *,
+.flow-body.resizing-y ::deep * { user-select: none !important; }
+
+/* Each column fills the body row and scrolls its own body; the page itself never scrolls. */
+.flow-app ::deep .side-left,
+.flow-app ::deep .side-right {
+    min-height: 0;
+    max-height: 100%;
+}
+
+/* Narrow viewports: drop the fixed-height shell and let the whole page scroll, keeping the
+   header pinned on top. Each column flows inline at its natural height. */
+@media (max-width: 999px) {
+    .flow-app {
+        height: auto;
+        overflow: visible;
     }
 
-    /* Keep the controls visible while the flow on the right scrolls. */
-    .flow-body.layout-split .flow-controls-col {
+    .flow-header {
         position: sticky;
-        top: 1.5rem;
+        top: 0;
+        z-index: 20;
+        background: var(--page-bg);
+    }
+
+    .flow-body {
+        display: block;
+        overflow: visible;
+    }
+
+    .flow-main-col {
+        overflow: visible;
+    }
+
+    .main-panel-body,
+    .flow-main-panel {
+        overflow: visible;
+    }
+
+    .flow-app ::deep .side-left,
+    .flow-app ::deep .side-right {
+        max-height: none;
+        margin-bottom: 1.25rem;
+    }
+
+    .flow-app ::deep .side-bottom {
+        height: auto;
     }
 }
 
@@ -754,6 +855,93 @@
 .flow-app ::deep .empty { color: var(--text-faint); font-style: italic; }
 .flow-app ::deep .error { color: var(--error); }
 
+/* Control card primitives. The left panel now hosts two cards — FlowChat (chat) and FlowControls
+   (settings) — so the shared .controls/.control/label/input/button atoms live here and reach both
+   child components via ::deep. Each component's css keeps only its own modifiers. */
+.flow-app ::deep .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: flex-end;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+}
+
+.flow-app ::deep .control {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    min-width: 170px;
+}
+
+.flow-app ::deep .control.message {
+    flex: 1 1 320px;
+}
+
+.flow-app ::deep .control label {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.flow-app ::deep .control label span {
+    color: var(--accent-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+.flow-app ::deep .control input[type="text"],
+.flow-app ::deep .control input:not([type]),
+.flow-app ::deep .control select {
+    padding: .55rem .7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text);
+    font-size: .95rem;
+}
+
+.flow-app ::deep .control input[type="range"] {
+    accent-color: var(--accent);
+}
+
+.flow-app ::deep .actions {
+    flex-direction: row;
+    gap: .6rem;
+    min-width: auto;
+}
+
+.flow-app ::deep button.send,
+.flow-app ::deep button.stop {
+    padding: .6rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: .95rem;
+}
+
+.flow-app ::deep button.send {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+}
+
+.flow-app ::deep button.send:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.flow-app ::deep button.stop {
+    background: var(--btn-secondary-bg);
+    color: var(--text);
+}
+
 /* ============================================================
    Animations (keyframes are global, so they live with the page
    and are referenced by the child components' scoped rules).
@@ -778,13 +966,4 @@
 
 @keyframes dash-down {
     to { background-position: 0 14px; }
-}
-
-/* When the concept drawer is pinned it docks as a right-hand sidebar; reserve room so the
-   flow stays fully visible behind it. Only on wider viewports — on narrow screens the drawer
-   overlays instead of squeezing the page. */
-@media (min-width: 900px) {
-    .flow-app.drawer-pinned {
-        padding-right: calc(min(440px, 92vw) + 2.5rem);
-    }
 }

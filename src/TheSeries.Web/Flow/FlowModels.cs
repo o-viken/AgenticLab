@@ -7,17 +7,12 @@ internal enum FlowMode
     Manual,
 }
 
-/// <summary>
-/// How the page arranges the controls relative to the flow diagram.
-/// <list type="bullet">
-/// <item><description><see cref="Stacked"/>: controls bar above the flow (the original layout).</description></item>
-/// <item><description><see cref="Split"/>: controls in a left column, the flow in a right column.</description></item>
-/// </list>
-/// </summary>
-internal enum FlowLayout
+/// <summary>Which edge of the page a <c>SidePanel</c> docks to (and therefore which edge its splitter sits on).</summary>
+public enum PanelSide
 {
-    Stacked,
-    Split,
+    Left,
+    Right,
+    Bottom,
 }
 
 /// <summary>
