@@ -4,6 +4,8 @@
   "summary": "Agentic tools are powerful because they can take real actions on your behalf — which is exactly why they carry real risk.",
   "links": [
     { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
-    { "label": "OWASP — Top 10 for LLM applications", "url": "https://genai.owasp.org/llm-top-10/" }
+    { "label": "OWASP — Top 10 for LLM applications", "url": "https://genai.owasp.org/llm-top-10/" },
+    { "label": "Simon Willison — The lethal trifecta for AI agents", "url": "https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/" },
+    { "label": "Real-world failure: Replit AI agent deleted a production database", "url": "https://www.tomshardware.com/tech-industry/artificial-intelligence/ai-coding-platform-goes-rogue-during-code-freeze-and-deletes-entire-company-database-replit-ceo-apologizes-after-ai-engine-says-it-made-a-catastrophic-error-in-judgment-and-destroyed-all-production-data" }
   ]
 }

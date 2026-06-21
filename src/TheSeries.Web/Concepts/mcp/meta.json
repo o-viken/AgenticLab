@@ -4,6 +4,7 @@
   "summary": "An open standard for connecting agents to external tools and data through a common interface — like a USB-C port for AI.",
   "links": [
     { "label": "Introduction to MCP", "url": "https://modelcontextprotocol.io/docs/getting-started/intro" },
-    { "label": "MCP specification", "url": "https://modelcontextprotocol.io/specification" }
+    { "label": "MCP specification", "url": "https://modelcontextprotocol.io/specification" },
+    { "label": "Anthropic — Introducing the Model Context Protocol", "url": "https://www.anthropic.com/news/model-context-protocol" }
   ]
 }

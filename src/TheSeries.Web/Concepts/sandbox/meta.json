@@ -4,6 +4,9 @@
   "summary": "An isolated environment that contains what an agent can touch, so its actions can't reach beyond a known boundary.",
   "links": [
     { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
-    { "label": "Docker — What is a container?", "url": "https://www.docker.com/resources/what-container/" }
+    { "label": "Docker — What is a container?", "url": "https://www.docker.com/resources/what-container/" },
+    { "label": "Anthropic — Sandboxing in Claude Code (filesystem + network isolation)", "url": "https://www.anthropic.com/engineering/claude-code-sandboxing" },
+    { "label": "GitHub — Cloud and local sandboxes for Copilot", "url": "https://docs.github.com/en/copilot/concepts/about-cloud-and-local-sandboxes" },
+    { "label": "Why isolation matters: Replit AI agent deleted a production database", "url": "https://www.tomshardware.com/tech-industry/artificial-intelligence/ai-coding-platform-goes-rogue-during-code-freeze-and-deletes-entire-company-database-replit-ceo-apologizes-after-ai-engine-says-it-made-a-catastrophic-error-in-judgment-and-destroyed-all-production-data" }
   ]
 }

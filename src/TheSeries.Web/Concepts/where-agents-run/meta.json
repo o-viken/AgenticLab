@@ -4,6 +4,7 @@
   "summary": "An agent executes somewhere — your own machine, a server, or a cloud service — and it acts with whatever access that environment gives it.",
   "links": [
     { "label": "OWASP — LLM agent / autonomy risks", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
-    { "label": "VS Code — Agent mode", "url": "https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode" }
+    { "label": "VS Code — Agent mode", "url": "https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode" },
+    { "label": "Real-world failure: Replit AI agent deleted a production database", "url": "https://www.tomshardware.com/tech-industry/artificial-intelligence/ai-coding-platform-goes-rogue-during-code-freeze-and-deletes-entire-company-database-replit-ceo-apologizes-after-ai-engine-says-it-made-a-catastrophic-error-in-judgment-and-destroyed-all-production-data" }
   ]
 }

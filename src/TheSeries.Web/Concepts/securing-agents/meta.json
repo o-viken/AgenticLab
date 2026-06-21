@@ -7,6 +7,7 @@
     { "label": "OWASP — Agentic AI: Threats & Mitigations", "url": "https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/" },
     { "label": "NIST — AI Risk Management Framework", "url": "https://www.nist.gov/itl/ai-risk-management-framework" },
     { "label": "Google — Secure AI Framework (SAIF)", "url": "https://saif.google/" },
-    { "label": "MITRE ATLAS — adversarial ML threats", "url": "https://atlas.mitre.org/" }
+    { "label": "MITRE ATLAS — adversarial ML threats", "url": "https://atlas.mitre.org/" },
+    { "label": "Simon Willison — The lethal trifecta for AI agents", "url": "https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/" }
   ]
 }

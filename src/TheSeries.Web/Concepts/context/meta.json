@@ -4,6 +4,7 @@
   "summary": "Everything the model can see for a turn — system prompt, persona, tools, conversation history and the latest message. It grows as the run progresses.",
   "links": [
     { "label": "Anthropic — Context windows", "url": "https://docs.anthropic.com/en/docs/build-with-claude/context-windows" },
-    { "label": "OpenAI — Prompt engineering", "url": "https://platform.openai.com/docs/guides/prompt-engineering" }
+    { "label": "OpenAI — Prompt engineering", "url": "https://platform.openai.com/docs/guides/prompt-engineering" },
+    { "label": "Anthropic — Effective context engineering for AI agents", "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" }
   ]
 }

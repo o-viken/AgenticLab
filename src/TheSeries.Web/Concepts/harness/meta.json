@@ -3,6 +3,7 @@
   "category": "core",
   "summary": "The scaffolding around the model: it assembles context, exposes a bounded toolset, runs the think-act-observe loop and relays results.",
   "links": [
-    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" }
+    { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
+    { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }
   ]
 }

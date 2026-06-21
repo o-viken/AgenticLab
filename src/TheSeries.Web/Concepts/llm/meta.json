@@ -3,6 +3,8 @@
   "category": "core",
   "summary": "The neural network that predicts text. It does the reasoning, but it only produces words — the harness turns those words into actions.",
   "links": [
+    { "label": "Attention Is All You Need (Vaswani et al., 2017)", "url": "https://arxiv.org/abs/1706.03762" },
+    { "label": "Jay Alammar — The Illustrated Transformer", "url": "https://jalammar.github.io/illustrated-transformer/" },
     { "label": "3Blue1Brown — Neural networks & transformers (YouTube)", "url": "https://www.youtube.com/@3blue1brown" },
     { "label": "Azure OpenAI Service", "url": "https://learn.microsoft.com/azure/ai-services/openai/overview" }
   ]
