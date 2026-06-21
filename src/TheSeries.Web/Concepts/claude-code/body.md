@@ -13,4 +13,4 @@ It's a clear example of the **agent = model + harness** idea: Claude supplies th
 reasoning, and the Claude Code harness supplies the file, terminal and repo tools plus the
 loop that drives them — the same shape as the **Coder** agent here.
 
-Pick the **Claude Code** theme to see the diagram in its palette.
+Pick the **Claude Code** vendor to see the diagram in its palette.

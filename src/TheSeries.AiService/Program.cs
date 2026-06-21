@@ -5,6 +5,7 @@ using TheSeries.AiService.Application;
 using TheSeries.AiService.Application.Tools;
 using TheSeries.AiService.Demo.Agents;
 using TheSeries.AiService.Demo.Tools;
+using TheSeries.AiService.Demo.Vendors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,18 @@ builder.Services.AddSingleton<SkillsTool>();
 // and built into runnable agents on the shared chat client.
 builder.Services.AddSingleton<WorkspaceAgentLoader>();
 builder.Services.AddSingleton<WorkspaceAgentResolver>();
+
+// Maps a brand/vendor key (sent when a brand theme is selected in the web flow) to a vendor-flavoured
+// harness system prompt that replaces the shared harness for a single run. The catalog is infrastructure
+// (Application); the representative prompt content for each vendor lives in Demo/Vendors and is injected.
+builder.Services.AddSingleton<IVendorHarness, DefaultHarness>();
+builder.Services.AddSingleton<IVendorHarness, CopilotHarness>();
+builder.Services.AddSingleton<IVendorHarness, ClaudeCodeHarness>();
+builder.Services.AddSingleton<IVendorHarness, ClaudeHarness>();
+builder.Services.AddSingleton<IVendorHarness, ChatGptHarness>();
+builder.Services.AddSingleton<IVendorHarness, GeminiHarness>();
+builder.Services.AddSingleton<IVendorHarness, Microsoft365Harness>();
+builder.Services.AddSingleton<VendorHarnessCatalog>();
 
 // Each agent declares its own persona and tool subset; the first registered is the default.
 builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
@@ -111,15 +124,42 @@ app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgent
         : Results.Ok(new AgentsResponse(workspaceAgents.ListAgents(), string.Empty));
 });
 
-app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, CancellationToken cancellationToken) =>
+// Returns the effective harness (system) prompt for a given agent + vendor so a client can show the
+// active system prompt before a run. A selected vendor's harness replaces the agent's own; otherwise the
+// agent's harness is returned (falling back to the default agent's when the name is unknown).
+app.MapPost("/harness", (HarnessRequest request, AgentCatalog catalog, VendorHarnessCatalog vendors) =>
+{
+    var prompt = vendors.Resolve(request.Vendor)
+        ?? catalog.HarnessFor(request.Agent)
+        ?? catalog.HarnessFor(null)
+        ?? string.Empty;
+    return Results.Ok(new HarnessResponse(prompt));
+});
+
+// Lists the brand vendors with their full metadata (display name, simulated model label and the modes
+// each offers) so a client can build the vendor picker without hard-coding the data. The non-brand
+// Default vendor is not a registered vendor harness and is the client's own baseline.
+app.MapGet("/vendors", (VendorHarnessCatalog vendors) =>
+    Results.Ok(new VendorsResponse(vendors.Vendors
+        .Select(v => new VendorInfo(
+            v.Key,
+            v.DisplayName,
+            v.ModelLabel,
+            v.Modes.Select(m => new VendorModeInfo(m.Agent, m.Label)).ToList()))
+        .ToList())));
+
+app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, VendorHarnessCatalog vendors, CancellationToken cancellationToken) =>
 {
     if (string.IsNullOrWhiteSpace(request.Message))
     {
         return Results.BadRequest("Message must not be empty.");
     }
 
+    // When a brand/vendor is selected, its harness replaces the shared harness for this run.
+    var harness = vendors.Resolve(request.Vendor);
+
     // A built-in agent: resolve it and open a workspace only when it requires one.
-    if (catalog.TryResolve(request.Agent, out var agent, out var resolvedName))
+    if (catalog.TryResolve(request.Agent, harness, out var agent, out var resolvedName))
     {
         if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
         {
@@ -148,7 +188,7 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Workspace
         return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
     }
 
-    if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition))
+    if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition, harness))
     {
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
@@ -162,7 +202,7 @@ app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowCon
 {
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
     return TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, session, cancellationToken),
+        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.Vendor, session, cancellationToken),
         eventType: "flow");
 });
 
@@ -269,13 +309,18 @@ static AgentRunOptions? BuildSkillRunOptions(SkillLoader skills)
         : new ChatClientAgentRunOptions(new ChatOptions { Instructions = block });
 }
 
-internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
+internal sealed record HarnessRequest(string? Agent, string? Vendor);
+internal sealed record HarnessResponse(string Prompt);
+internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
+internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
+internal sealed record VendorModeInfo(string Agent, string Label);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);

@@ -65,6 +65,15 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     /// scoped in <c>&lt;harnessMode&gt;</c> tags, followed by this agent's <see cref="Persona"/>
     /// scoped in <c>&lt;agentMode&gt;</c> tags.
     /// </summary>
-    public string Instructions =>
-        $"<harnessMode>\n{Harness}\n</harnessMode>\n\n<agentMode>\n{Persona}\n</agentMode>";
+    public string Instructions => InstructionsWith(null);
+
+    /// <inheritdoc />
+    public string InstructionsWith(string? harnessOverride)
+    {
+        var harness = string.IsNullOrWhiteSpace(harnessOverride) ? Harness : harnessOverride;
+        return $"<harnessMode>\n{harness}\n</harnessMode>\n\n<agentMode>\n{Persona}\n</agentMode>";
+    }
+
+    /// <inheritdoc />
+    public string HarnessPrompt => Harness;
 }

@@ -10,4 +10,4 @@ agentic work.
   through Anthropic's API and major cloud platforms.
 
 Where the **LLM** concept explains language models in general, this is one specific family
-of them. Pick the **Claude** theme to restyle the page in its warm, light look.
+of them. Pick the **Claude** vendor to restyle the page in its warm, light look.

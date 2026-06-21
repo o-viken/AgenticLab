@@ -35,8 +35,11 @@ internal enum Perspective
     Expert,
 }
 
-/// <summary>The visual theme applied to the page (a brand palette, or the original "Default" look).</summary>
-public enum Theme
+/// <summary>
+/// The vendor/brand whose look, agent roster, simulated model label and harness system prompt are
+/// applied to the page. <see cref="Default"/> is the non-brand original look (no harness override).
+/// </summary>
+public enum Vendor
 {
     Default,
     Copilot,
@@ -73,6 +76,6 @@ internal sealed record ContextEntry(string Label, string Source, string Preview,
 internal sealed record ResourceInfo(string Key, string Icon, string Title, string Transport, string[] ToolNames);
 
 /// <summary>
-/// A theme-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
+/// A vendor-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
 /// </summary>
 internal sealed record AgentChoice(string Name, string Label);

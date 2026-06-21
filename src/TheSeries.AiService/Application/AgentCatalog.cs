@@ -23,8 +23,13 @@ public sealed record AgentInfo(string Name, string Description, IReadOnlyList<st
 public sealed class AgentCatalog
 {
     private readonly Dictionary<string, AIAgent> _agents;
+    private readonly Dictionary<string, AgentBuild> _builds;
     private readonly Dictionary<string, bool> _requiresWorkspace;
     private readonly Dictionary<string, bool> _supportsSkills;
+
+    // The pieces needed to rebuild an agent with a different (vendor) harness for a single run:
+    // the chat client it runs on and the definition that composes its instructions and tools.
+    private sealed record AgentBuild(Microsoft.Extensions.AI.IChatClient Client, IAgentDefinition Definition);
 
     /// <summary>
     /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
@@ -47,15 +52,18 @@ public sealed class AgentCatalog
 
         var deployments = list.ToDictionary(d => d.Name, clients.ResolveDeployment, StringComparer.OrdinalIgnoreCase);
         _agents = new Dictionary<string, AIAgent>(StringComparer.OrdinalIgnoreCase);
+        _builds = new Dictionary<string, AgentBuild>(StringComparer.OrdinalIgnoreCase);
         _requiresWorkspace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         _supportsSkills = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in list)
         {
+            var client = clients.Get(clients.ExecutionDeployment(deployments[definition.Name]));
             _agents[definition.Name] = new ChatClientAgent(
-                clients.Get(clients.ExecutionDeployment(deployments[definition.Name])),
+                client,
                 instructions: definition.Instructions,
                 name: definition.Name,
                 tools: definition.Tools);
+            _builds[definition.Name] = new AgentBuild(client, definition);
             _requiresWorkspace[definition.Name] = definition.RequiresWorkspace;
             _supportsSkills[definition.Name] = definition.SupportsSkills;
         }
@@ -87,6 +95,53 @@ public sealed class AgentCatalog
     {
         resolvedName = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
         return _agents.TryGetValue(resolvedName, out agent!);
+    }
+
+    /// <summary>
+    /// Resolves the agent by name, replacing its shared harness with <paramref name="harnessOverride"/>
+    /// for this run. When the override is null or blank the cached agent (its own harness) is returned;
+    /// otherwise a transient <see cref="ChatClientAgent"/> is built on the same chat client with the
+    /// agent's persona layered on the overridden harness. The transient agent is stateless and safe to
+    /// use for a single run; conversation sessions are interchangeable across agent instances.
+    /// </summary>
+    /// <param name="name">The requested agent name, or null/blank for the default.</param>
+    /// <param name="harnessOverride">The replacement harness text, or null/blank to keep the agent's own.</param>
+    /// <param name="agent">The resolved (possibly harness-overridden) agent when found.</param>
+    /// <param name="resolvedName">The name of the resolved agent when found.</param>
+    /// <returns><c>true</c> when an agent was resolved; otherwise <c>false</c>.</returns>
+    public bool TryResolve(string? name, string? harnessOverride, out AIAgent agent, out string resolvedName)
+    {
+        resolvedName = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
+        if (string.IsNullOrWhiteSpace(harnessOverride))
+        {
+            return _agents.TryGetValue(resolvedName, out agent!);
+        }
+
+        if (!_builds.TryGetValue(resolvedName, out var build))
+        {
+            agent = null!;
+            return false;
+        }
+
+        agent = new ChatClientAgent(
+            build.Client,
+            instructions: build.Definition.InstructionsWith(harnessOverride),
+            name: build.Definition.Name,
+            tools: build.Definition.Tools);
+        return true;
+    }
+
+    /// <summary>
+    /// The bare harness (system) prompt the named agent runs under, or <c>null</c> when the name is unknown.
+    /// Resolves the default agent when <paramref name="name"/> is null/blank. Surfaced so a client can show
+    /// the active system prompt before a run (a selected vendor harness replaces it).
+    /// </summary>
+    /// <param name="name">The requested agent name, or null/blank for the default.</param>
+    /// <returns>The agent's harness prompt, or <c>null</c> when no such agent exists.</returns>
+    public string? HarnessFor(string? name)
+    {
+        var resolved = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
+        return _builds.TryGetValue(resolved, out var build) ? build.Definition.HarnessPrompt : null;
     }
 
     /// <summary>Whether the named agent requires a workspace path. Unknown names return <c>false</c>.</summary>

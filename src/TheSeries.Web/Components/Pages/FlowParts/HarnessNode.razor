@@ -5,13 +5,13 @@
 <div class="node harness @Run.NodeClass("harness")">
     <ConceptInfoButton Id="harness" Title="Learn about the harness" />
     <span class="icon">
-        @if (View.Theme == Theme.Default)
+        @if (View.Vendor == Vendor.Default)
         {
             @(View.Perspective == Perspective.Expert ? "🛠️" : "📦")
         }
         else
         {
-            <ThemeIcon Theme="View.Theme" />
+            <VendorIcon Vendor="View.Vendor" />
         }
     </span>
     <span class="title">@View.HarnessLabel</span>

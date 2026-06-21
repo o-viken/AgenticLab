@@ -424,6 +424,46 @@
     color: #2a2a2a;
 }
 
+/* The fetched system prompt: keep its original line breaks and let long text wrap; cap the height when
+   expanded so a long prompt scrolls inside the box rather than stretching the whole anatomy. */
+.diagram ::deep .anatomy .system-prompt-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.diagram ::deep .anatomy .prompt-toggle {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0;
+    margin-top: .05rem;
+    color: rgba(0, 0, 0, .55);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.diagram ::deep .anatomy .prompt-toggle .chevron {
+    font-size: .85rem;
+    transition: transform .15s ease;
+}
+
+.diagram ::deep .anatomy .prompt-toggle.expanded .chevron {
+    transform: rotate(180deg);
+}
+
+.diagram ::deep .anatomy .prompt-toggle:hover {
+    color: #1a1a1a;
+    background: rgba(0, 0, 0, .08);
+}
+
 /* Colour-coded by who sets the layer (matches the anatomy concept). */
 .diagram ::deep .anatomy .layer.app { background: #ff5252; }
 .diagram ::deep .anatomy .layer.agent { background: #f1ec18; }

@@ -35,7 +35,8 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
 /// <param name="conversations">The store holding each conversation's thread so the run can continue prior turns.</param>
 /// <param name="skills">Discovers the active workspace's skills so their catalogue can be injected into the run.</param>
-public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills)
+/// <param name="vendors">Resolves a brand/vendor key to a harness prompt that replaces the shared harness for the run.</param>
+public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills, VendorHarnessCatalog vendors)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -46,6 +47,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
     /// <param name="conversationId">The conversation to continue, so the run remembers prior turns.</param>
     /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
     /// <param name="disabledTools">The names of the agent's tools to hide from the model for this run; null/empty to offer them all.</param>
+    /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="session">The control session that paces, pauses and stops the run.</param>
     /// <param name="cancellationToken">A token to cancel the run.</param>
     /// <returns>An ordered, lazily-produced sequence of flow events.</returns>
@@ -55,6 +57,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         string conversationId,
         string? workspace,
         IReadOnlyList<string>? disabledTools,
+        string? vendor,
         FlowSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -72,7 +75,9 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
         // A built-in agent resolves from the catalog; an unknown name may be a user-authored agent in the
         // workspace's agents/ folder, which can only be discovered once the workspace scope is open.
-        var fromCatalog = catalog.TryResolve(agentName, out var agent, out var resolvedName);
+        // A selected brand/vendor swaps in its harness prompt in place of the shared harness for this run.
+        var harness = vendors.Resolve(vendor);
+        var fromCatalog = catalog.TryResolve(agentName, harness, out var agent, out var resolvedName);
         var requiresWorkspace = !fromCatalog || catalog.RequiresWorkspace(resolvedName);
         var supportsSkills = fromCatalog && catalog.SupportsSkills(resolvedName);
 
@@ -95,7 +100,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
         if (!fromCatalog)
         {
-            if (!workspaceAgents.TryResolve(agentName, out agent, out var definition))
+            if (!workspaceAgents.TryResolve(agentName, out agent, out var definition, harness))
             {
                 yield return Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
                 registry.Remove(session.Id);

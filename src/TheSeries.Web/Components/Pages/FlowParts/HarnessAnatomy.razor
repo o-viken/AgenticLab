@@ -20,7 +20,18 @@
     <div class="layer app">
         <ConceptInfoButton Id="system-prompt" Title="Learn about the system prompt" />
         <span class="layer-title">System Prompt</span>
-        <span class="layer-body">Global harness prompt — operating rules + tool loop (expert coding assistant++)</span>
+        <span class="layer-body system-prompt-body">@View.HarnessPromptDisplay</span>
+        @if (View.HasHarnessPromptText)
+        {
+            <button type="button"
+                    class="prompt-toggle @(View.ShowFullHarnessPrompt ? "expanded" : null)"
+                    title="@(View.ShowFullHarnessPrompt ? "Collapse system prompt" : "Show full system prompt")"
+                    aria-label="@(View.ShowFullHarnessPrompt ? "Collapse system prompt" : "Show full system prompt")"
+                    aria-expanded="@(View.ShowFullHarnessPrompt ? "true" : "false")"
+                    @onclick="() => View.ShowFullHarnessPrompt = !View.ShowFullHarnessPrompt">
+                <span class="chevron" aria-hidden="true">⌄</span>
+            </button>
+        }
         <span class="set-by">Set by application</span>
     </div>
 

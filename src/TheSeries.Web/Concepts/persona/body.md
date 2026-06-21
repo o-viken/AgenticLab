@@ -16,6 +16,6 @@ explains arithmetic patiently.
 Each agent's instructions are composed from a shared **harness** prompt (scoped in
 `<harnessMode>` tags) followed by the agent's **persona** (scoped in `<agentMode>` tags).
 The **Agent Persona** box is an **agent** layer (yellow) — set per agent. It shows the
-selected agent's name and description. Switching the agent (or the theme's "mode") swaps
+selected agent's name and description. Switching the agent (or the vendor's "mode") swaps
 the persona while the harness stays the same, which is why the box updates but the System
 Prompt box doesn't.

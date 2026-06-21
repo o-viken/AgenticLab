@@ -12,7 +12,7 @@ namespace TheSeries.Web.Components.Pages;
 /// </summary>
 public partial class Flow : IDisposable
 {
-    private const string ThemeStorageKey = "theseries-theme";
+    private const string VendorStorageKey = "theseries-vendor";
     private const string LayoutStorageKey = "theseries-layout";
 
     [Inject]
@@ -39,12 +39,20 @@ public partial class Flow : IDisposable
     {
         try
         {
+            var vendors = await Ai.GetVendorsAsync();
+            if (vendors is not null)
+            {
+                _view.SetVendors(vendors.Vendors);
+            }
+
             var response = await Ai.GetAgentsAsync();
             if (response is not null)
             {
                 _view.SetAgents(response.Agents);
-                _view.InitSelectedAgent(_view.ThemeDefaultAgent ?? response.Default);
+                _view.InitSelectedAgent(_view.VendorDefaultAgent ?? response.Default);
             }
+
+            await _run.RefreshHarnessPromptAsync();
         }
         catch (Exception ex)
         {
@@ -61,13 +69,13 @@ public partial class Flow : IDisposable
 
         try
         {
-            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", ThemeStorageKey);
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
             if (!string.IsNullOrEmpty(stored)
-                && Enum.TryParse<Theme>(stored, out var theme)
-                && theme != _view.Theme)
+                && Enum.TryParse<Vendor>(stored, out var vendor)
+                && vendor != _view.Vendor)
             {
-                _view.Theme = theme;
-                _view.SelectedAgent = _view.ThemeDefaultAgent ?? _view.SelectedAgent;
+                _view.Vendor = vendor;
+                _view.SelectedAgent = _view.VendorDefaultAgent ?? _view.SelectedAgent;
                 await _run.RefreshWorkspaceContextAsync();
                 StateHasChanged();
             }
@@ -83,21 +91,21 @@ public partial class Flow : IDisposable
         }
         catch
         {
-            // localStorage may be unavailable (prerender); ignore and keep the default theme.
+            // localStorage may be unavailable (prerender); ignore and keep the default vendor.
         }
     }
 
-    private async Task SetThemeAsync(Theme theme)
+    private async Task SetVendorAsync(Vendor vendor)
     {
-        _view.Theme = theme;
-        _view.SelectedAgent = _view.ThemeDefaultAgent ?? _view.SelectedAgent;
+        _view.Vendor = vendor;
+        _view.SelectedAgent = _view.VendorDefaultAgent ?? _view.SelectedAgent;
         try
         {
-            await JS.InvokeVoidAsync("localStorage.setItem", ThemeStorageKey, theme.ToString());
+            await JS.InvokeVoidAsync("localStorage.setItem", VendorStorageKey, vendor.ToString());
         }
         catch
         {
-            // Persisting the theme is best-effort.
+            // Persisting the vendor is best-effort.
         }
 
         await _run.RefreshWorkspaceContextAsync();

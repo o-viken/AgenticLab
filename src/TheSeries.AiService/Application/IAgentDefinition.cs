@@ -39,6 +39,22 @@ public interface IAgentDefinition
     string Instructions { get; }
 
     /// <summary>
+    /// The system instructions with the shared harness layer replaced by <paramref name="harnessOverride"/>,
+    /// keeping this agent's persona. When <paramref name="harnessOverride"/> is null or blank the agent's
+    /// own harness is used (identical to <see cref="Instructions"/>). Used to swap in a vendor-specific
+    /// system prompt per run without changing the agent's persona.
+    /// </summary>
+    /// <param name="harnessOverride">The replacement harness text, or null/blank to keep the agent's own harness.</param>
+    string InstructionsWith(string? harnessOverride);
+
+    /// <summary>
+    /// The bare shared <em>harness</em> system prompt this agent runs under (the <c>&lt;harnessMode&gt;</c>
+    /// content), without the persona. Surfaced so a client can show the active system prompt; a selected
+    /// vendor harness replaces this for the run.
+    /// </summary>
+    string HarnessPrompt { get; }
+
+    /// <summary>
     /// The default Azure OpenAI deployment this agent should run on, or <c>null</c> to use the global
     /// default. A <c>Agents:{Name}:Deployment</c> configuration value, when present, overrides this so an
     /// operator can pick a model per agent without changing code.

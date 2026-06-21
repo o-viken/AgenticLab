@@ -11,4 +11,4 @@ The same models are available to developers through the **OpenAI API** (and, as 
 app, through **Azure OpenAI**), where you supply your own tools and harness — which is
 exactly the request → tool-call → result → response loop drawn in the diagram.
 
-Pick the **ChatGPT** theme to restyle the page in its light, minimal look.
+Pick the **ChatGPT** vendor to restyle the page in its light, minimal look.

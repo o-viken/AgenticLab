@@ -1,12 +1,12 @@
 @page "/"
 @rendermode InteractiveServer
 
-<PageTitle>TheSeries — @_view.ThemeName</PageTitle>
+<PageTitle>TheSeries — @_view.VendorName</PageTitle>
 
-<div class="flow-app @_view.ThemeClass @_view.PinnedClass">
+<div class="flow-app @_view.VendorClass @_view.PinnedClass">
     <header class="flow-header">
         <div class="flow-header-text">
-            <h1>Agent Application Flow — @_view.ThemeName</h1>
+            <h1>Agent Application Flow — @_view.VendorName</h1>
             <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back. Stepping pauses the <em>real</em> backend execution, so it stays in sync with the telemetry.</p>
         </div>
         <div class="flow-header-actions">
@@ -26,7 +26,7 @@
         <CascadingValue Value="_run">
             <div class="flow-body @_view.LayoutClass">
                 <div class="flow-controls-col">
-                    <FlowControls OnSelectTheme="SetThemeAsync" />
+                    <FlowControls OnSelectVendor="SetVendorAsync" />
                 </div>
                 <div class="flow-main-col">
                     <FlowDiagram />

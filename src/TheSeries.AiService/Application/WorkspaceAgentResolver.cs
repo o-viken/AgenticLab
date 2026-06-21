@@ -71,8 +71,9 @@ public sealed class WorkspaceAgentResolver
     /// <param name="name">The requested agent name.</param>
     /// <param name="agent">The built agent when found.</param>
     /// <param name="definition">The resolved definition when found (its skills/risk metadata).</param>
+    /// <param name="harnessOverride">A replacement harness prompt for this run, or null/blank to keep the agent's own.</param>
     /// <returns><c>true</c> when a workspace agent with the name was found; otherwise <c>false</c>.</returns>
-    public bool TryResolve(string? name, out AIAgent agent, out WorkspaceAgentDefinition definition)
+    public bool TryResolve(string? name, out AIAgent agent, out WorkspaceAgentDefinition definition, string? harnessOverride = null)
     {
         agent = null!;
         definition = null!;
@@ -93,7 +94,7 @@ public sealed class WorkspaceAgentResolver
         var adapter = new WorkspaceDefinedAgent(match, tools);
         agent = new ChatClientAgent(
             _clients.Get(_clients.ExecutionDeployment(_clients.ResolveDeployment(adapter))),
-            instructions: adapter.Instructions,
+            instructions: adapter.InstructionsWith(harnessOverride),
             name: match.Name,
             tools: tools);
         return true;

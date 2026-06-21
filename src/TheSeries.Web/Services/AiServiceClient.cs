@@ -19,6 +19,14 @@ internal sealed class AiServiceClient(HttpClient http)
         await http.GetFromJsonAsync<AgentsResponse>("/agents", JsonOptions, cancellationToken);
 
     /// <summary>
+    /// Lists the brand vendors with their metadata (display name, simulated model label and the modes each
+    /// offers) so the vendor picker can be built from the service rather than hard-coded. The non-brand
+    /// Default vendor is the Web app's own baseline and is not returned here.
+    /// </summary>
+    public async Task<VendorsResponse?> GetVendorsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<VendorsResponse>("/vendors", JsonOptions, cancellationToken);
+
+    /// <summary>
     /// Lists the user-authored agents declared in the given workspace's agents/ folder so they can be
     /// offered alongside the built-in agents. Returns an empty list when the path is missing/invalid or
     /// the workspace declares none.
@@ -48,6 +56,21 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 
     /// <summary>
+    /// Gets the effective harness (system) prompt for the given agent and vendor so the harness anatomy can
+    /// show the active system prompt before a run. A selected vendor's harness replaces the agent's own.
+    /// </summary>
+    /// <param name="agent">The selected agent, or null/blank for the default.</param>
+    /// <param name="vendor">A brand/vendor key whose harness replaces the shared one; null/blank for the agent's own.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<HarnessResponse?> GetHarnessAsync(string? agent, string? vendor, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync("/harness", new HarnessRequest(agent, vendor), JsonOptions, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<HarnessResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
     /// Sends a message and yields each <see cref="FlowEvent"/> as the agent run progresses. The run is
     /// paced on the server by the matching <see cref="SendControlAsync"/> calls (keyed by session id).
     /// </summary>
@@ -59,6 +82,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
     /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
     /// <param name="disabledTools">The names of the agent's tools to hide from the model for this run; null/empty to offer them all.</param>
+    /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
         string message,
@@ -69,11 +93,12 @@ internal sealed class AiServiceClient(HttpClient http)
         int stepDelayMs,
         string? workspace,
         IReadOnlyList<string>? disabledTools,
+        string? vendor,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, vendor)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -137,7 +162,12 @@ internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null);
+internal sealed record HarnessRequest(string? Agent, string? Vendor);
+internal sealed record HarnessResponse(string Prompt);
+internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
+internal sealed record VendorModeInfo(string Agent, string Label);
+internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

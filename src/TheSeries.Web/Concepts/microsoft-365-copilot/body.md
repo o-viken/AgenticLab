@@ -22,8 +22,8 @@ you get a different assistant on the same foundation.
 
 ## In this application (the-series)
 
-Pick the **Microsoft 365 Copilot** theme to see the diagram in its light, gradient-tinted
-colours. The theme offers three modes — **chat** (general work assistant), **researcher**
+Pick the **Microsoft 365 Copilot** vendor to see the diagram in its light, gradient-tinted
+colours. The vendor offers three modes — **chat** (general work assistant), **researcher**
 and **analyst** — mapped to the `M365Copilot`, `M365Researcher` and `M365Analyst` agents.
 
 These agents call a **fake** Microsoft 365 / Graph tool set (`SearchEmail`, `SearchFiles`,

@@ -160,7 +160,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public string? ResponseHint => _responseHint;
 
     /// <summary>The resource currently being used, based on the active tool, or null when none is active.</summary>
-    public ResourceInfo? ActiveResourceInfo => ThemeCatalog.ActiveResource(_activeTool);
+    public ResourceInfo? ActiveResourceInfo => VendorCatalog.ActiveResource(_activeTool);
 
     /// <summary>The specific tool function that contacted the active resource (e.g. "FindPeople"), or null.</summary>
     public string? ActiveToolName => _activeTool;
@@ -352,7 +352,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             await foreach (var flowEvent in ai.StreamFlowAsync(
                 view.Message, view.SelectedAgent, _sessionId, _conversationId,
                 view.Mode == FlowMode.Manual, view.StepDelayMs, view.Workspace,
-                view.DisabledToolsOrNull, token))
+                view.DisabledToolsOrNull, view.VendorKey, token))
             {
                 _events.Add(flowEvent);
                 BumpState();
@@ -533,13 +533,13 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     }
 
     /// <summary>
-    /// Loads the workspace's user-authored agents so the picker can append them after the theme roster.
-    /// Clears them when the current theme has no workspace-requiring agent or no workspace is set. Called
-    /// when the workspace or theme changes.
+    /// Loads the workspace's user-authored agents so the picker can append them after the vendor roster.
+    /// Clears them when the current vendor has no workspace-requiring agent or no workspace is set. Called
+    /// when the workspace or vendor changes.
     /// </summary>
     public async Task RefreshWorkspaceAgentsAsync()
     {
-        if (!view.ThemeHasWorkspaceAgent || string.IsNullOrWhiteSpace(view.Workspace))
+        if (!view.VendorHasWorkspaceAgent || string.IsNullOrWhiteSpace(view.Workspace))
         {
             view.SetWorkspaceAgents(Array.Empty<AgentInfo>());
             return;
@@ -559,13 +559,44 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>
     /// Refreshes everything that depends on the workspace path — the skill catalogue and the user-authored
-    /// agent roster — in one call. Wired to the workspace input losing focus and to theme changes.
+    /// agent roster — in one call. Wired to the workspace input losing focus and to vendor changes.
     /// </summary>
     public async Task RefreshWorkspaceContextAsync()
     {
         await RefreshKnownSkillsAsync();
         await RefreshWorkspaceAgentsAsync();
+        await RefreshHarnessPromptAsync();
     }
+
+    /// <summary>
+    /// Loads the active system (harness) prompt for the selected vendor and agent so the harness
+    /// anatomy can show it before a run. A selected brand vendor's harness replaces the agent's own.
+    /// Called when the vendor or agent changes.
+    /// </summary>
+    public async Task RefreshHarnessPromptAsync()
+    {
+        try
+        {
+            var response = await ai.GetHarnessAsync(view.SelectedAgent, view.VendorKey);
+            view.SetHarnessPrompt(response?.Prompt);
+        }
+        catch
+        {
+            // Best-effort: the prompt is informational; keep the descriptive fallback on failure.
+            view.SetHarnessPrompt(null);
+        }
+    }
+
+    /// <summary>
+    /// Reacts to the selected agent changing: refreshes the skill catalogue and the active system prompt
+    /// (both depend on which agent is selected). Wired to the agent picker.
+    /// </summary>
+    public async Task OnAgentChangedAsync()
+    {
+        await RefreshKnownSkillsAsync();
+        await RefreshHarnessPromptAsync();
+    }
+
 
     // Keeps the harness Skills box in sync with the run: the catalogue of skills the workspace offers
     // (parsed once from the first llm-request's instructions) and the ones the model has actually loaded.

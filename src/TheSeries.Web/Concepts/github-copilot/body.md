@@ -14,5 +14,5 @@ customised with instructions, prompt files and skills. It can use different unde
 models.
 
 This sample app borrows Copilot's vocabulary — **harness**, **tools**, **skills**,
-**personas** — to make the concepts concrete. Pick the **GitHub Copilot** theme to see the
+**personas** — to make the concepts concrete. Pick the **GitHub Copilot** vendor to see the
 diagram in Copilot's colours.

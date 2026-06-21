@@ -1,23 +1,23 @@
-@* The controls bar above the diagram: theme picker, message box, run/stepping buttons, the agent
+@* The controls bar above the diagram: vendor picker, message box, run/stepping buttons, the agent
    picker, per-tool toggles, the optional workspace input, the auto-step delay, the stepping mode and
    the inline answer / last-response echoes. Reads and writes the shared view/run state. *@
 
 <section class="controls">
     <div class="control theme-control">
-        <label for="theme">Theme</label>
+        <label for="vendor">Vendor</label>
         <div class="theme-select-row">
-            <select id="theme" value="@View.Theme" @onchange="OnThemeChangedAsync" disabled="@Run.Running">
-                <option value="@Theme.Default">Default</option>
-                <option value="@Theme.ChatGpt">ChatGPT</option>
-                <option value="@Theme.Gemini">Gemini</option>
-                <option value="@Theme.Copilot">GitHub Copilot</option>
-                <option value="@Theme.ClaudeCode">Claude Code</option>
-                <option value="@Theme.Claude">Claude</option>
-                <option value="@Theme.Microsoft365">Microsoft 365</option>
+            <select id="vendor" value="@View.Vendor" @onchange="OnVendorChangedAsync" disabled="@Run.Running">
+                <option value="@Vendor.Default">Default</option>
+                <option value="@Vendor.ChatGpt">ChatGPT</option>
+                <option value="@Vendor.Gemini">Gemini</option>
+                <option value="@Vendor.Copilot">GitHub Copilot</option>
+                <option value="@Vendor.ClaudeCode">Claude Code</option>
+                <option value="@Vendor.Claude">Claude</option>
+                <option value="@Vendor.Microsoft365">Microsoft 365</option>
             </select>
-            @if (ThemeConceptId(View.Theme) is { } conceptId)
+            @if (VendorConceptId(View.Vendor) is { } conceptId)
             {
-                <ConceptInfoButton Id="@conceptId" Title="Learn about the selected theme's product" />
+                <ConceptInfoButton Id="@conceptId" Title="Learn about the selected vendor's product" />
             }
         </div>
     </div>
@@ -63,7 +63,7 @@
 
     <div class="control">
         <label for="agent">Agent</label>
-        <select id="agent" @bind="View.SelectedAgent" @bind:after="Run.RefreshKnownSkillsAsync" disabled="@Run.Running">
+        <select id="agent" @bind="View.SelectedAgent" @bind:after="Run.OnAgentChangedAsync" disabled="@Run.Running">
             @foreach (var agent in View.AvailableAgents)
             {
                 <option value="@agent.Name">@agent.Label</option>
@@ -152,27 +152,27 @@
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
 
-    /// <summary>Raised when the user picks a theme; the page persists it and refreshes the agent roster.</summary>
+    /// <summary>Raised when the user picks a vendor; the page persists it and refreshes the agent roster.</summary>
     [Parameter, EditorRequired]
-    public EventCallback<Theme> OnSelectTheme { get; set; }
+    public EventCallback<Vendor> OnSelectVendor { get; set; }
 
-    private async Task OnThemeChangedAsync(ChangeEventArgs args)
+    private async Task OnVendorChangedAsync(ChangeEventArgs args)
     {
-        if (Enum.TryParse<Theme>(args.Value?.ToString(), out var theme))
+        if (Enum.TryParse<Vendor>(args.Value?.ToString(), out var vendor))
         {
-            await OnSelectTheme.InvokeAsync(theme);
+            await OnSelectVendor.InvokeAsync(vendor);
         }
     }
 
-    /// <summary>The product concept id for a theme (for the ⓘ beside the picker), or null for the non-product Default theme.</summary>
-    private static string? ThemeConceptId(Theme theme) => theme switch
+    /// <summary>The product concept id for a vendor (for the ⓘ beside the picker), or null for the non-product Default vendor.</summary>
+    private static string? VendorConceptId(Vendor vendor) => vendor switch
     {
-        Theme.ChatGpt => "chatgpt",
-        Theme.Gemini => "gemini",
-        Theme.Copilot => "github-copilot",
-        Theme.ClaudeCode => "claude-code",
-        Theme.Claude => "claude",
-        Theme.Microsoft365 => "microsoft-365-copilot",
+        Vendor.ChatGpt => "chatgpt",
+        Vendor.Gemini => "gemini",
+        Vendor.Copilot => "github-copilot",
+        Vendor.ClaudeCode => "claude-code",
+        Vendor.Claude => "claude",
+        Vendor.Microsoft365 => "microsoft-365-copilot",
         _ => null,
     };
 

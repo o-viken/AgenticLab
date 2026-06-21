@@ -2,7 +2,7 @@ namespace TheSeries.Web.Flow;
 
 /// <summary>
 /// Holds the flow page's <em>view</em> state — the user's preferences and selections that the controls
-/// and diagram bind to (theme, perspective, the various toggles, the message/agent/workspace inputs,
+/// and diagram bind to (vendor, perspective, the various toggles, the message/agent/workspace inputs,
 /// the stepping mode and delay, the disabled-tool set, the expanded-step set and the concept drawer) —
 /// together with the values derived from them. It is deliberately free of any run/execution state and
 /// of HTTP or JS dependencies; the live run lives in <see cref="FlowRunController"/>.
@@ -12,6 +12,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 {
     private readonly List<AgentInfo> _agents = new();
     private readonly List<AgentInfo> _workspaceAgents = new();
+    private readonly Dictionary<string, VendorInfo> _vendors = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<int> _expanded = new();
 
@@ -27,9 +28,11 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _showConcepts;
     private bool _expandHarness;
     private bool _conceptPinned;
+    private bool _showFullHarnessPrompt;
+    private string _harnessPromptText = string.Empty;
     private Concept? _activeConcept;
     private Perspective _perspective = Perspective.Expert;
-    private Theme _theme = Theme.Default;
+    private Vendor _vendor = Vendor.Default;
 
     /// <summary>Raised whenever a piece of view state changes so the page can re-render.</summary>
     public event Action? Changed;
@@ -59,6 +62,28 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         _workspaceAgents.AddRange(agents);
         Notify();
     }
+
+    // --- Vendors ----------------------------------------------------------
+
+    /// <summary>
+    /// Replaces the brand-vendor metadata loaded from the service (keyed by the backend vendor key).
+    /// Used to build the vendor picker's roster and the simulated model label without hard-coding them.
+    /// </summary>
+    public void SetVendors(IEnumerable<VendorInfo> vendors)
+    {
+        _vendors.Clear();
+        foreach (var vendor in vendors)
+        {
+            _vendors[vendor.Key] = vendor;
+        }
+
+        Notify();
+    }
+
+    /// <summary>The loaded metadata for the selected brand vendor, or null for the Default vendor or before load.</summary>
+    private VendorInfo? CurrentVendorInfo =>
+        VendorKey is { } key && _vendors.TryGetValue(key, out var info) ? info : null;
+
 
     // --- Run inputs -------------------------------------------------------
 
@@ -183,11 +208,11 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         set { _perspective = value; Notify(); }
     }
 
-    /// <summary>The currently selected visual theme (persisted by the page in localStorage).</summary>
-    public Theme Theme
+    /// <summary>The currently selected vendor/brand (persisted by the page in localStorage).</summary>
+    public Vendor Vendor
     {
-        get => _theme;
-        set { _theme = value; Notify(); }
+        get => _vendor;
+        set { _vendor = value; Notify(); }
     }
 
     // --- Concept drawer ---------------------------------------------------
@@ -267,55 +292,118 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>The CSS class applied to the page body so the controls sit beside the flow in the split layout.</summary>
     public string LayoutClass => _layout == FlowLayout.Split ? "layout-split" : string.Empty;
 
-    /// <summary>The CSS class applied to the root so the brand theme's variable overrides take effect.</summary>
-    public string ThemeClass => ThemeCatalog.ThemeClass(_theme);
+    /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
+    public string VendorClass => VendorCatalog.CssClass(_vendor);
 
-    /// <summary>The friendly display name of the selected theme (shown in the page title and header).</summary>
-    public string ThemeName => ThemeCatalog.ThemeName(_theme);
+    /// <summary>The friendly display name of the selected vendor (shown in the page title and header).</summary>
+    public string VendorName => CurrentVendorInfo?.DisplayName ?? _vendor.ToString();
+
+    /// <summary>
+    /// The harness key sent with a run so the backend swaps in that vendor's harness system prompt
+    /// (replacing the shared harness while keeping the agent's persona). Null for the Default vendor.
+    /// </summary>
+    public string? VendorKey => VendorCatalog.HarnessKey(_vendor);
+
+    /// <summary>
+    /// The body text describing the System Prompt layer in the harness anatomy. For a brand vendor it names
+    /// the vendor whose harness prompt replaces the shared one for the run; for the Default vendor it
+    /// describes the standard shared harness.
+    /// </summary>
+    public string HarnessPromptBody => _vendor == Vendor.Default
+        ? "Global harness prompt — operating rules + tool loop (expert coding assistant++)"
+        : $"{VendorName} system prompt — replaces the shared harness for this run (persona kept)";
+
+    /// <summary>The actual harness (system) prompt text for the selected vendor and agent, fetched from the service.</summary>
+    public string HarnessPromptText => _harnessPromptText;
+
+    /// <summary>Whether the harness anatomy shows the full system prompt text (vs. a short preview).</summary>
+    public bool ShowFullHarnessPrompt
+    {
+        get => _showFullHarnessPrompt;
+        set { _showFullHarnessPrompt = value; Notify(); }
+    }
+
+    /// <summary>Whether a fetched system prompt is available to show in the harness anatomy.</summary>
+    public bool HasHarnessPromptText => !string.IsNullOrWhiteSpace(_harnessPromptText);
+
+    /// <summary>
+    /// The system prompt as shown in the anatomy's System Prompt box: the fetched text (a short preview, or
+    /// the full text when expanded), or the descriptive fallback when no text has been fetched yet.
+    /// </summary>
+    public string HarnessPromptDisplay
+    {
+        get
+        {
+            if (!HasHarnessPromptText)
+            {
+                return HarnessPromptBody;
+            }
+
+            var text = _harnessPromptText.Trim();
+            if (_showFullHarnessPrompt || text.Length <= 160)
+            {
+                return text;
+            }
+
+            return text[..160].TrimEnd() + "…";
+        }
+    }
+
+    /// <summary>
+    /// Replaces the fetched harness prompt text (called after the vendor or agent changes), collapsing
+    /// any expanded full view so the preview reflects the new prompt.
+    /// </summary>
+    public void SetHarnessPrompt(string? prompt)
+    {
+        _harnessPromptText = prompt ?? string.Empty;
+        _showFullHarnessPrompt = false;
+        Notify();
+    }
 
     /// <summary>Reserves room on the right for the docked concept sidebar (only when a concept is open and pinned).</summary>
     public string PinnedClass => _activeConcept is not null && _conceptPinned ? "drawer-pinned" : string.Empty;
 
     /// <summary>
-    /// The agents offered by the current theme, restricted to those the service actually registered
-    /// (an unknown name in the roster is silently skipped). Order follows the roster.
+    /// The agents offered by the current vendor, restricted to those the service actually registered
+    /// (an unknown name in the roster is silently skipped). Order follows the roster. The modes come from
+    /// the vendor's loaded metadata (including the non-brand Default vendor).
     /// </summary>
     public IReadOnlyList<AgentChoice> AvailableAgents =>
-        (ThemeCatalog.ThemeAgents.TryGetValue(_theme, out var roster) ? roster : Array.Empty<AgentChoice>())
+        (CurrentVendorInfo?.Modes.Select(m => new AgentChoice(m.Agent, m.Label)) ?? Enumerable.Empty<AgentChoice>())
             .Where(c => _agents.Any(a => string.Equals(a.Name, c.Name, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
-    /// <summary>The current theme's default (first available) agent, or null when the theme offers none.</summary>
-    public string? ThemeDefaultAgent => AvailableAgents.Count > 0 ? AvailableAgents[0].Name : null;
+    /// <summary>The current vendor's default (first available) agent, or null when the vendor offers none.</summary>
+    public string? VendorDefaultAgent => AvailableAgents.Count > 0 ? AvailableAgents[0].Name : null;
 
     /// <summary>
-    /// Whether the current theme offers a workspace-requiring agent, so workspace-discovered agents are
+    /// Whether the current vendor offers a workspace-requiring agent, so workspace-discovered agents are
     /// relevant and should be fetched and appended to the picker.
     /// </summary>
-    public bool ThemeHasWorkspaceAgent =>
+    public bool VendorHasWorkspaceAgent =>
         AvailableAgents.Any(c => _agents.Any(a =>
             string.Equals(a.Name, c.Name, StringComparison.OrdinalIgnoreCase) && a.RequiresWorkspace));
 
     /// <summary>
     /// The workspace-discovered agents as picker choices (label = name), appended to the dropdown after a
-    /// separator. Empty unless the current theme offers a workspace agent and some were discovered.
+    /// separator. Empty unless the current vendor offers a workspace agent and some were discovered.
     /// </summary>
     public IReadOnlyList<AgentChoice> WorkspaceAgentChoices =>
-        ThemeHasWorkspaceAgent
+        VendorHasWorkspaceAgent
             ? _workspaceAgents.Select(a => new AgentChoice(a.Name, a.Name)).ToList()
             : Array.Empty<AgentChoice>();
 
     /// <summary>
-    /// The label shown on the merged Client + AiService node: the brand theme name when one is picked,
+    /// The label shown on the merged Client + AiService node: the brand vendor name when one is picked,
     /// otherwise the perspective's standard label (Harness in Expert, Application elsewhere).
     /// </summary>
-    public string HarnessLabel => _theme == Theme.Default
+    public string HarnessLabel => _vendor == Vendor.Default
         ? (_perspective == Perspective.Expert ? "Harness" : "Application")
-        : ThemeName;
+        : VendorName;
 
     /// <summary>
-    /// The provider/model label shown on the LLM node. In the Default theme or the Expert perspective the
-    /// real Azure OpenAI deployment is shown (so engineers see the actual model); in a brand theme's other
+    /// The provider/model label shown on the LLM node. In the Default vendor or the Expert perspective the
+    /// real Azure OpenAI deployment is shown (so engineers see the actual model); in a brand vendor's other
     /// perspectives a simulated provider label is shown instead (e.g. Claude on Anthropic), to mimic that
     /// the product runs on its own model even though the backend is always Azure OpenAI.
     /// </summary>
@@ -323,8 +411,8 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     {
         get
         {
-            var simulated = ThemeCatalog.ThemeModelLabel(_theme);
-            if (_theme != Theme.Default && _perspective != Perspective.Expert && simulated.Length > 0)
+            var simulated = CurrentVendorInfo?.ModelLabel ?? string.Empty;
+            if (_vendor != Vendor.Default && _perspective != Perspective.Expert && simulated.Length > 0)
             {
                 return simulated;
             }
@@ -354,7 +442,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     public string RiskLevelClass => $"risk-{SelectedAgentRiskLevel.ToLowerInvariant()}";
 
     /// <summary>How many of the three risk-meter segments are filled for the selected agent.</summary>
-    public int RiskFilledSegments => ThemeCatalog.RiskFilledSegments(SelectedAgentRiskLevel);
+    public int RiskFilledSegments => VendorCatalog.RiskFilledSegments(SelectedAgentRiskLevel);
 
     /// <summary>
     /// The label on the merged node's environment badge: workspace agents run on your machine with file
