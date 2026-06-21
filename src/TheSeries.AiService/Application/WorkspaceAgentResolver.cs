@@ -16,7 +16,7 @@ namespace TheSeries.AiService.Application;
 /// </summary>
 public sealed class WorkspaceAgentResolver
 {
-    private readonly IChatClient _chatClient;
+    private readonly ChatClientProvider _clients;
     private readonly WorkspaceAgentLoader _loader;
     private readonly IReadOnlyDictionary<string, AIFunction> _registry;
 
@@ -25,14 +25,14 @@ public sealed class WorkspaceAgentResolver
     /// (case-insensitive), from the harness's application tools.
     /// </summary>
     public WorkspaceAgentResolver(
-        IChatClient chatClient,
+        ChatClientProvider clients,
         WorkspaceAgentLoader loader,
         FileSystemTool files,
         TerminalTool terminal,
         SkillsTool skills,
         AskQuestionTool ask)
     {
-        _chatClient = chatClient;
+        _clients = clients;
         _loader = loader;
         _registry = new[] { files.AsTools(), terminal.AsTools(), skills.AsTools(), ask.AsTools() }
             .SelectMany(t => t)
@@ -49,14 +49,19 @@ public sealed class WorkspaceAgentResolver
     /// <returns>The workspace agents, ordered by name.</returns>
     public IReadOnlyList<AgentInfo> ListAgents() =>
         _loader.Load()
-            .Select(d => new AgentInfo(
-                d.Name,
-                d.Description,
-                ResolveTools(d.ToolNames).OfType<AIFunction>().Select(f => f.Name).ToList(),
-                RequiresWorkspace: true,
-                d.SupportsSkills,
-                d.RiskLevel.ToString(),
-                d.Guardrails))
+            .Select(d =>
+            {
+                var tools = ResolveTools(d.ToolNames);
+                return new AgentInfo(
+                    d.Name,
+                    d.Description,
+                    tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
+                    RequiresWorkspace: true,
+                    d.SupportsSkills,
+                    d.RiskLevel.ToString(),
+                    d.Guardrails,
+                    _clients.ResolveDeployment(new WorkspaceDefinedAgent(d, tools)));
+            })
             .ToList();
 
     /// <summary>
@@ -85,9 +90,10 @@ public sealed class WorkspaceAgentResolver
 
         definition = match;
         var tools = ResolveTools(match.ToolNames);
+        var adapter = new WorkspaceDefinedAgent(match, tools);
         agent = new ChatClientAgent(
-            _chatClient,
-            instructions: new WorkspaceDefinedAgent(match, tools).Instructions,
+            _clients.Get(_clients.ExecutionDeployment(_clients.ResolveDeployment(adapter))),
+            instructions: adapter.Instructions,
             name: match.Name,
             tools: tools);
         return true;

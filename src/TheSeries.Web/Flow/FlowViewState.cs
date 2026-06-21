@@ -313,6 +313,27 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         ? (_perspective == Perspective.Expert ? "Harness" : "Application")
         : ThemeName;
 
+    /// <summary>
+    /// The provider/model label shown on the LLM node. In the Default theme or the Expert perspective the
+    /// real Azure OpenAI deployment is shown (so engineers see the actual model); in a brand theme's other
+    /// perspectives a simulated provider label is shown instead (e.g. Claude on Anthropic), to mimic that
+    /// the product runs on its own model even though the backend is always Azure OpenAI.
+    /// </summary>
+    public string LlmModelLabel
+    {
+        get
+        {
+            var simulated = ThemeCatalog.ThemeModelLabel(_theme);
+            if (_theme != Theme.Default && _perspective != Perspective.Expert && simulated.Length > 0)
+            {
+                return simulated;
+            }
+
+            var deployment = Selected?.ModelId;
+            return string.IsNullOrWhiteSpace(deployment) ? "Azure OpenAI" : $"Azure OpenAI · {deployment}";
+        }
+    }
+
     private AgentInfo? Selected =>
         _agents.FirstOrDefault(a => a.Name == _selectedAgent)
         ?? _workspaceAgents.FirstOrDefault(a => a.Name == _selectedAgent);

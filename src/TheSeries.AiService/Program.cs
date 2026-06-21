@@ -60,11 +60,13 @@ builder.Services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
 builder.Services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
 builder.Services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
 
-// The shared chat client and the catalog of agents are stateless and safe to share as singletons.
+// Builds (and caches) one chat client per Azure OpenAI deployment so agents can run on different models.
+builder.Services.AddSingleton<ChatClientProvider>();
+// The default chat client (default deployment), for components that are not tied to a specific agent.
+builder.Services.AddSingleton(sp => sp.GetRequiredService<ChatClientProvider>().Get(null));
+// The catalog of agents is stateless and safe to share as a singleton; each agent runs on its own deployment.
 builder.Services.AddSingleton(sp =>
-    AgentService.CreateChatClient(sp.GetRequiredService<IConfiguration>()));
-builder.Services.AddSingleton(sp =>
-    new AgentCatalog(sp.GetRequiredService<IChatClient>(), sp.GetServices<IAgentDefinition>()));
+    new AgentCatalog(sp.GetRequiredService<ChatClientProvider>(), sp.GetServices<IAgentDefinition>()));
 
 // Holds one conversation thread per conversation id so agent runs can continue an existing chat.
 builder.Services.AddSingleton<ConversationStore>();

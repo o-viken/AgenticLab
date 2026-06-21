@@ -28,6 +28,9 @@ internal sealed class WorkspaceDefinedAgent(WorkspaceAgentDefinition definition,
     public override AgentRiskLevel RiskLevel => definition.RiskLevel;
 
     /// <inheritdoc />
+    public override string? ModelId => definition.ModelId;
+
+    /// <inheritdoc />
     public override IReadOnlyList<string> Guardrails => definition.Guardrails;
 
     /// <inheritdoc />

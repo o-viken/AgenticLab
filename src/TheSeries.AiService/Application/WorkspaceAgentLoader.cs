@@ -16,6 +16,7 @@ namespace TheSeries.AiService.Application;
 ///   - ListFiles
 /// risk: Low      # optional; defaults from the tool set
 /// skills: false  # optional; opt into workspace skills
+/// model: gpt-5.3-codex  # optional; the Azure OpenAI deployment to run on (defaults to the global default)
 /// persona: |
 ///   You are a meticulous code reviewer...
 /// </code>
@@ -107,6 +108,7 @@ public sealed class WorkspaceAgentLoader
             risk,
             guardrails,
             yaml.Skills,
+            string.IsNullOrWhiteSpace(yaml.Model) ? null : yaml.Model.Trim(),
             relativePath);
     }
 
@@ -159,6 +161,7 @@ public sealed class WorkspaceAgentLoader
         public List<string>? Tools { get; set; }
         public string? Risk { get; set; }
         public bool Skills { get; set; }
+        public string? Model { get; set; }
         public List<string>? Guardrails { get; set; }
     }
 }

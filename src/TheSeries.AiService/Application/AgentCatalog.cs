@@ -13,7 +13,8 @@ namespace TheSeries.AiService.Application;
 /// <param name="SupportsSkills">Whether this agent uses workspace skills (its names/descriptions are injected each run).</param>
 /// <param name="RiskLevel">How much real-world impact the agent can have (<c>None</c>, <c>Low</c>, <c>Medium</c>, <c>High</c>).</param>
 /// <param name="Guardrails">The safety mechanisms enforced for this agent, surfaced so the user understands the risk.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, string RiskLevel, IReadOnlyList<string> Guardrails);
+/// <param name="ModelId">The Azure OpenAI deployment the agent runs on, surfaced so clients can show which model answers.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -27,12 +28,16 @@ public sealed class AgentCatalog
 
     /// <summary>
     /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
-    /// The first definition is treated as the default.
+    /// The first definition is treated as the default. Each agent's <see cref="AgentInfo.ModelId"/> is its
+    /// declared deployment (see <see cref="ChatClientProvider.ResolveDeployment"/>) for display, but it
+    /// runs on the chat client for its <see cref="ChatClientProvider.ExecutionDeployment"/> — the same
+    /// deployment when per-agent routing is on, or the default when <c>AzureOpenAI:ForceDefaultModel</c>
+    /// makes the declared model display-only.
     /// </summary>
-    /// <param name="chatClient">The shared Azure OpenAI chat client every agent runs on.</param>
+    /// <param name="clients">Provides the Azure OpenAI chat client for each agent's deployment.</param>
     /// <param name="definitions">The agent definitions to expose.</param>
     /// <exception cref="ArgumentException">Thrown when no definitions are supplied.</exception>
-    public AgentCatalog(IChatClient chatClient, IEnumerable<IAgentDefinition> definitions)
+    public AgentCatalog(ChatClientProvider clients, IEnumerable<IAgentDefinition> definitions)
     {
         var list = definitions.ToList();
         if (list.Count == 0)
@@ -40,13 +45,14 @@ public sealed class AgentCatalog
             throw new ArgumentException("At least one agent definition is required.", nameof(definitions));
         }
 
+        var deployments = list.ToDictionary(d => d.Name, clients.ResolveDeployment, StringComparer.OrdinalIgnoreCase);
         _agents = new Dictionary<string, AIAgent>(StringComparer.OrdinalIgnoreCase);
         _requiresWorkspace = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         _supportsSkills = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in list)
         {
             _agents[definition.Name] = new ChatClientAgent(
-                chatClient,
+                clients.Get(clients.ExecutionDeployment(deployments[definition.Name])),
                 instructions: definition.Instructions,
                 name: definition.Name,
                 tools: definition.Tools);
@@ -62,7 +68,8 @@ public sealed class AgentCatalog
             d.RequiresWorkspace,
             d.SupportsSkills,
             d.RiskLevel.ToString(),
-            d.Guardrails)).ToList();
+            d.Guardrails,
+            deployments[d.Name])).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

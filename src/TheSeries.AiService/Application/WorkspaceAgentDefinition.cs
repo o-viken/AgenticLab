@@ -13,6 +13,7 @@ namespace TheSeries.AiService.Application;
 /// <param name="RiskLevel">How much real-world impact the agent can have.</param>
 /// <param name="Guardrails">The safety mechanisms enforced for the agent, surfaced so the user understands the risk.</param>
 /// <param name="SupportsSkills">Whether the agent participates in workspace skills (its catalogue is injected per run).</param>
+/// <param name="ModelId">The Azure OpenAI deployment the agent should run on (from the YAML <c>model</c>), or <c>null</c> for the default.</param>
 /// <param name="RelativePath">The workspace-relative path of the YAML file the agent was loaded from.</param>
 public sealed record WorkspaceAgentDefinition(
     string Name,
@@ -22,4 +23,5 @@ public sealed record WorkspaceAgentDefinition(
     AgentRiskLevel RiskLevel,
     IReadOnlyList<string> Guardrails,
     bool SupportsSkills,
+    string? ModelId,
     string RelativePath);

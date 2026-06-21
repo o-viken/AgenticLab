@@ -43,6 +43,22 @@ internal static class ThemeCatalog
         _ => "Default",
     };
 
+    /// <summary>
+    /// The simulated provider/model label shown on the LLM node for a brand theme, to mimic that the
+    /// product runs on its own model (e.g. Claude on Anthropic, ChatGPT on GPT). This is presentation
+    /// only — the real backend is always Azure OpenAI. Returns an empty string for the non-brand Default
+    /// theme, where the real deployment is shown instead.
+    /// </summary>
+    public static string ThemeModelLabel(Theme theme) => theme switch
+    {
+        Theme.Copilot => "GPT-5 (GitHub Copilot)",
+        Theme.ClaudeCode => "Claude Sonnet 4.5 (Anthropic)",
+        Theme.Claude => "Claude Sonnet 4.5 (Anthropic)",
+        Theme.ChatGpt => "GPT-5 (OpenAI)",
+        Theme.Microsoft365 => "GPT-4o (Microsoft)",
+        _ => string.Empty,
+    };
+
     /// <summary>How many of the three risk-meter segments are filled for a given risk level.</summary>
     public static int RiskFilledSegments(string riskLevel) => riskLevel switch
     {
