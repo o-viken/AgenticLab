@@ -9,6 +9,7 @@
             <select id="theme" value="@View.Theme" @onchange="OnThemeChangedAsync" disabled="@Run.Running">
                 <option value="@Theme.Default">Default</option>
                 <option value="@Theme.ChatGpt">ChatGPT</option>
+                <option value="@Theme.Gemini">Gemini</option>
                 <option value="@Theme.Copilot">GitHub Copilot</option>
                 <option value="@Theme.ClaudeCode">Claude Code</option>
                 <option value="@Theme.Claude">Claude</option>
@@ -167,6 +168,7 @@
     private static string? ThemeConceptId(Theme theme) => theme switch
     {
         Theme.ChatGpt => "chatgpt",
+        Theme.Gemini => "gemini",
         Theme.Copilot => "github-copilot",
         Theme.ClaudeCode => "claude-code",
         Theme.Claude => "claude",

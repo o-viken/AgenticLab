@@ -43,6 +43,7 @@ public enum Theme
     ClaudeCode,
     Claude,
     ChatGpt,
+    Gemini,
     Microsoft365,
 }
 

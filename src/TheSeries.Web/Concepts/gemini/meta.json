@@ -1,0 +1,9 @@
+{
+  "title": "Gemini",
+  "category": "product",
+  "summary": "Google's multimodal assistant and model family. Beyond chat it reasons over text, images, audio and code, browses, and uses tools agentically.",
+  "links": [
+    { "label": "Gemini", "url": "https://gemini.google.com" },
+    { "label": "Google AI for Developers", "url": "https://ai.google.dev" }
+  ]
+}

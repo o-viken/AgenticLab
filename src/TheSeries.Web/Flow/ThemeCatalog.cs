@@ -16,6 +16,7 @@ internal static class ThemeCatalog
         [Theme.Default] = new[] { new AgentChoice("WikiAssistant", "wiki"), new AgentChoice("ChatBot", "chat") },
         [Theme.Copilot] = new[] { new AgentChoice("Ask", "ask"), new AgentChoice("Plan", "plan"), new AgentChoice("Coder", "agent") },
         [Theme.ChatGpt] = new[] { new AgentChoice("ChatBot", "chat") },
+        [Theme.Gemini] = new[] { new AgentChoice("ChatBot", "chat") },
         [Theme.Claude] = new[] { new AgentChoice("ChatBot", "chat") },
         [Theme.ClaudeCode] = new[] { new AgentChoice("Plan", "plan"), new AgentChoice("Coder", "agent") },
         [Theme.Microsoft365] = new[] { new AgentChoice("M365Copilot", "chat"), new AgentChoice("M365Researcher", "researcher"), new AgentChoice("M365Analyst", "analyst") },
@@ -28,6 +29,7 @@ internal static class ThemeCatalog
         Theme.ClaudeCode => "theme-claude-code",
         Theme.Claude => "theme-claude",
         Theme.ChatGpt => "theme-chatgpt",
+        Theme.Gemini => "theme-gemini",
         Theme.Microsoft365 => "theme-m365",
         _ => string.Empty,
     };
@@ -39,6 +41,7 @@ internal static class ThemeCatalog
         Theme.ClaudeCode => "Claude Code",
         Theme.Claude => "Claude",
         Theme.ChatGpt => "ChatGPT",
+        Theme.Gemini => "Gemini",
         Theme.Microsoft365 => "Microsoft 365 Copilot",
         _ => "Default",
     };
@@ -55,6 +58,7 @@ internal static class ThemeCatalog
         Theme.ClaudeCode => "Claude Sonnet 4.5 (Anthropic)",
         Theme.Claude => "Claude Sonnet 4.5 (Anthropic)",
         Theme.ChatGpt => "GPT-5 (OpenAI)",
+        Theme.Gemini => "Gemini 2.5 Pro (Google)",
         Theme.Microsoft365 => "GPT-4o (Microsoft)",
         _ => string.Empty,
     };
