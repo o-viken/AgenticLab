@@ -39,13 +39,6 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // Stays the same across sends so the agent remembers prior turns; reset by "New conversation".
     private string _conversationId = Guid.NewGuid().ToString("n");
     private CancellationTokenSource? _cts;
-
-    // Render coalescing: streamed events can arrive in bursts (fast/0ms runs), and each render re-diffs
-    // the whole page over the SignalR circuit. Throttling collapses a burst into ~25 renders/sec while a
-    // trailing render still guarantees the latest state is shown.
-    private const long RenderThrottleMs = 40;
-    private long _lastNotifyTick = long.MinValue;
-    private bool _trailingScheduled;
     private bool _disposed;
 
     // Cache for the derived collections below, recomputed only when _events/_turns change (tracked by
@@ -61,56 +54,9 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
 
-    private Task NotifyAsync()
-    {
-        if (_disposed)
-        {
-            return Task.CompletedTask;
-        }
-
-        _lastNotifyTick = Environment.TickCount64;
-        return Changed?.Invoke() ?? Task.CompletedTask;
-    }
-
-    // Coalesces a burst of streamed events: renders immediately when enough time has passed since the
-    // last render, otherwise ensures a single trailing render fires shortly after the burst settles.
-    private Task NotifyThrottledAsync()
-    {
-        if (_disposed)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (Environment.TickCount64 - _lastNotifyTick >= RenderThrottleMs)
-        {
-            return NotifyAsync();
-        }
-
-        if (!_trailingScheduled)
-        {
-            _trailingScheduled = true;
-            _ = ScheduleTrailingRenderAsync();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private async Task ScheduleTrailingRenderAsync()
-    {
-        try
-        {
-            await Task.Delay((int)RenderThrottleMs);
-            await NotifyAsync();
-        }
-        catch
-        {
-            // Best-effort trailing render; the circuit may already have gone away.
-        }
-        finally
-        {
-            _trailingScheduled = false;
-        }
-    }
+    // Renders once per streamed event so each step of the run animates as it happens (the per-event
+    // render is the whole point of the visualiser); the page bridges this onto the renderer's context.
+    private Task NotifyAsync() => _disposed ? Task.CompletedTask : (Changed?.Invoke() ?? Task.CompletedTask);
 
     // Marks the derived caches dirty after _events/_turns change.
     private void BumpState() => _stateVersion++;
@@ -444,16 +390,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
                     _error = flowEvent.Detail ?? flowEvent.Label;
                 }
 
-                // Render promptly for discrete state transitions the user is waiting on; coalesce the
-                // high-frequency streaming steps so a burst doesn't re-render the whole page per event.
-                if (flowEvent.Kind is "final" or "error" or "ask-question")
-                {
-                    await NotifyAsync();
-                }
-                else
-                {
-                    await NotifyThrottledAsync();
-                }
+                await NotifyAsync();
             }
         }
         catch (OperationCanceledException)
