@@ -34,6 +34,7 @@
                     <label class="check"><input type="checkbox" @bind="View.ShowHarnessBoundary" /> Harness</label>
                     <label class="check"><input type="checkbox" @bind="View.ShowAgentBoundary" /> Agent</label>
                     <label class="check"><input type="checkbox" @bind="View.ExpandHarness" /> Expand harness</label>
+                    <label class="check"><input type="checkbox" @bind="View.ShowPromptSignature" /> Prompt signature</label>
                 </div>
             </div>
         }
@@ -149,6 +150,13 @@
             }
         </div>
     </div>
+
+    @if (View.Perspective == Perspective.Expert && View.ShowPromptSignature)
+    {
+        <div class="signature-row">
+            <PromptSignature />
+        </div>
+    }
 </section>
 
 @code {

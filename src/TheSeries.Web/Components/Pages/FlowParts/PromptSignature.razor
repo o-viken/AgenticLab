@@ -1,0 +1,92 @@
+@* The "prompt signature" panel (Expert · Prompt signature toggle): the most recent LLM request broken
+   down by message category as a stacked bar, compared against the previous request, with a prefix-
+   stability "match" score. Mirrors the harness anatomy's contributor framing — it shows what the model
+   actually received this round-trip and how much of it was reused from the last one. *@
+
+<div class="prompt-signature">
+    <div class="sig-head">
+        <span class="sig-title-group">
+            <ConceptInfoButton Id="prompt-signature" Title="Learn about the prompt signature" />
+            <span class="sig-title">Prompt signature</span>
+        </span>
+        <span class="sig-sub">request composition by category</span>
+    </div>
+
+    @if (!Sig.HasCurrent)
+    {
+        <span class="sig-empty">the signature appears once the agent sends its first request…</span>
+    }
+    else
+    {
+        <ul class="sig-legend">
+            @foreach (var category in Sig.Current)
+            {
+                var percent = Sig.CurrentChars > 0 ? category.Chars * 100.0 / Sig.CurrentChars : 0;
+                <li class="@(category.Chars == 0 ? "is-zero" : null)" title="@category.Label: @category.Chars.ToString("N0") chars (@percent.ToString("0.#")% of the request)">
+                    <span class="sig-swatch sig-@category.Key"></span>
+                    <span class="sig-legend-label">@category.Label</span>
+                    <span class="sig-legend-num">@category.Chars.ToString("N0")</span>
+                </li>
+            }
+        </ul>
+
+        @if (Sig.HasPrevious)
+        {
+            @Bar("Previous", Sig.Previous, Sig.PreviousChars)
+        }
+        @Bar("Current", Sig.Current, Sig.CurrentChars)
+
+        @if (Sig.HasPrevious)
+        {
+            <div class="sig-row sig-match-row">
+                <span class="sig-row-label">Match</span>
+                <div class="sig-match" title="Share of the current request byte-identical to the previous one (reused prompt prefix)">
+                    <span class="sig-match-fill" style="width:@(Sig.MatchPercent)%"></span>
+                </div>
+                <span class="sig-row-total">@(Sig.MatchPercent)% match</span>
+            </div>
+        }
+        else
+        {
+            <span class="sig-hint">send another turn to compare against the previous request…</span>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    private PromptSignatureView Sig => Run.PromptSignature;
+
+    // Renders one labelled stacked bar: a segment per non-empty category sized by its char share, with
+    // the char count shown inside wide-enough segments and the total at the right.
+    private RenderFragment Bar(string label, IReadOnlyList<PromptSignatureCategory> categories, int total) => @<div class="sig-row">
+        <span class="sig-row-label">@label</span>
+        <div class="sig-bar">
+            @if (total == 0)
+            {
+                <span class="sig-seg sig-empty-seg" style="width:100%"></span>
+            }
+            else
+            {
+                @foreach (var category in categories)
+                {
+                    if (category.Chars > 0)
+                    {
+                        var percent = category.Chars * 100.0 / total;
+                        var width = percent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                        <span class="sig-seg sig-@category.Key" style="width:@(width)%"
+                              title="@category.Label: @category.Chars.ToString("N0") chars (@percent.ToString("0.#")%)">
+                            @if (percent >= 12)
+                            {
+                                <span class="sig-seg-num">@category.Chars.ToString("N0")</span>
+                            }
+                        </span>
+                    }
+                }
+            }
+        </div>
+        <span class="sig-row-total">@total.ToString("N0") chars</span>
+    </div>;
+}

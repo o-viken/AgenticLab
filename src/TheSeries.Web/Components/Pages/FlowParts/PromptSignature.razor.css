@@ -1,0 +1,165 @@
+/* The prompt-signature panel: a full-width card under the diagram showing the latest request's
+   composition by category, the previous request and a prefix-stability match bar. Inherits the themed
+   CSS variables from .flow-app, so it follows the active vendor palette. Category colours are a fixed
+   five-hue scale (they encode message roles, not branding). */
+
+.prompt-signature {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: .75rem .85rem;
+    border-radius: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+}
+
+.sig-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: .5rem;
+}
+
+.sig-title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.sig-title-group ::deep .concept-info {
+    position: static;
+    align-self: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: .75rem;
+}
+
+.sig-title {
+    font-weight: 700;
+    color: var(--anatomy-heading);
+    font-size: .9rem;
+}
+
+.sig-sub {
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.sig-empty,
+.sig-hint {
+    font-size: .72rem;
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+/* Legend */
+.sig-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem .9rem;
+}
+
+.sig-legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.sig-legend li.is-zero {
+    opacity: .45;
+}
+
+.sig-legend-num {
+    font-weight: 700;
+    color: var(--anatomy-heading);
+    font-variant-numeric: tabular-nums;
+}
+
+.sig-swatch {
+    width: .7rem;
+    height: .7rem;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+/* Rows (Previous / Current / Match) */
+.sig-row {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr 5.5rem;
+    align-items: center;
+    gap: .6rem;
+}
+
+.sig-row-label {
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-dim);
+}
+
+.sig-row-total {
+    font-size: .68rem;
+    color: var(--text-dim);
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* Stacked bar */
+.sig-bar {
+    display: flex;
+    height: 22px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--border);
+}
+
+.sig-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2px;
+    transition: width .4s ease;
+    overflow: hidden;
+}
+
+.sig-seg-num {
+    font-size: .6rem;
+    font-weight: 600;
+    color: rgba(8, 12, 24, .8);
+    white-space: nowrap;
+}
+
+.sig-empty-seg {
+    background: var(--border);
+}
+
+/* Match bar */
+.sig-match {
+    height: 22px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--border);
+}
+
+.sig-match-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #51cf66, #82e000);
+    transition: width .4s ease;
+}
+
+/* Fixed category colours (role-encoding, not themed) */
+.sig-system { background: #a78bfa; }
+.sig-user { background: #4aa3ff; }
+.sig-assistant { background: #51cf66; }
+.sig-tool { background: #e0b25a; }
+.sig-tools { background: #f0883e; }

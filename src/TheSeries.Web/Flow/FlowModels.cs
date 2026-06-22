@@ -74,6 +74,33 @@ internal sealed record ContextEntry(string Label, string Source, string Preview,
 internal sealed record ResourceInfo(string Key, string Icon, string Title, string Transport, string[] ToolNames);
 
 /// <summary>
+/// One slice of a prompt-signature bar: a category of content sent to the model (system prompt, user
+/// message, assistant message, tool result or the tool catalogue) and how many characters it contributed.
+/// </summary>
+internal sealed record PromptSignatureCategory(string Key, string Label, int Chars);
+
+/// <summary>
+/// A breakdown of the most recent LLM request by message category, compared against the previous request:
+/// the per-category char counts for both, their totals, and a <paramref name="MatchPercent"/> stability
+/// score (the share of the current request that is byte-identical to the previous one — i.e. how much of
+/// the prompt prefix is reused, the way prompt caching measures it). <paramref name="HasPrevious"/> is
+/// false on the first round-trip (no earlier request to compare with).
+/// </summary>
+internal sealed record PromptSignatureView(
+    IReadOnlyList<PromptSignatureCategory> Previous,
+    IReadOnlyList<PromptSignatureCategory> Current,
+    int PreviousChars,
+    int CurrentChars,
+    int MatchPercent,
+    bool HasPrevious,
+    bool HasCurrent)
+{
+    /// <summary>An empty signature shown before the first LLM request of a run.</summary>
+    public static readonly PromptSignatureView Empty = new(
+        Array.Empty<PromptSignatureCategory>(), Array.Empty<PromptSignatureCategory>(), 0, 0, 0, false, false);
+}
+
+/// <summary>
 /// A vendor-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
 /// </summary>
 internal sealed record AgentChoice(string Name, string Label);

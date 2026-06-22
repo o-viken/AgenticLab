@@ -51,6 +51,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private IReadOnlyList<ContextEntry> _currentEntries = Array.Empty<ContextEntry>();
     private int _contextSize;
     private int _totalTurns;
+    private PromptSignatureView _promptSignature = PromptSignatureView.Empty;
 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
@@ -110,6 +111,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _contextSize = contextSize;
         _currentEntries = current;
         _historyEntries = history;
+        _promptSignature = PromptSignatureBuilder.Build(_events);
     }
 
     // --- Exposed state ----------------------------------------------------
@@ -251,6 +253,19 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         {
             EnsureComputed();
             return _historyEntries.Count + _currentEntries.Count;
+        }
+    }
+
+    /// <summary>
+    /// The latest LLM request broken down by message category, compared against the previous request
+    /// (with a prefix-stability match score). Drives the prompt-signature panel.
+    /// </summary>
+    public PromptSignatureView PromptSignature
+    {
+        get
+        {
+            EnsureComputed();
+            return _promptSignature;
         }
     }
 

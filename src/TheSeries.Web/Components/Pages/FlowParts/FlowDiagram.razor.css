@@ -16,6 +16,12 @@
     position: relative;
 }
 
+/* The prompt-signature panel spans the full grid width on its own row below the nodes. */
+.diagram ::deep .signature-row {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
+}
+
 /* View controls (Perspective + Boundaries) live on the diagram they affect,
    as a left-aligned row above the nodes (full grid width, first row). */
 .diagram ::deep .diagram-controls {

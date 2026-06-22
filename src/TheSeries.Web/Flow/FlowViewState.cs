@@ -48,6 +48,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _showHarnessBoundary;
     private bool _showAgentBoundary;
     private bool _showEnvironment;
+    private bool _showPromptSignature;
     private bool _showConcepts;
     private bool _expandHarness;
     private bool _showFullHarnessPrompt;
@@ -295,6 +296,13 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     {
         get => _expandHarness;
         set { _expandHarness = value; Notify(); }
+    }
+
+    /// <summary>Whether the prompt-signature panel (request composition by category) is shown (Expert only).</summary>
+    public bool ShowPromptSignature
+    {
+        get => _showPromptSignature;
+        set { _showPromptSignature = value; Notify(); }
     }
 
     // --- Stepping helper toggles -----------------------------------------
