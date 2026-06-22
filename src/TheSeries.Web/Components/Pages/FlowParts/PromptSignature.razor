@@ -9,12 +9,32 @@
             <ConceptInfoButton Id="prompt-signature" Title="Learn about the prompt signature" />
             <span class="sig-title">Prompt signature</span>
         </span>
-        <span class="sig-sub">request composition by category</span>
+        <div class="sig-mode-toggle" role="group" aria-label="Prompt signature view">
+            <button type="button" class="@(View.PromptSignatureDelta ? null : "is-active")"
+                    @onclick="@(() => View.PromptSignatureDelta = false)">Comparison</button>
+            <button type="button" class="@(View.PromptSignatureDelta ? "is-active" : null)"
+                    @onclick="@(() => View.PromptSignatureDelta = true)">Delta</button>
+        </div>
     </div>
 
     @if (!Sig.HasCurrent)
     {
         <span class="sig-empty">the signature appears once the agent sends its first request…</span>
+    }
+    else if (View.PromptSignatureDelta)
+    {
+        <ul class="sig-legend">
+            <li><span class="sig-swatch sig-reused"></span><span class="sig-legend-label">Reused (carried over)</span></li>
+            <li><span class="sig-swatch sig-added"></span><span class="sig-legend-label">Added this exchange</span></li>
+        </ul>
+
+        <div class="sig-delta">
+            @foreach (var request in Sig.Requests)
+            {
+                @DeltaBar(request, Sig.MaxRequestChars)
+            }
+        </div>
+        <span class="sig-sub sig-delta-caption">one bar per conversation exchange — each turn carries the previous prompt forward and adds its own</span>
     }
     else
     {
@@ -32,15 +52,18 @@
 
         @if (Sig.HasPrevious)
         {
-            @Bar("Previous", Sig.Previous, Sig.PreviousChars)
+            <span class="sig-sub sig-compare-caption">
+                comparing two conversation exchanges — previous (<span class="sig-conv" title="@PreviousLabel">@Short(PreviousLabel)</span>) vs current (<span class="sig-conv" title="@CurrentLabel">@Short(CurrentLabel)</span>)
+            </span>
+            @Bar("Previous", Sig.Previous, Sig.PreviousChars, PreviousLabel)
         }
-        @Bar("Current", Sig.Current, Sig.CurrentChars)
+        @Bar("Current", Sig.Current, Sig.CurrentChars, CurrentLabel)
 
         @if (Sig.HasPrevious)
         {
             <div class="sig-row sig-match-row">
                 <span class="sig-row-label">Match</span>
-                <div class="sig-match" title="Share of the current request byte-identical to the previous one (reused prompt prefix)">
+                <div class="sig-match" title="Share of the current exchange's prompt byte-identical to the previous one (reused prompt prefix)">
                     <span class="sig-match-fill" style="width:@(Sig.MatchPercent)%"></span>
                 </div>
                 <span class="sig-row-total">@(Sig.MatchPercent)% match</span>
@@ -48,7 +71,7 @@
         }
         else
         {
-            <span class="sig-hint">send another turn to compare against the previous request…</span>
+            <span class="sig-hint">send another message to compare against the previous conversation exchange…</span>
         }
     }
 </div>
@@ -57,11 +80,22 @@
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
 
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
     private PromptSignatureView Sig => Run.PromptSignature;
 
+    // The user messages of the two conversation exchanges being compared (current = newest, previous = before).
+    private string CurrentLabel => Sig.Requests.Count > 0 ? Sig.Requests[^1].Label : string.Empty;
+    private string PreviousLabel => Sig.Requests.Count > 1 ? Sig.Requests[^2].Label : string.Empty;
+
+    private static string Short(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : value.Length > 32 ? value[..31] + "…" : value;
+
     // Renders one labelled stacked bar: a segment per non-empty category sized by its char share, with
-    // the char count shown inside wide-enough segments and the total at the right.
-    private RenderFragment Bar(string label, IReadOnlyList<PromptSignatureCategory> categories, int total) => @<div class="sig-row">
+    // the char count shown inside wide-enough segments and the total at the right. The optional conversation
+    // message is shown as the row's tooltip so it's clear which exchange the bar represents.
+    private RenderFragment Bar(string label, IReadOnlyList<PromptSignatureCategory> categories, int total, string? conv = null) => @<div class="sig-row" title="@(string.IsNullOrWhiteSpace(conv) ? null : $"{label} exchange: {conv}")">
         <span class="sig-row-label">@label</span>
         <div class="sig-bar">
             @if (total == 0)
@@ -89,4 +123,38 @@
         </div>
         <span class="sig-row-total">@total.ToString("N0") chars</span>
     </div>;
+
+    // Renders one delta/waterfall row for a conversation exchange: an outer track scaled to the conversation's
+    // largest exchange (so growth is visible), filled with a muted "carried over" segment plus a highlighted
+    // "added this exchange" segment — so each turn visibly carries the previous prompt forward and adds its own.
+    private RenderFragment DeltaBar(PromptSignatureRequest request, int max)
+    {
+        var trackPercent = max > 0 ? request.TotalChars * 100.0 / max : 0;
+        var trackWidth = trackPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var reusedPercent = request.TotalChars > 0 ? request.ReusedChars * 100.0 / request.TotalChars : 0;
+        var reusedWidth = reusedPercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var addedWidth = (100 - reusedPercent).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var label = string.IsNullOrWhiteSpace(request.Label) ? $"Exchange {request.Index}" : request.Label;
+        return @<div class="sig-row sig-delta-row">
+            <span class="sig-row-label" title="@label">@label</span>
+            <div class="sig-delta-track">
+                <div class="sig-bar sig-delta-bar" style="width:@(trackWidth)%"
+                     title="Exchange @request.Index: @request.TotalChars.ToString("N0") chars (@request.ReusedChars.ToString("N0") reused + @request.AddedChars.ToString("N0") added)">
+                    @if (request.ReusedChars > 0)
+                    {
+                        <span class="sig-seg sig-reused" style="width:@(reusedWidth)%"
+                              title="Carried over: @request.ReusedChars.ToString("N0") chars"></span>
+                    }
+                    <span class="sig-seg sig-added" style="width:@(addedWidth)%"
+                          title="Added this exchange: @request.AddedChars.ToString("N0") chars">
+                        @if (100 - reusedPercent >= 14)
+                        {
+                            <span class="sig-seg-num">+@request.AddedChars.ToString("N0")</span>
+                        }
+                    </span>
+                </div>
+            </div>
+            <span class="sig-row-total">@request.TotalChars.ToString("N0") chars</span>
+        </div>;
+    }
 }

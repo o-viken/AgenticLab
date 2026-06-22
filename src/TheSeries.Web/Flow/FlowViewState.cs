@@ -49,6 +49,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _showAgentBoundary;
     private bool _showEnvironment;
     private bool _showPromptSignature;
+    private bool _promptSignatureDelta;
     private bool _showConcepts;
     private bool _expandHarness;
     private bool _showFullHarnessPrompt;
@@ -303,6 +304,16 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     {
         get => _showPromptSignature;
         set { _showPromptSignature = value; Notify(); }
+    }
+
+    /// <summary>
+    /// Whether the prompt-signature panel shows its delta ("growth") view — one bar per conversation
+    /// exchange splitting reused-prefix from newly-added chars — instead of the default comparison.
+    /// </summary>
+    public bool PromptSignatureDelta
+    {
+        get => _promptSignatureDelta;
+        set { _promptSignatureDelta = value; Notify(); }
     }
 
     // --- Stepping helper toggles -----------------------------------------

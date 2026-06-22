@@ -111,7 +111,22 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _contextSize = contextSize;
         _currentEntries = current;
         _historyEntries = history;
-        _promptSignature = PromptSignatureBuilder.Build(_events);
+
+        // The prompt signature works per conversation exchange (each Send): every archived turn plus the
+        // current in-progress run, each labelled by its user message. The builder takes each exchange's
+        // last llm-request as its representative prompt.
+        var exchanges = new List<(string Label, IReadOnlyList<FlowEvent> Events)>(_turns.Count + 1);
+        foreach (var turn in _turns)
+        {
+            exchanges.Add((turn.Message, turn.Events));
+        }
+
+        if (_events.Count > 0)
+        {
+            exchanges.Add((_runMessage, _events));
+        }
+
+        _promptSignature = PromptSignatureBuilder.Build(exchanges);
     }
 
     // --- Exposed state ----------------------------------------------------

@@ -75,16 +75,35 @@ internal sealed record ResourceInfo(string Key, string Icon, string Title, strin
 
 /// <summary>
 /// One slice of a prompt-signature bar: a category of content sent to the model (system prompt, user
-/// message, assistant message, tool result or the tool catalogue) and how many characters it contributed.
+/// message, assistant message or tool result) and how many characters it contributed. The static tool
+/// catalogue is excluded so the signature reflects only the conversation content.
 /// </summary>
 internal sealed record PromptSignatureCategory(string Key, string Label, int Chars);
 
 /// <summary>
-/// A breakdown of the most recent LLM request by message category, compared against the previous request:
-/// the per-category char counts for both, their totals, and a <paramref name="MatchPercent"/> stability
-/// score (the share of the current request that is byte-identical to the previous one — i.e. how much of
-/// the prompt prefix is reused, the way prompt caching measures it). <paramref name="HasPrevious"/> is
-/// false on the first round-trip (no earlier request to compare with).
+/// One conversation exchange (a single user message → final answer) in the delta ("growth") view: its
+/// 1-based position, a <paramref name="Label"/> (the user's message), its per-category breakdown and total
+/// char count, plus how that total splits into <paramref name="ReusedChars"/> (the prompt carried over from
+/// the previous exchange — i.e. the previous exchange's total, re-sent as this one's prefix) and
+/// <paramref name="AddedChars"/> (what this exchange newly appended, = total − reused). Stacking these
+/// oldest→newest shows each conversation adding onto the previous one, and the totals chain exactly
+/// (previous total + added = this total).
+/// </summary>
+internal sealed record PromptSignatureRequest(
+    int Index,
+    string Label,
+    IReadOnlyList<PromptSignatureCategory> Categories,
+    int TotalChars,
+    int ReusedChars,
+    int AddedChars);
+
+/// <summary>
+/// A breakdown of the most recent conversation exchange's request by message category, compared against the
+/// previous exchange: the per-category char counts for both, their totals, and a <paramref name="MatchPercent"/>
+/// stability score (the share of the current exchange's prompt byte-identical to the previous one — i.e. how
+/// much of the prefix is reused, the way prompt caching measures it). <paramref name="HasPrevious"/> is false
+/// on the first exchange (no earlier one to compare with). <paramref name="Requests"/> holds every exchange of
+/// the conversation (oldest→newest) for the delta/growth view.
 /// </summary>
 internal sealed record PromptSignatureView(
     IReadOnlyList<PromptSignatureCategory> Previous,
@@ -93,11 +112,16 @@ internal sealed record PromptSignatureView(
     int CurrentChars,
     int MatchPercent,
     bool HasPrevious,
-    bool HasCurrent)
+    bool HasCurrent,
+    IReadOnlyList<PromptSignatureRequest> Requests)
 {
     /// <summary>An empty signature shown before the first LLM request of a run.</summary>
     public static readonly PromptSignatureView Empty = new(
-        Array.Empty<PromptSignatureCategory>(), Array.Empty<PromptSignatureCategory>(), 0, 0, 0, false, false);
+        Array.Empty<PromptSignatureCategory>(), Array.Empty<PromptSignatureCategory>(), 0, 0, 0, false, false,
+        Array.Empty<PromptSignatureRequest>());
+
+    /// <summary>The largest single exchange total across the conversation, used to scale the delta bars.</summary>
+    public int MaxRequestChars => Requests.Count == 0 ? 0 : Requests.Max(r => r.TotalChars);
 }
 
 /// <summary>

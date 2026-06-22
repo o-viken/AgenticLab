@@ -5,9 +5,11 @@ namespace TheSeries.Web.Flow;
 
 /// <summary>
 /// Pure helpers that turn the captured <c>llm-request</c> payloads into a <see cref="PromptSignatureView"/>:
-/// the most recent request broken down by message category (system prompt, user, assistant, tool result and
-/// the tool catalogue) compared against the previous request, plus a prefix-stability "match" score. The
-/// request <see cref="FlowEvent.Data"/> is the indented JSON rendered by the backend's CapturingChatClient:
+/// each conversation exchange's representative request (its last <c>llm-request</c>) broken down by message
+/// category (system prompt, user, assistant and tool result — the static tool catalogue is deliberately
+/// excluded so the signature reflects only the conversation content that grows turn to turn), the last two
+/// exchanges compared, plus a prefix-stability "match" score and a per-exchange reused/added delta. The request
+/// <see cref="FlowEvent.Data"/> is the indented JSON rendered by the backend's CapturingChatClient:
 /// <c>{ instructions, messages:[{ role, contents:[{ type, text|arguments|result }] }], tools:[{ name, description, parameters }] }</c>.
 /// No UI or state dependency.
 /// </summary>
@@ -18,7 +20,6 @@ internal static class PromptSignatureBuilder
     private const string User = "user";
     private const string Assistant = "assistant";
     private const string Tool = "tool";
-    private const string Tools = "tools";
 
     private static readonly (string Key, string Label)[] CategoryOrder =
     {
@@ -26,55 +27,75 @@ internal static class PromptSignatureBuilder
         (User, "User"),
         (Assistant, "Assistant"),
         (Tool, "Tool result"),
-        (Tools, "Tools catalogue"),
     };
 
     /// <summary>
     /// Builds the signature view from the last two <c>llm-request</c> events in <paramref name="events"/>.
     /// Returns <see cref="PromptSignatureView.Empty"/> when no request has been captured yet.
     /// </summary>
-    public static PromptSignatureView Build(IReadOnlyList<FlowEvent> events)
+    /// <summary>
+    /// Builds the signature view from the conversation's exchanges. Each exchange is a (label, events) pair —
+    /// one completed (or in-progress) user message → answer turn — and its <em>representative</em> request is
+    /// the last <c>llm-request</c> captured in it (the fullest prompt for that exchange). The view compares the
+    /// last two exchanges (Comparison) and carries every exchange's delta (reused-prefix vs newly-added chars)
+    /// for the growth view. Returns <see cref="PromptSignatureView.Empty"/> when no request has been captured.
+    /// </summary>
+    public static PromptSignatureView Build(IReadOnlyList<(string Label, IReadOnlyList<FlowEvent> Events)> exchanges)
     {
-        string? current = null;
-        string? previous = null;
-        for (var i = events.Count - 1; i >= 0; i--)
+        // Representative request (label + payload) per exchange: the last captured llm-request in it.
+        var reps = new List<(string Label, string Json)>(exchanges.Count);
+        foreach (var (label, events) in exchanges)
         {
-            if (events[i].Kind != "llm-request" || string.IsNullOrWhiteSpace(events[i].Data))
+            for (var i = events.Count - 1; i >= 0; i--)
             {
-                continue;
-            }
-
-            if (current is null)
-            {
-                current = events[i].Data;
-            }
-            else
-            {
-                previous = events[i].Data;
-                break;
+                if (events[i].Kind == "llm-request" && !string.IsNullOrWhiteSpace(events[i].Data))
+                {
+                    reps.Add((label, events[i].Data!));
+                    break;
+                }
             }
         }
 
-        if (current is null)
+        if (reps.Count == 0)
         {
             return PromptSignatureView.Empty;
         }
 
-        var currentCats = Categorize(current);
-        var previousCats = previous is null ? Array.Empty<PromptSignatureCategory>() : Categorize(previous);
+        // Per-exchange breakdown with delta (reused prefix vs added). Each exchange re-sends the whole
+        // previous exchange's prompt as its prefix, so the carried-over ("reused") part is exactly the
+        // previous exchange's total and the delta is just this exchange's growth — making the bars chain
+        // exactly (reused of N == total of N-1, and total[N-1] + added[N] == total[N]).
+        var requests = new List<PromptSignatureRequest>(reps.Count);
+        var prevTotal = 0;
+        for (var i = 0; i < reps.Count; i++)
+        {
+            var cats = Categorize(reps[i].Json);
+            var total = cats.Sum(c => c.Chars);
+            var reused = i == 0 ? 0 : Math.Min(prevTotal, total);
+            var added = total - reused;
+            requests.Add(new PromptSignatureRequest(i + 1, reps[i].Label, cats, total, reused, added));
+            prevTotal = total;
+        }
 
-        var currentChars = currentCats.Sum(c => c.Chars);
-        var previousChars = previousCats.Sum(c => c.Chars);
-        var match = previous is null ? 0 : MatchPercent(CanonicalForMatch(previous), CanonicalForMatch(current));
+        // Comparison = the last two exchanges; Match is the true byte-identical prefix share between them
+        // (prompt-cache reuse), which is measured on the canonical-ordered payload and so can differ slightly
+        // from the size-based reused/added split above.
+        var current = requests[^1];
+        var hasPrevious = requests.Count >= 2;
+        var previous = hasPrevious ? requests[^2] : null;
+        var match = hasPrevious
+            ? MatchPercent(CanonicalForMatch(reps[^2].Json), CanonicalForMatch(reps[^1].Json))
+            : 0;
 
         return new PromptSignatureView(
-            previousCats,
-            currentCats,
-            previousChars,
-            currentChars,
+            previous?.Categories ?? Array.Empty<PromptSignatureCategory>(),
+            current.Categories,
+            previous?.TotalChars ?? 0,
+            current.TotalChars,
             match,
-            HasPrevious: previous is not null,
-            HasCurrent: true);
+            HasPrevious: hasPrevious,
+            HasCurrent: true,
+            requests);
     }
 
     /// <summary>Counts the characters each category contributes to one captured request payload.</summary>
@@ -86,7 +107,6 @@ internal static class PromptSignatureBuilder
             [User] = 0,
             [Assistant] = 0,
             [Tool] = 0,
-            [Tools] = 0,
         };
 
         try
@@ -113,14 +133,6 @@ internal static class PromptSignatureBuilder
                         _ => User,
                     };
                     counts[bucket] += MessageChars(message);
-                }
-            }
-
-            if (root.TryGetProperty("tools", out var tools) && tools.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var tool in tools.EnumerateArray())
-                {
-                    counts[Tools] += ToolChars(tool);
                 }
             }
         }
@@ -235,28 +247,6 @@ internal static class PromptSignatureBuilder
         return chars;
     }
 
-    /// <summary>Sums a tool definition's name, description and parameter-schema lengths.</summary>
-    private static int ToolChars(JsonElement tool)
-    {
-        var chars = 0;
-        if (tool.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
-        {
-            chars += name.GetString()?.Length ?? 0;
-        }
-
-        if (tool.TryGetProperty("description", out var description) && description.ValueKind == JsonValueKind.String)
-        {
-            chars += description.GetString()?.Length ?? 0;
-        }
-
-        if (tool.TryGetProperty("parameters", out var parameters) && parameters.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
-        {
-            chars += parameters.GetRawText().Length;
-        }
-
-        return chars;
-    }
-
     /// <summary>
     /// The share (0–100) of the current request that is byte-identical to the previous one, measured as the
     /// longest common prefix over the current length — the same prefix reuse that prompt caching rewards.
@@ -279,12 +269,11 @@ internal static class PromptSignatureBuilder
     }
 
     /// <summary>
-    /// Reorders a captured request into the canonical order a model provider caches against — the stable
-    /// <em>system prompt + tool catalogue</em> first, then the conversation messages in order — so the
-    /// prefix match reflects real prompt-cache reuse. The raw capture serializes <c>tools</c> <em>after</em>
-    /// <c>messages</c>, so a mid-conversation change (e.g. a growing tool result during the agent loop) would
-    /// otherwise break the prefix before reaching the byte-identical tool catalogue and badly understate the
-    /// match. Falls back to the raw payload when it cannot be parsed.
+    /// Reorders a captured request into the conversation prefix a model caches against — the stable
+    /// <em>system prompt</em> first, then the conversation messages in order — so the prefix match reflects
+    /// real prompt-cache reuse. The static tool catalogue is excluded here too (consistent with the rest of
+    /// the signature) so the match measures only the conversation content's prefix stability. Falls back to
+    /// the raw payload when it cannot be parsed.
     /// </summary>
     private static string CanonicalForMatch(string requestJson)
     {
@@ -297,14 +286,6 @@ internal static class PromptSignatureBuilder
             if (root.TryGetProperty("instructions", out var instructions) && instructions.ValueKind == JsonValueKind.String)
             {
                 sb.Append(instructions.GetString());
-            }
-
-            if (root.TryGetProperty("tools", out var tools) && tools.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var tool in tools.EnumerateArray())
-                {
-                    sb.Append(tool.GetRawText());
-                }
             }
 
             if (root.TryGetProperty("messages", out var messages) && messages.ValueKind == JsonValueKind.Array)

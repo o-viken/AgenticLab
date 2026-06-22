@@ -163,3 +163,97 @@
 .sig-assistant { background: #51cf66; }
 .sig-tool { background: #e0b25a; }
 .sig-tools { background: #f0883e; }
+
+/* Header segmented toggle (Comparison / Accumulation) */
+.sig-mode-toggle {
+    display: inline-flex;
+    align-self: center;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--border);
+    gap: 1px;
+}
+
+.sig-mode-toggle button {
+    appearance: none;
+    border: 0;
+    margin: 0;
+    padding: .2rem .55rem;
+    font-size: .66rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    cursor: pointer;
+    background: var(--code-bg);
+    color: var(--text-dim);
+    transition: background .15s ease, color .15s ease;
+}
+
+.sig-mode-toggle button:hover {
+    color: var(--anatomy-heading);
+}
+
+.sig-mode-toggle button.is-active {
+    background: var(--accent, #f0883e);
+    color: #fff;
+}
+
+/* Delta ("growth") view */
+.sig-delta {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+
+.sig-delta-row .sig-row-label {
+    text-transform: none;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sig-delta-row {
+    grid-template-columns: 9rem 1fr 5.5rem;
+}
+
+/* The track holds the bar at a width scaled to the conversation's largest exchange, so earlier (smaller)
+   exchanges render as shorter bars and you watch the prompt grow toward the longest one. */
+.sig-delta-track {
+    display: flex;
+    width: 100%;
+}
+
+.sig-delta-bar {
+    min-width: 2px;
+    transition: width .4s ease;
+}
+
+.sig-delta-caption {
+    font-style: italic;
+}
+
+/* Conversation-exchange comparison caption */
+.sig-compare-caption {
+    font-style: italic;
+}
+
+.sig-compare-caption .sig-conv {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--anatomy-heading);
+}
+
+/* Delta segments: reused prefix (muted) vs newly-added (accent) — not themed; encode reuse, not branding. */
+.sig-reused {
+    background: repeating-linear-gradient(135deg, #5b6473 0 6px, #4c5563 6px 12px);
+    opacity: .7;
+}
+
+.sig-added {
+    background: linear-gradient(90deg, #f0883e, #ffb061);
+}
+
+.sig-added .sig-seg-num {
+    color: rgba(8, 12, 24, .85);
+}
