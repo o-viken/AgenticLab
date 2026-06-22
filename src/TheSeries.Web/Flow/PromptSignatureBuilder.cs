@@ -42,17 +42,37 @@ internal static class PromptSignatureBuilder
     /// </summary>
     public static PromptSignatureView Build(IReadOnlyList<(string Label, IReadOnlyList<FlowEvent> Events)> exchanges)
     {
-        // Representative request (label + payload) per exchange: the last captured llm-request in it.
-        var reps = new List<(string Label, string Json)>(exchanges.Count);
+        // Representative request (label + payload) per exchange: the last captured llm-request in it, plus
+        // that exchange's final assistant reply. The reply is captured separately because it is produced
+        // *after* the request, so it only re-appears inside a *later* turn's request as carried history —
+        // folding it into the exchange's own Assistant count makes it show on the current (last) turn too,
+        // not just once a follow-up turn carries it forward.
+        var reps = new List<(string Label, string Json, string? Reply)>(exchanges.Count);
         foreach (var (label, events) in exchanges)
         {
+            string? json = null;
+            string? reply = null;
             for (var i = events.Count - 1; i >= 0; i--)
             {
-                if (events[i].Kind == "llm-request" && !string.IsNullOrWhiteSpace(events[i].Data))
+                var kind = events[i].Kind;
+                if (reply is null && (kind == "final" || kind == "llm-response") && !string.IsNullOrWhiteSpace(events[i].Data))
                 {
-                    reps.Add((label, events[i].Data!));
+                    reply = events[i].Data;
+                }
+                else if (json is null && kind == "llm-request" && !string.IsNullOrWhiteSpace(events[i].Data))
+                {
+                    json = events[i].Data;
+                }
+
+                if (json is not null && reply is not null)
+                {
                     break;
                 }
+            }
+
+            if (json is not null)
+            {
+                reps.Add((label, json, reply));
             }
         }
 
@@ -69,7 +89,7 @@ internal static class PromptSignatureBuilder
         var prevTotal = 0;
         for (var i = 0; i < reps.Count; i++)
         {
-            var cats = Categorize(reps[i].Json);
+            var cats = Categorize(reps[i].Json, reps[i].Reply);
             var total = cats.Sum(c => c.Chars);
             var reused = i == 0 ? 0 : Math.Min(prevTotal, total);
             var added = total - reused;
@@ -98,8 +118,94 @@ internal static class PromptSignatureBuilder
             requests);
     }
 
-    /// <summary>Counts the characters each category contributes to one captured request payload.</summary>
-    private static IReadOnlyList<PromptSignatureCategory> Categorize(string requestJson)
+    /// <summary>
+    /// Extracts the two anatomy sizes the harness view shows as separate numbers from a captured request:
+    /// the <em>agent prompt</em> (the persona, i.e. the text inside the instructions' <c>&lt;agentMode&gt;</c>
+    /// tags) and the <em>tools available</em> (the full tool catalogue — name + description + parameters —
+    /// which the Prompt signature deliberately excludes). Returns <see cref="AnatomySizes.Empty"/> on a
+    /// malformed payload.
+    /// </summary>
+    public static AnatomySizes AnatomySizesFor(string requestJson)
+    {
+        var persona = 0;
+        var tools = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(ToStrictJson(requestJson));
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("instructions", out var instructions) && instructions.ValueKind == JsonValueKind.String)
+            {
+                persona = AgentModeLength(instructions.GetString());
+            }
+
+            if (root.TryGetProperty("tools", out var toolsEl) && toolsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var tool in toolsEl.EnumerateArray())
+                {
+                    tools += ToolChars(tool);
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            return AnatomySizes.Empty;
+        }
+
+        return new AnatomySizes(persona, tools);
+    }
+
+    /// <summary>The character length of the persona — the content between the instructions' agentMode tags.</summary>
+    private static int AgentModeLength(string? instructions)
+    {
+        if (string.IsNullOrEmpty(instructions))
+        {
+            return 0;
+        }
+
+        const string open = "<agentMode>";
+        const string close = "</agentMode>";
+        var start = instructions.IndexOf(open, StringComparison.OrdinalIgnoreCase);
+        if (start < 0)
+        {
+            return 0;
+        }
+
+        start += open.Length;
+        var end = instructions.IndexOf(close, start, StringComparison.OrdinalIgnoreCase);
+        var inner = end < 0 ? instructions[start..] : instructions[start..end];
+        return inner.Trim().Length;
+    }
+
+    /// <summary>The character length one tool contributes to the catalogue: name + description + parameters.</summary>
+    private static int ToolChars(JsonElement tool)
+    {
+        var chars = 0;
+        if (tool.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+        {
+            chars += name.GetString()?.Length ?? 0;
+        }
+
+        if (tool.TryGetProperty("description", out var description) && description.ValueKind == JsonValueKind.String)
+        {
+            chars += description.GetString()?.Length ?? 0;
+        }
+
+        if (tool.TryGetProperty("parameters", out var parameters) && parameters.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined)
+        {
+            chars += parameters.GetRawText().Length;
+        }
+
+        return chars;
+    }
+
+    /// <summary>
+    /// Counts the characters each category contributes to one captured request payload. When
+    /// <paramref name="reply"/> (the exchange's final assistant answer) is supplied, its length is added to
+    /// the Assistant category so a freshly produced reply is reflected immediately, before any later turn
+    /// carries it forward as history.
+    /// </summary>
+    private static IReadOnlyList<PromptSignatureCategory> Categorize(string requestJson, string? reply = null)
     {
         var counts = new Dictionary<string, int>
         {
@@ -141,6 +247,14 @@ internal static class PromptSignatureBuilder
             // Malformed capture — fall back to attributing the whole payload to the system prompt so the
             // bar still reflects the request size rather than collapsing to zero.
             counts[System] = requestJson.Length;
+        }
+
+        // The exchange's own reply is conversation content the model produced this turn; surface it in the
+        // Assistant bucket so it shows on the current turn (the request itself never carries the reply it is
+        // about to generate).
+        if (!string.IsNullOrEmpty(reply))
+        {
+            counts[Assistant] += reply.Length;
         }
 
         return CategoryOrder

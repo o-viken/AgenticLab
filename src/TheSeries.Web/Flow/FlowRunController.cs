@@ -52,6 +52,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private int _contextSize;
     private int _totalTurns;
     private PromptSignatureView _promptSignature = PromptSignatureView.Empty;
+    private AnatomySizes _anatomySizes = AnatomySizes.Empty;
 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
@@ -74,7 +75,6 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _cacheVersion = _stateVersion;
 
         var totalTurns = 0;
-        var contextSize = 0;
         var current = new List<ContextEntry>();
         foreach (var e in _events)
         {
@@ -82,8 +82,6 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             {
                 totalTurns = e.Turn;
             }
-
-            contextSize += (e.Data?.Length ?? 0) + e.Label.Length;
 
             if (FlowEventMapping.IsContentEvent(e))
             {
@@ -95,7 +93,6 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         var history = new List<ContextEntry>(_turns.Count * 2);
         foreach (var turn in _turns)
         {
-            contextSize += turn.Message.Length + (turn.Error?.Length ?? turn.Reply.Length);
             history.Add(new ContextEntry("User message", "user", FlowEventMapping.TruncatePreview(turn.Message), History: true));
             if (!string.IsNullOrWhiteSpace(turn.Error))
             {
@@ -108,7 +105,6 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         }
 
         _totalTurns = totalTurns;
-        _contextSize = contextSize;
         _currentEntries = current;
         _historyEntries = history;
 
@@ -127,6 +123,33 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         }
 
         _promptSignature = PromptSignatureBuilder.Build(exchanges);
+
+        // Keep the Context bar's char count in lock-step with the Prompt signature's current request: both
+        // report the conversation content the model is carrying now (system prompt + every user/assistant/
+        // tool message re-sent in the latest llm-request, excluding the static tool catalogue and JSON
+        // structure), so the two figures always agree.
+        _contextSize = _promptSignature.CurrentChars;
+
+        // The harness anatomy shows the agent prompt (persona) and the tools-available catalogue as their
+        // own numbers, split out of the latest captured request (the most recent exchange's last
+        // llm-request) — unlike the signature/context totals, this includes the tool catalogue.
+        string? latestRequest = null;
+        for (var i = exchanges.Count - 1; i >= 0 && latestRequest is null; i--)
+        {
+            var requestEvents = exchanges[i].Events;
+            for (var j = requestEvents.Count - 1; j >= 0; j--)
+            {
+                if (requestEvents[j].Kind == "llm-request" && !string.IsNullOrWhiteSpace(requestEvents[j].Data))
+                {
+                    latestRequest = requestEvents[j].Data;
+                    break;
+                }
+            }
+        }
+
+        _anatomySizes = latestRequest is null
+            ? AnatomySizes.Empty
+            : PromptSignatureBuilder.AnatomySizesFor(latestRequest);
     }
 
     // --- Exposed state ----------------------------------------------------
@@ -223,8 +246,11 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         : "—";
 
     /// <summary>
-    /// A rough measure of how much context the model is carrying, summed from the captured step data
-    /// plus the conversation history re-sent each turn. Drives the growing "context" bar.
+    /// How much conversation content the model is carrying in its latest request — the system prompt plus
+    /// every user/assistant/tool message re-sent in the current exchange's <c>llm-request</c> (the static
+    /// tool catalogue and JSON structure excluded). Kept identical to the Prompt signature's current total
+    /// (<see cref="PromptSignatureView.CurrentChars"/>) so the two figures always agree. Drives the
+    /// growing "context" bar.
     /// </summary>
     public int ContextSize
     {
@@ -237,6 +263,39 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>The width (0–100%) of the context growth bar, scaled so typical runs fill it gradually.</summary>
     public int ContextBarWidth => Math.Min(100, ContextSize / 80);
+
+    /// <summary>
+    /// The <em>agent prompt</em> (persona) size in the latest captured request — the text inside the
+    /// instructions' <c>&lt;agentMode&gt;</c> tags. Shown as a separate number on the Agent Persona anatomy box.
+    /// </summary>
+    public int PersonaChars
+    {
+        get
+        {
+            EnsureComputed();
+            return _anatomySizes.PersonaChars;
+        }
+    }
+
+    /// <summary>
+    /// The <em>tools available</em> size in the latest captured request — the tool catalogue's name +
+    /// description + parameters (deliberately excluded from the signature/context totals). Shown as a
+    /// separate number on the Tools / MCP anatomy box.
+    /// </summary>
+    public int ToolsChars
+    {
+        get
+        {
+            EnsureComputed();
+            return _anatomySizes.ToolsChars;
+        }
+    }
+
+    /// <summary>The agent prompt size formatted for display (e.g. "2,690 chars").</summary>
+    public string PersonaCharsLabel => $"{PersonaChars:N0} chars";
+
+    /// <summary>The tools-available size formatted for display (e.g. "2,415 chars").</summary>
+    public string ToolsCharsLabel => $"{ToolsChars:N0} chars";
 
     /// <summary>
     /// The compact conversation history carried into the model's context from earlier exchanges:

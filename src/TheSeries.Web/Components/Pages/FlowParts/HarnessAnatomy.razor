@@ -54,6 +54,10 @@
         <ConceptInfoButton Id="persona" Title="Learn about the agent persona" />
         <span class="layer-title">Agent Persona</span>
         <span class="layer-body">@View.SelectedAgent — @View.SelectedAgentDescription</span>
+        @if (Run.PersonaChars > 0)
+        {
+            <span class="layer-size" title="The agent prompt (persona) sent to the model">@Run.PersonaCharsLabel</span>
+        }
         <span class="set-by">Set per agent</span>
     </div>
 
@@ -76,6 +80,10 @@
                     </li>
                 }
             </ul>
+        }
+        @if (Run.ToolsChars > 0)
+        {
+            <span class="layer-size" title="The tool definitions (catalogue) sent to the model">@Run.ToolsCharsLabel</span>
         }
         <span class="set-by">Set per agent</span>
     </div>

@@ -471,9 +471,9 @@
 }
 
 /* Colour-coded by who sets the layer (matches the anatomy concept). */
-.diagram ::deep .anatomy .layer.app { background: #ff5252; }
-.diagram ::deep .anatomy .layer.agent { background: #f1ec18; }
-.diagram ::deep .anatomy .layer.user { background: #82e000; }
+.diagram ::deep .anatomy .layer.app { background: var(--contrib-app); }
+.diagram ::deep .anatomy .layer.agent { background: var(--contrib-agent); }
+.diagram ::deep .anatomy .layer.user { background: var(--contrib-user); }
 
 .diagram ::deep .anatomy .set-by {
     align-self: flex-start;
@@ -485,6 +485,20 @@
     border-radius: 5px;
     padding: .12rem .45rem;
     margin-top: .15rem;
+}
+
+/* A separate char-count badge on the Agent Persona (agent prompt) and Tools / MCP (tools available) boxes,
+   so each part's size in the latest request reads as its own number. */
+.diagram ::deep .anatomy .layer-size {
+    align-self: flex-start;
+    font-size: .64rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #1a1a1a;
+    background: rgba(0, 0, 0, .14);
+    border: 1px solid rgba(0, 0, 0, .3);
+    border-radius: 999px;
+    padding: .08rem .45rem;
 }
 
 .diagram ::deep .anatomy .tool-checks {
@@ -651,9 +665,9 @@
     padding-left: .1rem;
 }
 
-.diagram ::deep .context-chips .ctx.app { border-left-color: #ff5252; }
-.diagram ::deep .context-chips .ctx.agent { border-left-color: #f1ec18; }
-.diagram ::deep .context-chips .ctx.user { border-left-color: #82e000; }
+.diagram ::deep .context-chips .ctx.app { border-left-color: var(--contrib-app); }
+.diagram ::deep .context-chips .ctx.agent { border-left-color: var(--contrib-agent); }
+.diagram ::deep .context-chips .ctx.user { border-left-color: var(--contrib-user); }
 
 /* Conversation-history chips re-sent into the model's context each turn — dimmed so the current
    run reads as the focus, while still showing that earlier turns are carried along. */

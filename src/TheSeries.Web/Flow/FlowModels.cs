@@ -125,6 +125,18 @@ internal sealed record PromptSignatureView(
 }
 
 /// <summary>
+/// The two harness-anatomy sizes surfaced as separate numbers: the <paramref name="PersonaChars"/> (the
+/// <em>agent prompt</em> — the persona text inside the instructions' <c>&lt;agentMode&gt;</c> tags) and the
+/// <paramref name="ToolsChars"/> (the <em>tools available</em> — the tool catalogue's name + description +
+/// parameters, which the Prompt signature deliberately excludes from its conversation totals).
+/// </summary>
+internal sealed record AnatomySizes(int PersonaChars, int ToolsChars)
+{
+    /// <summary>No request captured yet (both sizes zero).</summary>
+    public static readonly AnatomySizes Empty = new(0, 0);
+}
+
+/// <summary>
 /// A vendor-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
 /// </summary>
 internal sealed record AgentChoice(string Name, string Label);

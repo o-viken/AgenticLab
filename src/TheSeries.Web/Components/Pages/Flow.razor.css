@@ -103,6 +103,14 @@
     --loop-bg: rgba(44, 35, 80, .8);
     --code-text: #cdd6ee;
 
+    /* Contributor palette (who supplies a piece of context: application / agent / user). Encodes a
+       fixed concept, not branding, so it is defined once here and never themed per vendor. Shared by
+       the harness anatomy, the Context chips and the Prompt signature so they never drift apart.
+       The agent tone is a warm gold-yellow (not an acid neon) so dark text/markers stay readable on it. */
+    --contrib-app: #ff5252;
+    --contrib-agent: #e6c84a;
+    --contrib-user: #82e000;
+
     box-sizing: border-box;
     height: 100vh;
     display: flex;

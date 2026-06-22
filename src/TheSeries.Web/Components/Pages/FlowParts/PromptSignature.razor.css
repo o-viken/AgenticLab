@@ -157,11 +157,14 @@
     transition: width .4s ease;
 }
 
-/* Fixed category colours (role-encoding, not themed) */
-.sig-system { background: #a78bfa; }
-.sig-user { background: #4aa3ff; }
-.sig-assistant { background: #51cf66; }
-.sig-tool { background: #e0b25a; }
+/* Category colours aligned with the harness anatomy's contributor palette (who supplies the content):
+   System = application (red), User = user (green), Assistant = agent (yellow). Tool result keeps its own
+   distinct orange because the anatomy folds both the system prompt and tool results into "app", but the
+   signature needs them separable. Not themed per vendor (a fixed concept, like the anatomy colours). */
+.sig-system { background: var(--contrib-app); }
+.sig-user { background: var(--contrib-user); }
+.sig-assistant { background: var(--contrib-agent); }
+.sig-tool { background: #f0883e; }
 .sig-tools { background: #f0883e; }
 
 /* Header segmented toggle (Comparison / Accumulation) */
