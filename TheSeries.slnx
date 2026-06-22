@@ -6,4 +6,5 @@
     <Project Path="src/TheSeries.ServiceDefaults/TheSeries.ServiceDefaults.csproj" />
     <Project Path="src/TheSeries.Web/TheSeries.Web.csproj" />
   </Folder>
+  <Project Path="../../../Users/OYVVIK/AppData/Local/Temp/sigtest2/sigtest2.csproj" />
 </Solution>

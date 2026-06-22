@@ -65,7 +65,7 @@ internal static class PromptSignatureBuilder
 
         var currentChars = currentCats.Sum(c => c.Chars);
         var previousChars = previousCats.Sum(c => c.Chars);
-        var match = previous is null ? 0 : MatchPercent(previous, current);
+        var match = previous is null ? 0 : MatchPercent(CanonicalForMatch(previous), CanonicalForMatch(current));
 
         return new PromptSignatureView(
             previousCats,
@@ -276,5 +276,50 @@ internal static class PromptSignatureBuilder
         }
 
         return (int)Math.Round(common * 100.0 / current.Length);
+    }
+
+    /// <summary>
+    /// Reorders a captured request into the canonical order a model provider caches against — the stable
+    /// <em>system prompt + tool catalogue</em> first, then the conversation messages in order — so the
+    /// prefix match reflects real prompt-cache reuse. The raw capture serializes <c>tools</c> <em>after</em>
+    /// <c>messages</c>, so a mid-conversation change (e.g. a growing tool result during the agent loop) would
+    /// otherwise break the prefix before reaching the byte-identical tool catalogue and badly understate the
+    /// match. Falls back to the raw payload when it cannot be parsed.
+    /// </summary>
+    private static string CanonicalForMatch(string requestJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(ToStrictJson(requestJson));
+            var root = doc.RootElement;
+            var sb = new StringBuilder(requestJson.Length);
+
+            if (root.TryGetProperty("instructions", out var instructions) && instructions.ValueKind == JsonValueKind.String)
+            {
+                sb.Append(instructions.GetString());
+            }
+
+            if (root.TryGetProperty("tools", out var tools) && tools.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var tool in tools.EnumerateArray())
+                {
+                    sb.Append(tool.GetRawText());
+                }
+            }
+
+            if (root.TryGetProperty("messages", out var messages) && messages.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var message in messages.EnumerateArray())
+                {
+                    sb.Append(message.GetRawText());
+                }
+            }
+
+            return sb.ToString();
+        }
+        catch (JsonException)
+        {
+            return requestJson;
+        }
     }
 }
