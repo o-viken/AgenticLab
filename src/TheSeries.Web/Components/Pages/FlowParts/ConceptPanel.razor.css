@@ -185,6 +185,61 @@
     font-weight: 700;
 }
 
+.concept-filter {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.concept-filter-input {
+    width: 100%;
+    padding: .5rem .7rem;
+    padding-right: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border, #2b3450);
+    background: var(--input-bg, var(--surface-2, #1b2236));
+    color: var(--text, #e6ebf5);
+    font-size: .85rem;
+}
+
+.concept-filter-input::placeholder {
+    color: var(--text-faint, #6f7c9c);
+}
+
+.concept-filter-input:focus {
+    outline: none;
+    border-color: var(--accent, #f0883e);
+}
+
+.concept-filter-clear {
+    position: absolute;
+    right: .45rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-faint, #6f7c9c);
+    font-size: .8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.concept-filter-clear:hover {
+    color: var(--text, #e6ebf5);
+    background: var(--surface-2, #1b2236);
+}
+
+.concept-empty {
+    margin: 0;
+    font-size: .85rem;
+    color: var(--text-faint, #6f7c9c);
+}
+
 .concept-group {
     display: flex;
     flex-direction: column;

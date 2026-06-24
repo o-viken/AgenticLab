@@ -165,6 +165,9 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public string Reply => _reply;
     public string? Error => _error;
 
+    /// <summary>The user message of the run currently shown live, before it is archived into <see cref="Turns"/>.</summary>
+    public string RunMessage => _runMessage;
+
     /// <summary>Surfaces a page-level error (e.g. failing to load the agent list) in the reply panel.</summary>
     public void ReportError(string message) => _error = message;
 
@@ -371,6 +374,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _responseHint = null;
         _runMessage = view.Message;
         _runAgent = view.SelectedAgent;
+        // Clear the composer so the sent message moves into the conversation log, not lingering in the box.
+        view.Message = string.Empty;
         _events.Clear();
         BumpState();
         view.ClearExpanded();

@@ -39,6 +39,36 @@ internal static class VendorCatalog
         _ => "default",
     };
 
+    /// <summary>
+    /// The vendors in the order the rail (and the old dropdown) presents them: the non-brand Default first,
+    /// then the six brand vendors. Kept here so the rail and any other picker share one source of truth.
+    /// </summary>
+    public static readonly Vendor[] DisplayOrder =
+    {
+        Vendor.Default,
+        Vendor.ChatGpt,
+        Vendor.Gemini,
+        Vendor.Copilot,
+        Vendor.ClaudeCode,
+        Vendor.Claude,
+        Vendor.Microsoft365,
+    };
+
+    /// <summary>
+    /// The product concept id for a vendor (for the ⓘ in the rail's hover tooltip), or null for the
+    /// non-product Default vendor (which has no brand product concept).
+    /// </summary>
+    public static string? ProductConceptId(Vendor vendor) => vendor switch
+    {
+        Vendor.ChatGpt => "chatgpt",
+        Vendor.Gemini => "gemini",
+        Vendor.Copilot => "github-copilot",
+        Vendor.ClaudeCode => "claude-code",
+        Vendor.Claude => "claude",
+        Vendor.Microsoft365 => "microsoft-365-copilot",
+        _ => null,
+    };
+
     /// <summary>How many of the three risk-meter segments are filled for a given risk level.</summary>
     public static int RiskFilledSegments(string riskLevel) => riskLevel switch
     {

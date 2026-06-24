@@ -1,0 +1,187 @@
+/* The full-height vendor rail. Inherits the page's theme tokens (defined on .flow-app),
+   so it re-colours automatically with the active vendor. */
+
+.vendor-rail {
+    flex: 0 0 64px;
+    width: 64px;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.75rem 0;
+    background: var(--surface-2);
+    border-right: 1px solid var(--panel-border);
+    overflow: visible;
+    /* Sit above the shell's content (the diagram uses z-index 5, the mobile sticky header 20)
+       so the hover tooltip — which extends right, over those areas — is never painted over. */
+    z-index: 60;
+}
+
+.rail-divider {
+    width: 28px;
+    height: 1px;
+    margin: 0.15rem 0 0.35rem;
+    background: var(--panel-border);
+}
+
+/* Collapsed rail: only the active vendor shows; the rest (and the divider) appear when the
+   rail is hovered. */
+.rail-item:not(.active),
+.rail-divider {
+    display: none;
+}
+
+.vendor-rail:hover .rail-item:not(.active),
+.vendor-rail:hover .rail-divider {
+    display: flex;
+}
+
+.rail-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Left-edge accent pill on the active vendor. */
+.rail-item.active::before {
+    content: "";
+    position: absolute;
+    left: -0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 26px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent);
+}
+
+.rail-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-muted);
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.rail-icon:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--panel-border);
+}
+
+.rail-icon:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.rail-item.active .rail-icon {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.14);
+    border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+.rail-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Hover tooltip card. Sits flush against the rail's right edge (no gap) so moving the
+   cursor onto it keeps .rail-item:hover true and the ⓘ inside stays clickable. */
+.rail-tooltip {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 150px;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    z-index: 30;
+}
+
+.rail-item:hover .rail-tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.rt-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.rt-model,
+.rt-modes {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.rail-tooltip ::deep .concept-info {
+    align-self: flex-start;
+    margin-top: 0.2rem;
+}
+
+/* On narrow viewports the page stacks, so the rail becomes a horizontal strip on top. */
+@media (max-width: 999px) {
+    .vendor-rail {
+        flex: 0 0 auto;
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-right: none;
+        border-bottom: 1px solid var(--panel-border);
+        overflow-x: auto;
+    }
+
+    /* Touch layouts can't hover, so keep every vendor visible (no collapse). */
+    .vendor-rail .rail-item:not(.active),
+    .vendor-rail .rail-divider {
+        display: flex;
+    }
+
+    .rail-divider {
+        width: 1px;
+        height: 28px;
+        margin: 0 0.25rem;
+    }
+
+    .rail-item.active::before {
+        left: 50%;
+        top: auto;
+        bottom: -0.5rem;
+        transform: translateX(-50%);
+        width: 26px;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+    }
+
+    /* Drop the hover card on touch/narrow layouts; the icon's aria-label still names it. */
+    .rail-tooltip {
+        display: none;
+    }
+}

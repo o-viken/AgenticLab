@@ -1,0 +1,44 @@
+/* Telemetry tab (ControlsTelemetry): a small metrics grid plus the context growth bar. The shared
+   .controls/.control/.empty atoms live in Flow.razor.css; this file adds only the metrics. */
+
+.telemetry-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .4rem .9rem;
+    margin: 0;
+    padding: .5rem .65rem;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+}
+
+.telemetry-grid dt {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--text-dim);
+    align-self: center;
+}
+
+.telemetry-grid dd {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.telemetry-bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--input-bg);
+    overflow: hidden;
+}
+
+.telemetry-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-soft), var(--accent));
+    transition: width .3s ease;
+}

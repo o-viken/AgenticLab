@@ -1,0 +1,11 @@
+{
+  "title": "Reasoning",
+  "category": "core",
+  "summary": "How a model works through a problem before answering — thinking step by step in intermediate tokens you usually don't see. More reasoning can mean better answers, at the cost of more tokens and latency.",
+  "links": [
+    { "label": "Chain-of-Thought Prompting (Wei et al., 2022)", "url": "https://arxiv.org/abs/2201.11903" },
+    { "label": "OpenAI — Reasoning models", "url": "https://platform.openai.com/docs/guides/reasoning" },
+    { "label": "Anthropic — Extended thinking", "url": "https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking" },
+    { "label": "DeepSeek-R1: Incentivizing Reasoning (2025)", "url": "https://arxiv.org/abs/2501.12948" }
+  ]
+}

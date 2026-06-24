@@ -1,0 +1,44 @@
+@* The Telemetry tab of the left Controls panel: live figures for the current/last run — how many LLM
+   round-trips it took, how much conversation content the model is carrying (context size), the persona
+   and tool-catalogue sizes, and the raw flow-event count. Read-only view over the run controller's
+   derived values, which update as each streamed event arrives. *@
+
+<section class="controls telemetry-controls">
+    <div class="control">
+        <label>Run telemetry @if (Run.Running) { <span>live</span> }</label>
+
+        <dl class="telemetry-grid">
+            <dt>Turns</dt>
+            <dd>@Run.TotalTurns</dd>
+
+            <dt>Context</dt>
+            <dd>~@Run.ContextSize.ToString("N0") chars</dd>
+
+            <dt>Persona</dt>
+            <dd>@Run.PersonaCharsLabel</dd>
+
+            <dt>Tools</dt>
+            <dd>@Run.ToolsCharsLabel</dd>
+
+            <dt>Events</dt>
+            <dd>@Run.Events.Count</dd>
+        </dl>
+
+        <div class="telemetry-bar" title="Conversation content carried into the model's latest request">
+            <div class="telemetry-bar-fill" style="width:@(Run.ContextBarWidth)%"></div>
+        </div>
+
+        @if (Run.TotalTurns == 0 && !Run.Running)
+        {
+            <p class="empty">No run yet — send a message to see live telemetry.</p>
+        }
+    </div>
+</section>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+}

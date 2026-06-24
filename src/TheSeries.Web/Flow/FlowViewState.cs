@@ -1,4 +1,4 @@
-namespace TheSeries.Web.Flow;
+﻿namespace TheSeries.Web.Flow;
 
 /// <summary>
 /// Holds the flow page's <em>view</em> state — the user's preferences and selections that the controls
@@ -39,6 +39,8 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private string _workspace = string.Empty;
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
+    private ControlsTab _activeControlsTab = ControlsTab.Chat;
+    private bool _outputCollapsed = true;
     private bool _leftPanelCollapsed;
     private bool _rightPanelCollapsed;
     private int _leftPanelWidth = 360;
@@ -55,8 +57,9 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _showFullHarnessPrompt;
     private string _harnessPromptText = string.Empty;
     private Concept? _activeConcept;
-    private Perspective _perspective = Perspective.Expert;
-    private Vendor _vendor = Vendor.Default;
+    private string _conceptFilter = string.Empty;
+    private Perspective _perspective = Perspective.Simple;
+    private Vendor _vendor = Vendor.ChatGpt;
 
     /// <summary>Raised whenever a piece of view state changes so the page can re-render.</summary>
     public event Action? Changed;
@@ -108,6 +111,16 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private VendorInfo? CurrentVendorInfo =>
         VendorKey is { } key && _vendors.TryGetValue(key, out var info) ? info : null;
 
+    /// <summary>
+    /// The loaded metadata for the given vendor (display name, simulated model label and modes), or null
+    /// before load. Used by the vendor rail to fill each icon's hover tooltip without re-selecting it.
+    /// </summary>
+    public VendorInfo? VendorInfoFor(Vendor vendor) =>
+        VendorCatalog.HarnessKey(vendor) is { } key && _vendors.TryGetValue(key, out var info) ? info : null;
+
+    /// <summary>The friendly display name of the given vendor, falling back to its enum name before metadata loads.</summary>
+    public string VendorDisplayName(Vendor vendor) => VendorInfoFor(vendor)?.DisplayName ?? vendor.ToString();
+
 
     // --- Run inputs -------------------------------------------------------
 
@@ -158,6 +171,27 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         get => _mode;
         set { _mode = value; Notify(); }
     }
+
+    /// <summary>Which tab is active in the left Controls panel (Chat, Settings, History, Workspace or Telemetry).</summary>
+    public ControlsTab ActiveControlsTab
+    {
+        get => _activeControlsTab;
+        set { _activeControlsTab = value; Notify(); }
+    }
+
+    /// <summary>
+    /// Whether the Steps/Reply output panel below the diagram is collapsed. It auto-collapses in the
+    /// Simple detail level (where the focus is the high-level diagram) and expands in the other levels,
+    /// but the user can still toggle it manually within a level.
+    /// </summary>
+    public bool OutputCollapsed
+    {
+        get => _outputCollapsed;
+        set { _outputCollapsed = value; Notify(); }
+    }
+
+    /// <summary>Collapses or expands the Steps/Reply output panel.</summary>
+    public void ToggleOutput() { _outputCollapsed = !_outputCollapsed; Notify(); }
 
     // --- Side panels ------------------------------------------------------
 
@@ -322,7 +356,13 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     public Perspective Perspective
     {
         get => _perspective;
-        set { _perspective = value; Notify(); }
+        set
+        {
+            _perspective = value;
+            // The Steps/Reply detail is noise in the Simple level, so collapse it there and reveal it elsewhere.
+            _outputCollapsed = value == Perspective.Simple;
+            Notify();
+        }
     }
 
     /// <summary>The currently selected vendor/brand (persisted by the page in localStorage).</summary>
@@ -344,6 +384,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
             if (!value)
             {
                 _activeConcept = null;
+                _conceptFilter = string.Empty;
             }
 
             Notify();
@@ -352,6 +393,13 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 
     /// <summary>The learning concept currently shown in the right learning panel, or null when none is selected.</summary>
     public Concept? ActiveConcept => _activeConcept;
+
+    /// <summary>Free-text filter applied to the learning panel's topic index (matches concept title and summary).</summary>
+    public string ConceptFilter
+    {
+        get => _conceptFilter;
+        set { _conceptFilter = value ?? string.Empty; Notify(); }
+    }
 
     /// <summary>
     /// Opens the given concept (a Concepts/&lt;id&gt; folder) in the right learning panel, making sure that
@@ -402,9 +450,19 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>The CSS class applied to the diagram so the grid layout matches the selected perspective.</summary>
     public string PerspectiveClass => _perspective switch
     {
+        Perspective.Simple => "p-simple",
         Perspective.NonTechnical => "p-nontech",
         Perspective.Technical => "p-mid",
         _ => "p-full",
+    };
+
+    /// <summary>A one-line description of the selected detail level, shown under the ladder control.</summary>
+    public string DetailLevelHint => _perspective switch
+    {
+        Perspective.Simple => "User ↔ Service · the model is hidden inside",
+        Perspective.NonTechnical => "User → Application → LLM",
+        Perspective.Technical => "User → Client → AiService → LLM",
+        _ => "Full harness · tools, context and every step",
     };
 
     /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
@@ -619,6 +677,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// </summary>
     public string HarnessSubtitle => _perspective switch
     {
+        Perspective.Simple => "Service",
         Perspective.NonTechnical => "Client + AiService",
         Perspective.Technical => $"Client + AiService · {_selectedAgent ?? "Agent"}",
         _ => $"AiService · {_selectedAgent ?? "Agent"}",
@@ -631,6 +690,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// </summary>
     public IReadOnlyList<FlowEvent> VisibleEvents(IEnumerable<FlowEvent> events) => _perspective switch
     {
+        Perspective.Simple => events.Where(e => e.Kind is "received" or "final" or "error").ToList(),
         Perspective.NonTechnical => events.Where(e => e.Kind is "received" or "final" or "error").ToList(),
         Perspective.Technical => events.Where(e => e.Kind is not "tool-call" and not "tool-result").ToList(),
         _ => events as IReadOnlyList<FlowEvent> ?? events.ToList(),

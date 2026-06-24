@@ -7,6 +7,25 @@ internal enum FlowMode
     Manual,
 }
 
+/// <summary>
+/// Which tab is active in the left Controls panel, reorganised from two stacked cards into a tabbed view.
+/// <list type="bullet">
+/// <item><description><see cref="Chat"/>: the message box, run/stepping buttons and last-response echo (FlowChat).</description></item>
+/// <item><description><see cref="Settings"/>: agent picker, step delay, stepping mode, tool toggles and workspace input (FlowControls).</description></item>
+/// <item><description><see cref="History"/>: the past conversation turns (user message + agent reply per turn).</description></item>
+/// <item><description><see cref="Workspace"/>: the workspace's discovered skills and custom instructions.</description></item>
+/// <item><description><see cref="Telemetry"/>: live run figures — turns, context size, persona/tools chars and event count.</description></item>
+/// </list>
+/// </summary>
+internal enum ControlsTab
+{
+    Chat,
+    Settings,
+    History,
+    Workspace,
+    Telemetry,
+}
+
 /// <summary>Which edge of the page a <c>SidePanel</c> docks to (and therefore which edge its splitter sits on).</summary>
 public enum PanelSide
 {
@@ -18,6 +37,7 @@ public enum PanelSide
 /// <summary>
 /// The level of detail shown in the diagram and Steps list.
 /// <list type="bullet">
+/// <item><description><see cref="Simple"/>: User ↔ Service only — the LLM is hidden inside the service (a black box).</description></item>
 /// <item><description><see cref="NonTechnical"/>: User → Application → LLM (Client + AiService merged, no tools/loop).</description></item>
 /// <item><description><see cref="Technical"/>: User → Client → AiService → LLM (no nested Tools box / resources).</description></item>
 /// <item><description><see cref="Expert"/>: the complete harness view (Tools, resources, loop badge, every step).</description></item>
@@ -25,6 +45,7 @@ public enum PanelSide
 /// </summary>
 internal enum Perspective
 {
+    Simple,
     NonTechnical,
     Technical,
     Expert,

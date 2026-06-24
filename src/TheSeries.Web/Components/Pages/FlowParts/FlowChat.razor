@@ -1,30 +1,67 @@
-@* The chat part of the left panel: the message box, the run/stepping action buttons, the inline
-   answer box (shown when an agent's AskQuestion tool is waiting) and a compact echo of the latest
-   response. Reads and writes the shared view/run state. The settings (vendor, agent, stepping, tools,
+@* The chat part of the left panel: a scrollable conversation log (oldest at the top, newest at the
+   bottom, like a typical chat app) above a composer pinned to the bottom — the message box, the
+   run/stepping action buttons and the inline answer box (shown when an agent's AskQuestion tool is
+   waiting). Reads and writes the shared view/run state. The settings (vendor, agent, stepping, tools,
    workspace) live in the sibling FlowControls component. *@
+@inject IJSRuntime JS
 <section class="controls chat-controls">
-    <div class="control message">
-        <label for="message">Message</label>
-        <input id="message" @bind="View.Message" @bind:event="oninput"
-               placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
-               disabled="@Run.Running" @onkeydown="OnKeyDownAsync" />
-    </div>
-
-    <div class="control actions">
-        @if (!Run.Running)
+    <div class="chat-log" @ref="_logRef">
+        @if (Run.Turns.Count == 0 && string.IsNullOrWhiteSpace(Run.RunMessage))
         {
-            <button class="send" @onclick="Run.SendAsync" disabled="@(string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">Send</button>
-            <button class="stop" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
-        }
-        else if (View.Mode == FlowMode.Manual)
-        {
-            <button class="send" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">@(Run.AwaitingStep ? "Waiting…" : "Next ▶")</button>
-            <button class="stop" @onclick="Run.StopAsync">Stop</button>
+            <p class="chat-empty">No messages yet — send something to start the conversation.</p>
         }
         else
         {
-            <button class="send" @onclick="Run.TogglePauseAsync">@(Run.Paused ? "Resume ▶" : "Pause ⏸")</button>
-            <button class="stop" @onclick="Run.StopAsync">Stop</button>
+            @foreach (var turn in Run.Turns)
+            {
+                <div class="turn" @key="turn">
+                    <div class="bubble user">
+                        <span class="who">🧑 You</span>
+                        <p>@turn.Message</p>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(turn.Error))
+                    {
+                        <div class="bubble agent error">
+                            <span class="who">🤖 @(turn.Agent ?? "Agent")</span>
+                            <p>@turn.Error</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="bubble agent">
+                            <span class="who">🤖 @(turn.Agent ?? "Agent")</span>
+                            <p>@turn.Reply</p>
+                        </div>
+                    }
+                </div>
+            }
+
+            @* The current/most-recent exchange. It lives in RunMessage/Reply until the next send archives
+               it into Turns, so render it here for both the in-progress run and the just-finished one. *@
+            @if (!string.IsNullOrWhiteSpace(Run.RunMessage))
+            {
+                <div class="turn pending">
+                    <div class="bubble user">
+                        <span class="who">🧑 You</span>
+                        <p>@Run.RunMessage</p>
+                    </div>
+                    <div class="bubble agent">
+                        <span class="who">🤖 @(View.SelectedAgent ?? "Agent")</span>
+                        @if (!string.IsNullOrWhiteSpace(Run.Error))
+                        {
+                            <p class="error">@Run.Error</p>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(Run.Reply))
+                        {
+                            <p>@Run.Reply</p>
+                        }
+                        else if (Run.Running)
+                        {
+                            <p class="typing"><span></span><span></span><span></span></p>
+                        }
+                    </div>
+                </div>
+            }
         }
     </div>
 
@@ -42,32 +79,62 @@
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(Run.Error) || !string.IsNullOrWhiteSpace(Run.Reply))
-    {
-        <div class="control message last-response">
-            <label>Last response</label>
-            @if (!string.IsNullOrWhiteSpace(Run.Error))
+    <div class="chat-composer">
+        <div class="control message">
+            <label for="message">Message <span class="message-hint">Shift+Enter for a new line</span></label>
+            <textarea id="message" rows="1" data-enter-submit @bind="View.Message" @bind:event="oninput"
+                      placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
+                      disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
+        </div>
+
+        <div class="control actions">
+            @if (!Run.Running)
             {
-                <p class="last-response-text error">@Run.Error</p>
+                <button class="send" @onclick="Run.SendAsync" disabled="@(string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">Send</button>
+                <button class="stop" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
+            }
+            else if (View.Mode == FlowMode.Manual)
+            {
+                <button class="send" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">@(Run.AwaitingStep ? "Waiting…" : "Next ▶")</button>
+                <button class="stop" @onclick="Run.StopAsync">Stop</button>
             }
             else
             {
-                <p class="last-response-text">@Run.Reply</p>
+                <button class="send" @onclick="Run.TogglePauseAsync">@(Run.Paused ? "Resume ▶" : "Pause ⏸")</button>
+                <button class="stop" @onclick="Run.StopAsync">Stop</button>
             }
         </div>
-    }
+    </div>
 </section>
 
 @code {
+    private ElementReference _logRef;
+
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
 
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Keep the newest message in view as the conversation grows / the reply streams in, unless the
+        // user has scrolled up to read earlier messages (handled by stickToBottom in panels.js).
+        try
+        {
+            await JS.InvokeVoidAsync("theSeriesPanels.stickToBottom", _logRef);
+        }
+        catch
+        {
+            // JS may be unavailable during prerender; the next interactive render scrolls.
+        }
+    }
+
     private async Task OnKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args.Key == "Enter" && !Run.Running && !string.IsNullOrWhiteSpace(View.Message))
+        // Enter sends; Shift+Enter inserts a new line (the textarea handles the newline, while a
+        // small guard in panels.js suppresses the newline for a plain Enter that we send on).
+        if (args.Key == "Enter" && !args.ShiftKey && !Run.Running && !string.IsNullOrWhiteSpace(View.Message))
         {
             await Run.SendAsync();
         }

@@ -30,7 +30,7 @@ public sealed class DefaultHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("WikiAssistant", "wiki"),
         new VendorMode("ChatBot", "chat"),
+        new VendorMode("WikiAssistant", "wiki"),
     };
 }

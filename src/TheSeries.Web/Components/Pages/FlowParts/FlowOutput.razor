@@ -7,46 +7,61 @@
     var visibleSteps = View.VisibleEvents(Run.Events);
 }
 
-<section class="output">
-    <div class="log">
-        <h2>
-            Steps <span class="progress">@(visibleSteps.Count == 0 ? "" : $"{visibleSteps.Count} step{(visibleSteps.Count == 1 ? "" : "s")}")</span>
-            @if (Run.TotalTurns > 0)
-            {
-                <span class="turns">· 🔁 @Run.TotalTurns turn@(Run.TotalTurns == 1 ? "" : "s")</span>
-            }
-        </h2>
-        @if (visibleSteps.Count == 0)
+<section class="output @(View.OutputCollapsed ? "collapsed" : "")">
+    <button type="button" class="output-toggle" @onclick="View.ToggleOutput"
+            aria-expanded="@(!View.OutputCollapsed)" title="Show or hide the steps and reply">
+        <span class="chevron">@(View.OutputCollapsed ? "▸" : "▾")</span>
+        <span class="output-toggle-label">Steps &amp; reply</span>
+        @if (visibleSteps.Count > 0)
         {
-            <p class="empty">
-                @(Run.Running && View.Mode == FlowMode.Manual
-                    ? "Click \u201cNext\u201d to run and reveal each step."
-                    : "No steps yet. Send a message to begin.")
-            </p>
+            <span class="output-toggle-count">@visibleSteps.Count step@(visibleSteps.Count == 1 ? "" : "s")</span>
         }
-        else
-        {
-            <ol>
-                <FlowStepList Events="visibleSteps" Expandable="true" />
-            </ol>
-        }
-    </div>
+    </button>
 
-    <div class="reply">
-        <h2>Reply</h2>
-        @if (!string.IsNullOrWhiteSpace(Run.Error))
-        {
-            <p class="error">@Run.Error</p>
-        }
-        else if (!string.IsNullOrWhiteSpace(Run.Reply))
-        {
-            <p>@Run.Reply</p>
-        }
-        else
-        {
-            <p class="empty">The agent's final answer will appear here.</p>
-        }
-    </div>
+    @if (!View.OutputCollapsed)
+    {
+        <div class="output-body">
+            <div class="log">
+                <h2>
+                    Steps <span class="progress">@(visibleSteps.Count == 0 ? "" : $"{visibleSteps.Count} step{(visibleSteps.Count == 1 ? "" : "s")}")</span>
+                    @if (Run.TotalTurns > 0)
+                    {
+                        <span class="turns">· 🔁 @Run.TotalTurns turn@(Run.TotalTurns == 1 ? "" : "s")</span>
+                    }
+                </h2>
+                @if (visibleSteps.Count == 0)
+                {
+                    <p class="empty">
+                        @(Run.Running && View.Mode == FlowMode.Manual
+                            ? "Click \u201cNext\u201d to run and reveal each step."
+                            : "No steps yet. Send a message to begin.")
+                    </p>
+                }
+                else
+                {
+                    <ol>
+                        <FlowStepList Events="visibleSteps" Expandable="true" />
+                    </ol>
+                }
+            </div>
+
+            <div class="reply">
+                <h2>Reply</h2>
+                @if (!string.IsNullOrWhiteSpace(Run.Error))
+                {
+                    <p class="error">@Run.Error</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(Run.Reply))
+                {
+                    <p>@Run.Reply</p>
+                }
+                else
+                {
+                    <p class="empty">The agent's final answer will appear here.</p>
+                }
+            </div>
+        </div>
+    }
 </section>
 
 @code {

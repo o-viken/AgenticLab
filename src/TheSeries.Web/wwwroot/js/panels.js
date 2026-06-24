@@ -108,5 +108,46 @@ window.theSeriesPanels = (function () {
         }
     }
 
-    return { initResizer, dispose };
+    // Keep a scroll container pinned to its newest content (the chat log), but only while the user is
+    // already at/near the bottom. Once they scroll up to read earlier messages we stop yanking them
+    // back down — so reading history isn't interrupted by re-renders (e.g. typing or a streaming reply).
+    function stickToBottom(el) {
+        if (!el) {
+            return;
+        }
+
+        if (!el._tsStickInit) {
+            el._tsStickInit = true;
+            el._tsStick = true;
+            el.addEventListener("scroll", function () {
+                const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+                el._tsStick = dist < 48;
+            });
+        }
+
+        if (el._tsStick) {
+            el.scrollTop = el.scrollHeight;
+        }
+    }
+
+    return { initResizer, dispose, stickToBottom };
+})();
+
+// Make multiline chat inputs submit on a plain Enter while keeping Shift+Enter for a new line.
+// A textarea inserts a newline on Enter by default; for any element marked [data-enter-submit] we
+// cancel that default when Enter is pressed without Shift. Blazor's own @onkeydown handler still
+// fires to actually send, so no .NET callback is needed here. Registered once at module load.
+(function () {
+    "use strict";
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" || e.shiftKey || e.isComposing) {
+            return;
+        }
+
+        const target = e.target;
+        if (target && target.matches && target.matches("textarea[data-enter-submit]")) {
+            e.preventDefault();
+        }
+    });
 })();

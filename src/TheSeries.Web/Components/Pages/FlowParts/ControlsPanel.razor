@@ -1,0 +1,77 @@
+@* The left Controls panel, reorganised from two stacked cards into a tabbed view. A tab strip at the
+   top switches between Chat (FlowChat), Settings (FlowControls), History (past turns), Workspace
+   (skills + custom instructions) and Telemetry (live run figures). The chat and settings tabs reuse the
+   existing FlowChat/FlowControls components unchanged; the run/view state cascades down to all of them. *@
+
+<div class="controls-tabs">
+    <div class="tab-strip" role="tablist">
+        @foreach (var tab in _tabs)
+        {
+            <button type="button" role="tab"
+                    class="@(View.ActiveControlsTab == tab ? "tab selected" : "tab")"
+                    aria-selected="@(View.ActiveControlsTab == tab)"
+                    @onclick="@(() => View.ActiveControlsTab = tab)">
+                @Label(tab)@if (Badge(tab) is { } badge)
+                {
+                    <span class="tab-badge">@badge</span>
+                }
+            </button>
+        }
+    </div>
+
+    <div class="tab-body" role="tabpanel">
+        @switch (View.ActiveControlsTab)
+        {
+            case ControlsTab.Chat:
+                <FlowChat />
+                break;
+            case ControlsTab.Settings:
+                <FlowControls />
+                break;
+            case ControlsTab.History:
+                <ControlsHistory />
+                break;
+            case ControlsTab.Workspace:
+                <ControlsWorkspace />
+                break;
+            case ControlsTab.Telemetry:
+                <ControlsTelemetry />
+                break;
+        }
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    private static readonly ControlsTab[] _tabs =
+    {
+        ControlsTab.Chat,
+        ControlsTab.Settings,
+        ControlsTab.History,
+        ControlsTab.Workspace,
+        // Telemetry hidden for now.
+    };
+
+    private static string Label(ControlsTab tab) => tab switch
+    {
+        ControlsTab.Chat => "Chat",
+        ControlsTab.Settings => "Settings",
+        ControlsTab.History => "History",
+        ControlsTab.Workspace => "Workspace",
+        ControlsTab.Telemetry => "Telemetry",
+        _ => tab.ToString(),
+    };
+
+    /// <summary>A small count badge on a tab when it has live content to surface, or null when empty.</summary>
+    private int? Badge(ControlsTab tab) => tab switch
+    {
+        ControlsTab.History => Run.Turns.Count > 0 ? Run.Turns.Count : null,
+        ControlsTab.Workspace => Run.KnownSkills.Count + Run.KnownInstructions.Count is var n and > 0 ? n : null,
+        _ => null,
+    };
+}

@@ -1,25 +1,6 @@
 /* Control part of the left panel (FlowControls). The shared .controls/.control/.mode-toggle/button
-   atoms live in Flow.razor.css; this file adds only the settings-specific bits: the vendor (theme)
-   picker and the tool toggles. */
-
-/* The vendor picker sits at the very top of the settings card, spanning its own full-width row. */
-.control.theme-control {
-    flex: 1 1 100%;
-}
-
-/* Theme picker: a compact dropdown so it scales cleanly at any width (replaces the old
-   segmented toggle, which cropped in the narrow side-by-side column). */
-.theme-select-row {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-}
-
-.theme-control select {
-    flex: 1 1 auto;
-    max-width: 18rem;
-    min-width: 0;
-}
+   atoms live in Flow.razor.css; this file adds only the settings-specific bits: the tool toggles.
+   The vendor picker now lives in the left-edge VendorRail. */
 
 /* Tool toggles -------------------------------------------------------- */
 /* Tools and Workspace each span their own full-width row so they never reflow the

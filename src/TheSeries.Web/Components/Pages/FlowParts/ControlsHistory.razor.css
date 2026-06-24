@@ -1,0 +1,70 @@
+/* History tab (ControlsHistory): a compact list of past conversation turns. The shared
+   .controls/.control/.empty atoms live in Flow.razor.css; this file adds only the turn list. */
+
+.history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+
+.history-turn {
+    display: flex;
+    gap: .55rem;
+    padding: .55rem .65rem;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+}
+
+.history-ordinal {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    background: var(--input-bg);
+    color: var(--text-dim);
+    font-size: .75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.history-bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    min-width: 0;
+}
+
+.history-user,
+.history-agent {
+    margin: 0;
+    font-size: .9rem;
+    color: var(--text);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.history-agent {
+    color: var(--text-dim);
+}
+
+.history-agent.error {
+    color: var(--error);
+}
+
+.history-user .who,
+.history-agent .who {
+    display: inline-block;
+    margin-right: .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--accent-soft);
+}

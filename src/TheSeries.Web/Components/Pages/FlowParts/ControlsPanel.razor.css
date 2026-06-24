@@ -1,0 +1,74 @@
+/* The tabbed Controls panel shell (ControlsPanel): a sticky tab strip over a scrolling tab body.
+   The tab buttons reuse the look of the .mode-toggle segmented control (defined in Flow.razor.css)
+   but as a full-width row of underline tabs. The tab bodies reuse the shared .controls/.control
+   atoms via ::deep. */
+
+.controls-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    height: 100%;
+    min-height: 0;
+}
+
+/* Tab strip ----------------------------------------------------------- */
+.tab-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: .15rem;
+}
+
+.tab-strip .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .45rem .7rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: .82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+}
+
+.tab-strip .tab:hover {
+    color: var(--text);
+    background: var(--surface);
+}
+
+.tab-strip .tab.selected {
+    color: var(--accent-soft);
+    border-bottom-color: var(--accent);
+}
+
+.tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 .3rem;
+    border-radius: 999px;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    font-size: .68rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* The tab body wraps each tab's content; the children supply their own .controls card. It fills the
+   remaining panel height (so the Chat tab can pin its composer to the bottom) and scrolls any tab
+   whose content is taller than the area. The Chat tab fills it exactly and scrolls its own log. */
+.tab-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}

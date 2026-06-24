@@ -1,10 +1,147 @@
 /* Chat part of the left panel (FlowChat). The shared .controls/.control/.actions/button atoms live in
-   Flow.razor.css; this file adds only the chat-specific bits: the ask-question box and the
-   last-response echo. */
+   Flow.razor.css; this file adds the chat-specific layout: a scrollable conversation log above a
+   composer pinned to the bottom, the message bubbles, the ask-question box and the typing indicator. */
+
+/* The chat tab fills the tab body and lays its log + composer out top-to-bottom. The shared .controls
+   atom is a right-aligned, padded card row; override it to a full-bleed, full-width stacked column so
+   the bubbles and composer use the whole panel width (the SidePanel body already supplies the chrome). */
+.chat-controls.controls {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: .75rem;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+/* Scrollable conversation log (oldest at the top, newest at the bottom). */
+.chat-log {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-right: .25rem;
+}
+
+/* Anchor the conversation to the bottom (just above the composer) like a typical messenger: the first
+   turn's auto top-margin absorbs any free space, pushing the messages down. When the log overflows the
+   margin collapses and it scrolls normally. */
+.chat-log > .turn:first-child {
+    margin-top: auto;
+}
+
+.chat-empty {
+    margin: auto 0;
+    text-align: center;
+    font-size: .9rem;
+    color: var(--text-dim);
+}
+
+/* One exchange: the user bubble then the agent bubble. */
+.turn {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.bubble {
+    border-radius: 12px;
+    padding: .55rem .8rem;
+    max-width: 88%;
+}
+
+.bubble .who {
+    display: block;
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: .25rem;
+    opacity: .8;
+}
+
+.bubble p {
+    margin: 0;
+    font-size: .92rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bubble.user {
+    align-self: flex-end;
+    background: rgba(var(--accent-rgb), .16);
+    border: 1px solid rgba(var(--accent-rgb), .3);
+}
+
+.bubble.user .who { color: var(--accent-soft); }
+
+.bubble.agent {
+    align-self: flex-start;
+    background: var(--border-soft);
+    border: 1px solid var(--panel-border);
+}
+
+.bubble.agent .who { color: var(--kind-text); }
+
+.bubble.agent .error { color: var(--error); }
+
+/* Animated "agent is typing" dots shown until the reply starts streaming. */
+.typing {
+    display: inline-flex;
+    gap: .25rem;
+    align-items: center;
+}
+
+.typing span {
+    width: .4rem;
+    height: .4rem;
+    border-radius: 50%;
+    background: var(--text-dim);
+    animation: chat-typing 1s infinite ease-in-out;
+}
+
+.typing span:nth-child(2) { animation-delay: .15s; }
+.typing span:nth-child(3) { animation-delay: .3s; }
+
+@keyframes chat-typing {
+    0%, 60%, 100% { opacity: .3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* The composer pinned to the bottom of the chat tab. */
+.chat-composer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--panel-border);
+}
+
+.chat-composer .control {
+    min-width: 0;
+}
+
+/* Beat the shared `.control.message { flex: 1 1 320px }` atom: in this vertical composer that 320px
+   basis would stretch the message control's height and open a gap above the buttons. Keep both
+   controls content-height so the textarea and buttons stack tightly. */
+.chat-composer .control.message,
+.chat-composer .control.actions {
+    flex: 0 0 auto;
+}
 
 /* The inline answer box shown when an agent's AskQuestion tool is waiting for the user's reply. */
 .control.message.ask-question {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
     padding: .75rem .85rem;
     border-radius: 10px;
     border: 1px solid var(--accent);
@@ -29,27 +166,4 @@
 
 .ask-question-row input {
     flex: 1 1 auto;
-}
-
-/* A compact echo of the latest answer under the message input, so it's easy to follow the flow. */
-.control.message.last-response {
-    flex: 1 1 100%;
-    padding: .65rem .85rem;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--input-bg);
-}
-
-.last-response-text {
-    margin: .35rem 0 0;
-    font-size: .95rem;
-    line-height: 1.45;
-    color: var(--text);
-    white-space: pre-wrap;
-    max-height: 9rem;
-    overflow-y: auto;
-}
-
-.last-response-text.error {
-    color: var(--error);
 }

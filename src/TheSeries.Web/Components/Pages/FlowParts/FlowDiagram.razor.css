@@ -59,6 +59,66 @@
     font-size: .85rem;
 }
 
+/* Sketch A: the detail-level "complexity ladder". A continuous low→high-detail track holding
+   the four levels, a gradient hint strip above it and a one-line sublabel below. */
+.diagram ::deep .detail-level {
+    gap: .35rem;
+}
+
+.diagram ::deep .detail-hint {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--node-subtitle);
+}
+
+.diagram ::deep .detail-hint .detail-track {
+    flex: 1;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(to right,
+        color-mix(in srgb, var(--link-accent) 18%, transparent),
+        var(--link-accent));
+}
+
+.diagram ::deep .perspective-toggle.ladder {
+    background: linear-gradient(to right,
+        color-mix(in srgb, var(--link-accent) 8%, transparent),
+        color-mix(in srgb, var(--link-accent) 22%, transparent));
+    border-radius: 9px;
+    padding: 2px;
+}
+
+.diagram ::deep .perspective-toggle.ladder button {
+    background: transparent;
+    border: none;
+    transition: background .18s ease, color .18s ease;
+}
+
+.diagram ::deep .perspective-toggle.ladder button.selected {
+    background: var(--link-accent);
+    color: var(--on-accent, #fff);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+}
+
+.diagram ::deep .detail-sublabel {
+    font-size: .72rem;
+    color: var(--node-subtitle);
+}
+
+/* The Expert-only Boundaries block animates in when the ladder reaches Expert. */
+.diagram ::deep .boundaries-control {
+    animation: detail-fade-in .22s ease both;
+}
+
+@keyframes detail-fade-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Boundary toggles (inside the diagram controls). */
 .diagram ::deep .boundary-toggles {
     display: flex;
@@ -88,6 +148,12 @@
 .diagram > .column.center { grid-column: 3; grid-row: 2; }
 .diagram > .connector-group.loop { grid-column: 4; grid-row: 2; }
 .diagram > .column.right { grid-column: 5; grid-row: 2; }
+
+/* Simple level: the LLM node and the node↔LLM connector are not rendered, so collapse the
+   diagram to three tracks (User → connector → Service) instead of leaving empty 120px gaps. */
+.diagram.p-simple {
+    grid-template-columns: max-content minmax(120px, 1fr) max-content;
+}
 
 .diagram > .node,
 .diagram > .column,

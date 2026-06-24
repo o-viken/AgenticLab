@@ -1,0 +1,43 @@
+/* Workspace tab (ControlsWorkspace): the discovered skills and custom instructions. The shared
+   .controls/.control/.empty atoms live in Flow.razor.css; this file adds only the list. */
+
+.ws-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.ws-item {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    padding: .5rem .65rem;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+}
+
+.ws-item.loaded {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.ws-name {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.ws-item.loaded .ws-name {
+    color: var(--accent-soft);
+}
+
+.ws-desc {
+    font-size: .82rem;
+    color: var(--text-dim);
+    line-height: 1.3;
+    word-break: break-word;
+}

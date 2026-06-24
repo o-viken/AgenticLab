@@ -43,25 +43,45 @@ else
             Click any <span class="info-glyph">ⓘ</span> button in the diagram, or pick a topic below,
             to learn how it works.
         </p>
-        @foreach (var group in Concepts.All.GroupBy(c => c.Category).OrderBy(g => CategoryOrder(g.Key)))
+        <div class="concept-filter">
+            <input type="text" class="concept-filter-input" placeholder="Filter topics…"
+                   aria-label="Filter topics"
+                   @bind="View.ConceptFilter" @bind:event="oninput" />
+            @if (!string.IsNullOrWhiteSpace(View.ConceptFilter))
+            {
+                <button type="button" class="concept-filter-clear" title="Clear filter"
+                        aria-label="Clear filter" @onclick="@(() => View.ConceptFilter = string.Empty)">✕</button>
+            }
+        </div>
+        @{
+            var matches = FilterConcepts(Concepts.All, View.ConceptFilter);
+        }
+        @if (matches.Count == 0)
         {
-            <div class="concept-group">
-                <span class="concept-group-title">@CategoryLabel(group.Key)</span>
-                <ul class="concept-list">
-                    @foreach (var item in group)
-                    {
-                        <li>
-                            <button type="button" class="concept-link-btn" @onclick="@(() => View.OpenConcept(item.Id))">
-                                <span class="cl-title">@item.Title</span>
-                                @if (!string.IsNullOrWhiteSpace(item.Summary))
-                                {
-                                    <span class="cl-summary">@item.Summary</span>
-                                }
-                            </button>
-                        </li>
-                    }
-                </ul>
-            </div>
+            <p class="concept-empty">No topics match “@View.ConceptFilter”.</p>
+        }
+        else
+        {
+            @foreach (var group in matches.GroupBy(c => c.Category).OrderBy(g => CategoryOrder(g.Key)))
+            {
+                <div class="concept-group">
+                    <span class="concept-group-title">@CategoryLabel(group.Key)</span>
+                    <ul class="concept-list">
+                        @foreach (var item in group)
+                        {
+                            <li>
+                                <button type="button" class="concept-link-btn" @onclick="@(() => View.OpenConcept(item.Id))">
+                                    <span class="cl-title">@item.Title</span>
+                                    @if (!string.IsNullOrWhiteSpace(item.Summary))
+                                    {
+                                        <span class="cl-summary">@item.Summary</span>
+                                    }
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
         }
     </div>
 }
@@ -69,6 +89,20 @@ else
 @code {
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
+
+    private static IReadOnlyList<Concept> FilterConcepts(IReadOnlyList<Concept> all, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return all;
+        }
+
+        var term = filter.Trim();
+        return all
+            .Where(c => c.Title.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(c.Summary) && c.Summary.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
 
     private static string CategoryLabel(string category) => category switch
     {

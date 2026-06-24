@@ -114,12 +114,22 @@
     box-sizing: border-box;
     height: 100vh;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow: hidden;
-    padding: 1.5rem clamp(1rem, 4vw, 3rem);
     color: var(--text);
     background: var(--page-bg);
     font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+/* The shell holds the header + body to the right of the full-height vendor rail. It owns the
+   page padding (so the rail can sit flush against the window's left edge, Discord/Slack-style). */
+.flow-shell {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 1.5rem clamp(1rem, 4vw, 3rem);
     transition: padding-right .22s ease;
 }
 
@@ -786,8 +796,14 @@
    header pinned on top. Each column flows inline at its natural height. */
 @media (max-width: 999px) {
     .flow-app {
+        flex-direction: column;
         height: auto;
         overflow: visible;
+    }
+
+    .flow-shell {
+        overflow: visible;
+        padding: 1rem clamp(1rem, 4vw, 3rem);
     }
 
     .flow-header {
@@ -906,6 +922,7 @@
 
 .flow-app ::deep .control input[type="text"],
 .flow-app ::deep .control input:not([type]),
+.flow-app ::deep .control textarea,
 .flow-app ::deep .control select {
     padding: .55rem .7rem;
     border-radius: 8px;
@@ -913,6 +930,22 @@
     background: var(--input-bg);
     color: var(--text);
     font-size: .95rem;
+}
+
+.flow-app ::deep .control textarea {
+    resize: vertical;
+    min-height: 2.6rem;
+    max-height: 9rem;
+    line-height: 1.4;
+    font-family: inherit;
+}
+
+.flow-app ::deep .control label .message-hint {
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: .72rem;
+    opacity: .8;
 }
 
 .flow-app ::deep .control input[type="range"] {
