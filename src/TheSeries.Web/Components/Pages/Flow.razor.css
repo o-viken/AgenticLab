@@ -5,103 +5,110 @@
    green) are intentionally NOT themed — they encode a fixed concept.
    ============================================================ */
 .flow-app {
-    --page-bg: radial-gradient(circle at 20% 0%, #161b2e 0%, #0b0e17 55%, #06080f 100%);
-    --text: #e9edf5;
-    --text-muted: #9aa6c0;
-    --text-dim: #8da0c8;
-    --text-faint: #6f7c9c;
-    --heading: #ffe7c2;
-    --accent: #f0883e;
-    --accent-rgb: 240, 136, 62;
-    --accent-soft: #ffc987;
-    --accent-bright: #ffd9a8;
-    --accent-strong: #d9712a;
-    --link-accent: #4f9bd9;
-    --surface: rgba(20, 26, 44, .65);
-    --surface-2: rgba(10, 13, 23, .55);
-    --surface-panel: rgba(20, 26, 44, .6);
-    --panel-border: rgba(120, 140, 190, .18);
-    --border: rgba(120, 140, 190, .3);
-    --border-soft: rgba(120, 140, 190, .15);
-    --input-bg: #0d1322;
-    --btn-primary-bg: #1d5a93;
-    --btn-primary-text: #f1f6ff;
-    --btn-secondary-bg: #2a3350;
-    --code-bg: #0a0e1a;
-    --label-bg: rgba(10, 13, 23, .85);
+    /* Default look — the "v5 Flat & Quiet" minimalist theme: flatter (the heavy ambient drop shadow
+       is gone, leaving a single hairline), quieter near-monochrome greys, and lighter hairline
+       borders so surfaces read as dividers rather than boxes. The brand themes below still override
+       these via .flow-app.theme-*. Token names are unchanged so every component reskins automatically. */
+    --page-bg: #fbfbfc;
+    --shadow: 0 1px 2px rgba(20, 24, 40, .05);
+    --text: #14161d;
+    --text-muted: #6a7180;
+    --text-dim: #6a7180;
+    --text-faint: #9aa0ad;
+    --heading: #14161d;
+    --accent: #4f46e5;
+    --accent-rgb: 79, 70, 229;
+    --accent-soft: #6b63ea;
+    --accent-bright: #8b85ef;
+    --accent-strong: #4338ca;
+    --accent-weak: #eef0fe;
+    --accent-ink: #3730a3;
+    --link-accent: #4f46e5;
+    --surface: #ffffff;
+    --surface-2: #f6f7f9;
+    --surface-panel: #ffffff;
+    --panel-border: #ededf1;
+    --border: #e2e3e9;
+    --border-soft: #f1f2f5;
+    --input-bg: #f6f7f9;
+    --btn-primary-bg: #4f46e5;
+    --btn-primary-text: #ffffff;
+    --btn-secondary-bg: #eef0f4;
+    --code-bg: #f4f5f8;
+    --label-bg: rgba(255, 255, 255, .92);
 
-    --node-bg: #15406b;
-    --node-border: rgba(120, 160, 220, .35);
-    --node-subtitle: #9fb4dc;
-    --node-harness-bg: #123a5e;
-    --node-anatomy-bg: #0f2742;
-    --node-llm-bg: #2c2350;
-    --node-llm-border: rgba(170, 150, 230, .4);
-    --node-user-bg: #0f4a3c;
-    --node-user-border: rgba(110, 220, 180, .45);
-    --node-user-subtitle: #8fdcc0;
-    --node-application-bg: #163a63;
-    --node-application-border: rgba(120, 170, 230, .5);
-    --node-client-border: rgba(120, 170, 230, .5);
-    --node-resource-bg: #1a2336;
-    --node-resource-border: rgba(140, 160, 210, .45);
+    --node-bg: #eef2fb;
+    --node-border: #c9cdf6;
+    --node-subtitle: #5b6478;
+    --node-harness-bg: #f4f5ff;
+    --node-anatomy-bg: #f7f8fc;
+    --node-llm-bg: #f3f0fb;
+    --node-llm-border: #d9d3f0;
+    --node-user-bg: #eaf6ee;
+    --node-user-border: #bfe3cb;
+    --node-user-subtitle: #2a7d49;
+    --node-application-bg: #eef2fb;
+    --node-application-border: #c9cdf6;
+    --node-client-border: #c9cdf6;
+    --node-resource-bg: #f4f5f8;
+    --node-resource-border: #d7dae3;
 
-    --tools-bg: #14502f;
-    --tools-border: rgba(120, 220, 160, .35);
-    --tools-active-bg: #1c7a48;
-    --skills-bg: #2c2350;
-    --skills-border: rgba(170, 150, 230, .4);
-    --skill-chip-text: #cdbff2;
-    --skill-chip-bg: rgba(120, 100, 200, .25);
-    --skill-chip-border: rgba(170, 150, 230, .45);
+    --tools-bg: #eaf6ee;
+    --tools-border: #bfe3cb;
+    --tools-active-bg: #d3efdc;
+    --skills-bg: #f3f0fb;
+    --skills-border: #d9d3f0;
+    --skill-chip-text: #5b27b0;
+    --skill-chip-bg: #f0e9fd;
+    --skill-chip-border: #d9d3f0;
 
-    --harness-boundary: rgba(120, 200, 230, .5);
-    --harness-boundary-text: #8fd6ea;
-    --agent-boundary: rgba(190, 160, 240, .55);
-    --agent-boundary-text: #c4adf0;
+    --harness-boundary: rgba(79, 70, 229, .45);
+    --harness-boundary-text: #4338ca;
+    --agent-boundary: rgba(124, 58, 237, .45);
+    --agent-boundary-text: #6d28d9;
 
-    --env-boundary: rgba(120, 210, 170, .5);
-    --env-boundary-text: #93e0bb;
-    --env-badge-bg: rgba(40, 60, 90, .55);
-    --env-badge-text: #b9c6e6;
-    --env-machine-bg: rgba(120, 90, 30, .45);
-    --env-machine-text: #f0cf8f;
-    --env-cloud-bg: rgba(60, 70, 120, .5);
-    --env-cloud-text: #b9c1f0;
-    --risk-none-bg: rgba(90, 110, 90, .35);
-    --risk-none-text: #b7c8b7;
-    --risk-low-bg: rgba(60, 130, 90, .35);
-    --risk-low-text: #92e0b6;
-    --risk-medium-bg: rgba(150, 120, 40, .4);
-    --risk-medium-text: #f0d28a;
-    --risk-high-bg: rgba(150, 60, 60, .4);
-    --risk-high-text: #ff9c9c;
-    --guardrails-bg: #20322a;
-    --guardrails-border: rgba(120, 210, 170, .35);
-    --guardrail-chip-bg: rgba(90, 180, 130, .18);
-    --guardrail-chip-text: #b7e6cd;
-    --guardrail-chip-border: rgba(120, 210, 170, .4);
+    --env-boundary: rgba(42, 157, 74, .45);
+    --env-boundary-text: #2a7d49;
+    --env-badge-bg: #eef0f4;
+    --env-badge-text: #5b6478;
+    --env-machine-bg: #fbeccd;
+    --env-machine-text: #8a5a16;
+    --env-cloud-bg: #e6e9f7;
+    --env-cloud-text: #4654a8;
+    --risk-none-bg: #eef0f0;
+    --risk-none-text: #5b6478;
+    --risk-low-bg: #e3f4ea;
+    --risk-low-text: #2a7d49;
+    --risk-medium-bg: #fbeece;
+    --risk-medium-text: #8a6516;
+    --risk-high-bg: #fbe3e3;
+    --risk-high-text: #c0392b;
+    --guardrails-bg: #f0f8f3;
+    --guardrails-border: #bfe3cb;
+    --guardrail-chip-bg: #e3f4ea;
+    --guardrail-chip-text: #2a7d49;
+    --guardrail-chip-border: #bfe3cb;
 
-    --connector: rgba(140, 160, 210, .45);
-    --connector-arrow: rgba(140, 160, 210, .55);
+    --connector: #c4cad8;
+    --connector-arrow: #aab2c4;
 
-    --purple-text: #cdb6ff;
-    --purple-soft: rgba(170, 150, 230, .22);
-    --llm-chip-bg: #2c2350;
-    --llm-chip-text: #d4c8ff;
-    --tool-chip-bg: #14502f;
-    --tool-chip-text: #aef0c8;
-    --kind-bg: #2a3350;
-    --kind-text: #b9c6e6;
-    --error-bg: #6b1e1e;
-    --error-text: #ffc9c9;
-    --error: #ff9c9c;
-    --workspace-text: #c8b78f;
-    --anatomy-heading: #cfe0fb;
-    --check-text: #c7d3ea;
-    --response-hint-bg: rgba(44, 35, 80, .85);
-    --loop-bg: rgba(44, 35, 80, .8);
-    --code-text: #cdd6ee;
+    --purple-text: #6d28d9;
+    --purple-soft: #f0e9fd;
+    --llm-chip-bg: #f3f0fb;
+    --llm-chip-text: #6d28d9;
+    --tool-chip-bg: #eaf6ee;
+    --tool-chip-text: #2a7d49;
+    --kind-bg: #eef0f4;
+    --kind-text: #5b6478;
+    --error-bg: #fbe3e3;
+    --error-text: #c0392b;
+    --error: #e5484d;
+    --workspace-text: #8a6516;
+    --anatomy-heading: #3a4256;
+    --check-text: #5b6478;
+    --response-hint-bg: rgba(243, 240, 251, .95);
+    --loop-bg: #f3f0fb;
+    --code-text: #3a4256;
 
     /* Contributor palette (who supplies a piece of context: application / agent / user). Encodes a
        fixed concept, not branding, so it is defined once here and never themed per vendor. Shared by
@@ -129,7 +136,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 1.5rem clamp(1rem, 4vw, 3rem);
+    padding: 1.1rem clamp(.85rem, 3vw, 2rem);
     transition: padding-right .22s ease;
 }
 
@@ -664,15 +671,17 @@
 }
 
 .flow-header h1 {
-    margin: 0 0 .25rem;
-    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    margin: 0 0 .2rem;
+    font-size: clamp(1.25rem, 2.4vw, 1.7rem);
     color: var(--heading);
-    letter-spacing: .5px;
+    letter-spacing: -.01em;
+    font-weight: 700;
 }
 
 .flow-header p {
-    margin: 0 0 1.25rem;
+    margin: 0 0 .85rem;
     color: var(--text-muted);
+    font-size: .9rem;
 }
 
 .flow-header {
@@ -725,8 +734,8 @@
     min-height: 0;
     overflow: hidden;
     display: grid;
-    grid-template-columns: var(--left-w, 360px) minmax(0, 1fr) var(--right-w, 0px);
-    gap: 1.25rem;
+    grid-template-columns: var(--left-w, 320px) minmax(0, 1fr) var(--right-w, 0px);
+    gap: .85rem;
     align-items: stretch;
 }
 
@@ -739,7 +748,8 @@
     min-height: 0;
     background: var(--surface);
     border: 1px solid var(--panel-border);
-    border-radius: 12px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
     overflow: hidden;
 }
 
@@ -891,7 +901,7 @@
     margin-bottom: 1.25rem;
     background: var(--surface);
     border: 1px solid var(--panel-border);
-    border-radius: 14px;
+    border-radius: 10px;
 }
 
 .flow-app ::deep .control {

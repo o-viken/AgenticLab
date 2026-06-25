@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheSeries — V5 Flat &amp; Quiet (interactive demo)</title>
+<style>
+  /* ================= Tokens =================
+     Minimalist take: flat (no drop shadows), near-borderless surfaces
+     (hairline dividers instead of boxed cards), quieter colour
+     (near-monochrome, accent reserved for active / primary / busy). */
+  :root {
+    --bg: #fbfbfc; --surface: #ffffff; --surface-2: #f6f7f9;
+    --line: #ededf1; --line-strong: #e2e3e9;
+    --text: #14161d; --muted: #6a7180; --faint: #9aa0ad;
+    --accent: #4f46e5; --accent-weak: #eef0fe; --accent-ink: #3730a3;
+    --radius: 7px; --radius-lg: 10px;
+    --shadow: none;
+    --app: #e5484d; --agent: #d6a51b; --user: #2a9d4a;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  /* vendor themes (light, just swap accent + tint) */
+  .app.t-copilot { --accent:#1f6feb; --accent-weak:#e7f0ff; --accent-ink:#0a4ec2; }
+  .app.t-chatgpt { --accent:#10a37f; --accent-weak:#e6f6f1; --accent-ink:#0c7d61; }
+  .app.t-claude  { --accent:#c96442; --accent-weak:#f8ece7; --accent-ink:#a84a2c; --bg:#f7f4ef; }
+  .app.t-gemini  { --accent:#1a73e8; --accent-weak:#e8f0fe; --accent-ink:#1257c0; }
+  .app.t-m365    { --accent:#7b3fe4; --accent-weak:#f0e9fd; --accent-ink:#5b27b0; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .app { display: flex; height: 100vh; overflow: hidden; background: var(--bg); transition: background .2s; }
+
+  /* ================= Vendor rail ================= */
+  .rail { width: 56px; flex: 0 0 56px; background: transparent; border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; z-index: 4; }
+  .rail .brand { font-weight: 800; color: var(--accent); font-size: 18px; }
+  .rail .sep { width: 22px; height: 1px; background: var(--line); margin: 4px 0; }
+  .rail .v { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; color: var(--faint); border: 1px solid transparent; font-size: 15px; transition: .15s; position: relative; }
+  .rail .v:hover { background: var(--surface-2); color: var(--text); }
+  .rail .v.active { background: var(--accent-weak); color: var(--accent-ink); }
+  .rail .v.active::before { content: ""; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--accent); }
+
+  /* ================= Chat sidebar ================= */
+  .chat { width: 340px; flex: 0 0 340px; background: transparent; border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .chat-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 8px; }
+  .chat-head .ttl { font-weight: 600; font-size: 13px; letter-spacing: .01em; }
+  .chat-head select { margin-left: auto; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); padding: 5px 8px; font: inherit; font-size: 12px; color: var(--muted); }
+  .scroll { flex: 1; overflow: auto; padding: 6px 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+  .msg { display: flex; gap: 10px; }
+  .av { width: 26px; height: 26px; border-radius: 7px; flex: 0 0 26px; display: grid; place-items: center; font-size: 13px; }
+  .av.u { background: var(--accent-weak); }
+  .av.a { background: var(--surface-2); }
+  .msg .who { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 700; margin-bottom: 3px; }
+  .msg .txt { font-size: 13.5px; }
+  .msg .flowlink { font-size: 11px; color: var(--accent-ink); cursor: pointer; margin-top: 6px; display: inline-block; }
+  .typing { display: inline-flex; gap: 3px; padding: 2px 0; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2){ animation-delay:.2s } .typing i:nth-child(3){ animation-delay:.4s }
+  @keyframes blink { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
+
+  .composer { padding: 12px 16px 16px; }
+  .composer .box { display: flex; gap: 8px; align-items: flex-end; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 6px 6px 6px 12px; transition: border-color .15s; }
+  .composer .box:focus-within { border-color: var(--accent); }
+  .composer textarea { flex: 1; border: 0; background: transparent; resize: none; font: inherit; font-size: 13px; outline: none; min-height: 22px; max-height: 110px; padding: 5px 0; }
+  .send { border: 0; background: var(--accent); color: #fff; border-radius: 8px; width: 32px; height: 32px; font-size: 15px; cursor: pointer; flex: 0 0 32px; }
+  .send:disabled { opacity: .45; cursor: default; }
+  .composer .quick { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .composer .quick button { font-size: 11px; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 4px 10px; cursor: pointer; transition: .15s; }
+  .composer .quick button:hover { border-color: var(--line-strong); color: var(--text); }
+
+  /* ================= Stage = data-flow hero ================= */
+  .stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 22px; border-bottom: 1px solid var(--line); background: transparent; }
+  .toolbar .h { font-weight: 600; font-size: 14px; }
+  .tb-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 700; }
+  .seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; transition: .15s; }
+  .seg button.on { background: var(--surface); color: var(--accent-ink); box-shadow: 0 1px 2px rgba(20,24,40,.06); }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .chk { font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+
+  .stage-body { flex: 1; overflow: auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* flat flow: no card border / shadow, just breathing room */
+  .flow { display: grid; grid-template-columns: 1fr auto 1.25fr auto 1fr; align-items: center; gap: 12px; padding: 16px 8px; }
+  .node { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: 18px 14px; text-align: center; transition: .2s; }
+  .node.busy { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+  .node .ic { font-size: 24px; }
+  .node .nm { font-weight: 700; margin-top: 5px; font-size: 14px; }
+  .node .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .subbox { margin-top: 13px; border-top: 1px solid var(--line); padding-top: 10px; text-align: left; }
+  .subbox .t { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 700; margin-bottom: 6px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); margin: 2px 3px 2px 0; transition: .2s; }
+  .chip.lit { background: var(--accent-weak); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent-ink); }
+  .arrow { display: flex; flex-direction: column; gap: 5px; color: var(--faint); font-size: 11px; min-width: 78px; text-align: center; }
+  .arrow .line { height: 2px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 12px); }
+  .arrow .line.flow-on { background: var(--accent); animation: pulse 1s linear infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  /* detail-level visibility */
+  .app[data-detail="simple"] .node.llm, .app[data-detail="simple"] .arrow.toLlm { display: none; }
+  .app[data-detail="simple"] .flow { grid-template-columns: 1fr auto 1fr; }
+  .app[data-detail="simple"] .subbox { display: none; }
+
+  /* flat inspector: divider-led, no card border/shadow */
+  .panel { background: transparent; border-top: 1px solid var(--line); }
+  .panel-tabs { display: flex; align-items: center; padding: 4px 2px 0; }
+  .panel-tabs .t { padding: 12px 4px; margin-right: 18px; font-size: 12px; font-weight: 600; color: var(--faint); border-bottom: 2px solid transparent; cursor: pointer; transition: .15s; }
+  .panel-tabs .t:hover { color: var(--muted); }
+  .panel-tabs .t.on { color: var(--text); border-color: var(--accent); }
+  .panel-tabs .count { margin-left: auto; padding-right: 2px; font-size: 11px; color: var(--faint); }
+  .panel-body { padding: 18px 2px; }
+  .tabview { display: none; }
+  .tabview.on { display: block; }
+
+  .anatomy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+  .layer { border-left: 3px solid; border-radius: 0 var(--radius) var(--radius) 0; padding: 4px 0 4px 14px; background: transparent; }
+  .layer.c-app { border-left-color: var(--app); } .layer.c-agent { border-left-color: var(--agent); } .layer.c-user { border-left-color: var(--user); }
+  .layer .lt { font-weight: 700; font-size: 12px; } .layer .lb { font-size: 10px; color: var(--faint); font-weight: 600; margin-top: 1px; } .layer .lc { font-size: 12px; color: var(--muted); margin-top: 7px; }
+  .ctxbar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 18px 0 10px; }
+  .ctxbar i { height: 100%; transition: width .4s; }
+  .ctxchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ctxchip { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); display: flex; gap: 6px; align-items: center; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+
+  .stepitem { padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: 12px; display: flex; justify-content: space-between; align-items: center; opacity: 0; transform: translateY(4px); animation: rise .25s forwards; }
+  @keyframes rise { to { opacity:1; transform:none } }
+  .stepitem .tag { font-size: 10px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .metric { display: flex; justify-content: space-between; padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .metric span:last-child { font-weight: 700; }
+  .empty { color: var(--faint); font-size: 12px; text-align: center; padding: 22px; }
+
+  .mtabs { display: none; }
+
+  /* ================= Mobile ================= */
+  @media (max-width: 960px) {
+    .app { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+    .rail { width: 100%; flex-direction: row; height: 52px; padding: 0 12px; border-right: 0; border-bottom: 1px solid var(--line); justify-content: flex-start; gap: 6px; overflow-x: auto; }
+    .rail .sep { width: 1px; height: 22px; }
+    .rail .v.active::before { left: 5px; right: 5px; top: auto; bottom: -7px; width: auto; height: 3px; }
+    .chat, .stage { width: 100%; flex: none; }
+    .chat { display: none; height: calc(100vh - 52px - 52px); border-right: 0; }
+    .stage { display: flex; }
+    body.view-chat .chat { display: flex; }
+    body.view-chat .stage { display: none; }
+    .toolbar { position: sticky; top: 0; z-index: 3; background: var(--bg); }
+    .toolbar .h { display: none; }
+    .flow { grid-template-columns: 1fr; padding: 8px; }
+    .flow .arrow { transform: rotate(90deg); min-width: 0; height: 26px; }
+    .anatomy { grid-template-columns: 1fr; }
+    .mtabs { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 52px; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); }
+    .mtabs button { flex: 1; border: 0; background: transparent; font: inherit; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 0; }
+    .mtabs button.on { color: var(--accent-ink); }
+    .mtabs .mi { font-size: 17px; }
+    body { padding-bottom: 52px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app" id="app" data-detail="expert">
+    <!-- vendor rail -->
+    <nav class="rail">
+      <div class="brand">≋</div>
+      <div class="sep"></div>
+      <div class="v active" data-theme="" title="Default">◆</div>
+      <div class="v" data-theme="copilot" title="GitHub Copilot">⧉</div>
+      <div class="v" data-theme="chatgpt" title="ChatGPT">✸</div>
+      <div class="v" data-theme="claude" title="Claude">✳</div>
+      <div class="v" data-theme="gemini" title="Gemini">✦</div>
+      <div class="v" data-theme="m365" title="Microsoft 365">◍</div>
+    </nav>
+
+    <!-- chat sidebar -->
+    <aside class="chat">
+      <div class="chat-head">
+        <span class="ttl">Conversation</span>
+        <select id="agentSel">
+          <option value="ChatBot">ChatBot</option>
+          <option value="WikiAssistant">WikiAssistant</option>
+          <option value="TriviaMaster">TriviaMaster</option>
+        </select>
+      </div>
+      <div class="scroll" id="thread">
+        <div class="msg">
+          <div class="av a">🤖</div>
+          <div><div class="who">ChatBot</div><div class="txt">Hi! Ask me anything and watch the flow on the right light up. 👋</div></div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="box">
+          <textarea id="input" rows="1" placeholder="Ask something…"></textarea>
+          <button class="send" id="sendBtn">↑</button>
+        </div>
+        <div class="quick">
+          <button>How tall is the Eiffel Tower?</button>
+          <button>Capital of Japan?</button>
+          <button>12 × 17 ?</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- stage: data-flow hero -->
+    <main class="stage">
+      <header class="toolbar">
+        <span class="h">Agent Application Flow</span>
+        <span class="tb-label">Detail</span>
+        <div class="seg" id="detailSeg">
+          <button data-d="simple">Simple</button>
+          <button data-d="technical">Technical</button>
+          <button data-d="expert" class="on">Expert</button>
+        </div>
+        <span class="spacer"></span>
+        <label class="chk"><input type="checkbox" id="conceptChk"> Show concept info</label>
+      </header>
+
+      <div class="stage-body">
+        <!-- animated flow -->
+        <div class="flow" id="flow">
+          <div class="node user" id="nUser"><div class="ic">🙂</div><div class="nm">User</div><div class="sub">Human</div></div>
+          <div class="arrow toUser"><div class="line" id="aIn"></div><div>Input ▶</div></div>
+          <div class="node harness" id="nHarness">
+            <div class="ic">🧩</div><div class="nm">Harness</div><div class="sub" id="harnessSub">AiService · ChatBot</div>
+            <div class="subbox"><div class="t">Tools</div><span class="chip" data-tool="SearchWiki">SearchWiki</span><span class="chip" data-tool="Calculate">Calculate</span></div>
+          </div>
+          <div class="arrow toLlm"><div class="line" id="aLlm"></div><div id="turnLbl">turn 0 / 0</div></div>
+          <div class="node llm" id="nLlm"><div class="ic">✦</div><div class="nm">LLM</div><div class="sub" id="llmSub">Azure OpenAI · gpt-5.3-chat</div></div>
+        </div>
+
+        <!-- tabbed inspector: Anatomy / Steps / Telemetry -->
+        <div class="panel">
+          <div class="panel-tabs">
+            <div class="t on" data-tab="anatomy">Harness anatomy</div>
+            <div class="t" data-tab="steps">Steps</div>
+            <div class="t" data-tab="telemetry">Telemetry</div>
+            <span class="count" id="stepCount">0 steps</span>
+          </div>
+          <div class="panel-body">
+            <!-- anatomy -->
+            <div class="tabview on" data-view="anatomy">
+              <div class="anatomy">
+                <div class="layer c-app"><div class="lt">System prompt</div><div class="lb">application · 1,820 chars</div><div class="lc">Operating rules + harness framing, tool grounding.</div></div>
+                <div class="layer c-agent"><div class="lt">Persona &amp; tools</div><div class="lb">agent · <span id="agentChars">640</span> chars</div><div class="lc" id="personaLc">Friendly companion · [x] SearchWiki [x] Calculate</div></div>
+                <div class="layer c-user"><div class="lt">User prompt</div><div class="lb">user · <span id="userChars">0</span> chars</div><div class="lc" id="userLc">—</div></div>
+              </div>
+              <div class="ctxbar"><i class="app" style="width:70%;background:var(--app)"></i><i class="agent" style="width:24%;background:var(--agent)"></i><i class="user" style="width:6%;background:var(--user)"></i></div>
+              <div class="ctxchips" id="ctxChips">
+                <span class="ctxchip"><span class="dot" style="background:var(--app)"></span>system prompt</span>
+              </div>
+            </div>
+            <!-- steps -->
+            <div class="tabview" data-view="steps">
+              <div id="steps"><div class="empty">Send a message to see the live steps.</div></div>
+            </div>
+            <!-- telemetry -->
+            <div class="tabview" data-view="telemetry">
+              <div class="metric"><span>Turns</span><span id="mTurns">0</span></div>
+              <div class="metric"><span>Context</span><span id="mCtx">~1,820 chars</span></div>
+              <div class="metric"><span>Persona</span><span id="mPersona">640 chars</span></div>
+              <div class="metric"><span>Steps</span><span id="mSteps">0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- mobile tab bar -->
+  <nav class="mtabs">
+    <button class="on" onclick="document.body.classList.remove('view-chat')"><span class="mi">▦</span>Flow</button>
+    <button onclick="document.body.classList.add('view-chat')"><span class="mi">💬</span>Chat</button>
+  </nav>
+
+<script>
+  const app = document.getElementById('app');
+  const thread = document.getElementById('thread');
+  const stepsBox = document.getElementById('steps');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+
+  const answers = {
+    eiffel: { txt: "The Eiffel Tower is about <b>330 m</b> tall including antennas.", tool: "SearchWiki" },
+    japan:  { txt: "The capital of Japan is <b>Tokyo</b>.", tool: "SearchWiki" },
+    math:   { txt: "12 × 17 = <b>204</b>.", tool: "Calculate" },
+    def:    { txt: "Here's a concise answer grounded in my tools. ✨", tool: "SearchWiki" }
+  };
+  function pick(q){ q=q.toLowerCase(); if(q.includes('eiffel'))return answers.eiffel; if(q.includes('japan')||q.includes('capital'))return answers.japan; if(/[0-9].*[x×*].*[0-9]/.test(q))return answers.math; return answers.def; }
+
+  let turns = 0;
+  const agentName = () => document.getElementById('agentSel').value;
+
+  function addMsg(role, html, withLink){
+    const m = document.createElement('div'); m.className = 'msg';
+    m.innerHTML = role === 'u'
+      ? `<div class="av u">🙂</div><div><div class="who">You</div><div class="txt">${html}</div></div>`
+      : `<div class="av a">🤖</div><div><div class="who">${agentName()}</div><div class="txt">${html}</div>${withLink?'<span class="flowlink" onclick="document.body.classList.remove(\'view-chat\')">View flow →</span>':''}</div>`;
+    thread.appendChild(m); thread.scrollTop = thread.scrollHeight; return m;
+  }
+  function typing(){ const m=document.createElement('div'); m.className='msg'; m.innerHTML=`<div class="av a">🤖</div><div><div class="who">${agentName()}</div><div class="typing"><i></i><i></i><i></i></div></div>`; thread.appendChild(m); thread.scrollTop=thread.scrollHeight; return m; }
+
+  function setLine(id,on){ document.getElementById(id).classList.toggle('flow-on',on); }
+  function busy(id,on){ document.getElementById(id).classList.toggle('busy',on); }
+  function addStep(label,tag){
+    if(stepsBox.querySelector('.empty')) stepsBox.innerHTML='';
+    const d=document.createElement('div'); d.className='stepitem';
+    d.innerHTML=`<span>${label}</span><span class="tag">${tag}</span>`; stepsBox.appendChild(d);
+    const n=stepsBox.querySelectorAll('.stepitem').length;
+    document.getElementById('stepCount').textContent=n+' steps';
+    document.getElementById('mSteps').textContent=n;
+  }
+  const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+  async function run(q){
+    const ans = pick(q);
+    sendBtn.disabled = true;
+    turns++;
+    document.getElementById('mTurns').textContent = turns;
+    document.getElementById('turnLbl').textContent = `turn ${turns} / ${turns}`;
+    document.getElementById('userChars').textContent = q.length;
+    document.getElementById('userLc').textContent = '"'+q+'"';
+    addCtxChip('user','user: "'+q.slice(0,28)+(q.length>28?'…':'')+'"');
+
+    const detail = app.dataset.detail;
+    stepsBox.innerHTML=''; document.getElementById('stepCount').textContent='0 steps';
+    addStep('received · user message','received');
+
+    busy('nUser',true); setLine('aIn',true); await wait(450); busy('nUser',false);
+    busy('nHarness',true);
+    const t = typing();
+
+    if(detail !== 'simple'){
+      setLine('aIn',false); setLine('aLlm',true);
+      addStep('llm-request · turn '+turns,'turn '+turns); await wait(550);
+      const chip = document.querySelector(`.chip[data-tool="${ans.tool}"]`);
+      if(chip){ chip.classList.add('lit'); addStep('tool-call · '+ans.tool,'tool'); await wait(500);
+        addStep('tool-result','result'); addCtxChip('app','tool: '+ans.tool+' result'); await wait(400); chip.classList.remove('lit'); }
+      busy('nLlm',true); await wait(450); busy('nLlm',false); setLine('aLlm',false);
+    } else { await wait(900); }
+
+    addStep('final answer','final');
+    busy('nHarness',false);
+    t.remove();
+    addMsg('a', ans.txt, true);
+    addCtxChip('agent','assistant: answer');
+    document.getElementById('mCtx').textContent = `~${(1820 + turns*260).toLocaleString()} chars`;
+    sendBtn.disabled = false;
+  }
+
+  function addCtxChip(kind,label){
+    const c=document.getElementById('ctxChips');
+    const s=document.createElement('span'); s.className='ctxchip';
+    const col = kind==='app'?'var(--app)':kind==='agent'?'var(--agent)':'var(--user)';
+    s.innerHTML=`<span class="dot" style="background:${col}"></span>${label}`; c.appendChild(s);
+  }
+
+  function send(){ const q=input.value.trim(); if(!q) return; addMsg('u',q); input.value=''; input.style.height='auto'; run(q); }
+  sendBtn.onclick = send;
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
+  input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,110)+'px'; });
+  document.querySelectorAll('.quick button').forEach(b=> b.onclick=()=>{ input.value=b.textContent; send(); });
+
+  document.querySelectorAll('.rail .v').forEach(v=> v.onclick=()=>{
+    document.querySelectorAll('.rail .v').forEach(x=>x.classList.remove('active')); v.classList.add('active');
+    app.className = 'app' + (v.dataset.theme? ' t-'+v.dataset.theme : '');
+    const labels = { '':'Azure OpenAI · gpt-5.3-chat', copilot:'GPT · simulated', chatgpt:'GPT-5 (OpenAI)', claude:'Claude Sonnet 4.5 (Anthropic)', gemini:'Gemini 2.5 Pro (Google)', m365:'GPT · M365' };
+    document.getElementById('llmSub').textContent = labels[v.dataset.theme]||labels[''];
+  });
+
+  document.querySelectorAll('#detailSeg button').forEach(b=> b.onclick=()=>{
+    document.querySelectorAll('#detailSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    app.dataset.detail = b.dataset.d;
+  });
+
+  document.querySelectorAll('.panel-tabs .t').forEach(t=> t.onclick=()=>{
+    document.querySelectorAll('.panel-tabs .t').forEach(x=>x.classList.remove('on')); t.classList.add('on');
+    document.querySelectorAll('.tabview').forEach(v=>v.classList.toggle('on', v.dataset.view===t.dataset.tab));
+  });
+
+  document.getElementById('agentSel').onchange = e=>{
+    const a=e.target.value;
+    document.getElementById('harnessSub').textContent='AiService · '+a;
+    const tools = { ChatBot:['SearchWiki','Calculate'], WikiAssistant:['SearchWiki','GetWikiPage'], TriviaMaster:['SearchWiki','GetWikiPage','Calculate'] }[a];
+    const box = document.querySelector('#nHarness .subbox');
+    box.innerHTML = '<div class="t">Tools</div>'+tools.map(t=>`<span class="chip" data-tool="${t}">${t}</span>`).join('');
+    document.getElementById('personaLc').textContent = a+' · '+tools.map(t=>'[x] '+t).join(' ');
+  };
+</script>
+</body>
+</html>

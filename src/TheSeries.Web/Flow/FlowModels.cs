@@ -10,9 +10,8 @@ internal enum FlowMode
 /// <summary>
 /// Which tab is active in the left Controls panel, reorganised from two stacked cards into a tabbed view.
 /// <list type="bullet">
-/// <item><description><see cref="Chat"/>: the message box, run/stepping buttons and last-response echo (FlowChat).</description></item>
-/// <item><description><see cref="Settings"/>: agent picker, step delay, stepping mode, tool toggles and workspace input (FlowControls).</description></item>
-/// <item><description><see cref="History"/>: the past conversation turns (user message + agent reply per turn).</description></item>
+/// <item><description><see cref="Chat"/>: the agent picker, message box, run/stepping buttons and conversation log (FlowChat).</description></item>
+/// <item><description><see cref="Settings"/>: step delay, stepping mode, tool toggles and workspace input (FlowControls).</description></item>
 /// <item><description><see cref="Workspace"/>: the workspace's discovered skills and custom instructions.</description></item>
 /// <item><description><see cref="Telemetry"/>: live run figures — turns, context size, persona/tools chars and event count.</description></item>
 /// </list>
@@ -21,7 +20,6 @@ internal enum ControlsTab
 {
     Chat,
     Settings,
-    History,
     Workspace,
     Telemetry,
 }

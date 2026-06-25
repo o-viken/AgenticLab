@@ -1,8 +1,8 @@
 @* The chat part of the left panel: a scrollable conversation log (oldest at the top, newest at the
-   bottom, like a typical chat app) above a composer pinned to the bottom — the message box, the
-   run/stepping action buttons and the inline answer box (shown when an agent's AskQuestion tool is
-   waiting). Reads and writes the shared view/run state. The settings (vendor, agent, stepping, tools,
-   workspace) live in the sibling FlowControls component. *@
+   bottom, like a typical chat app) above a composer pinned to the bottom — the agent picker, the
+   message box, the run/stepping action buttons and the inline answer box (shown when an agent's
+   AskQuestion tool is waiting). Reads and writes the shared view/run state. The remaining settings
+   (vendor in the VendorRail; stepping, tools and workspace in the sibling FlowControls) live elsewhere. *@
 @inject IJSRuntime JS
 <section class="controls chat-controls">
     <div class="chat-log" @ref="_logRef">
@@ -80,6 +80,23 @@
     }
 
     <div class="chat-composer">
+        <div class="control agent-select">
+            <select id="agent" aria-label="Agent" title="Agent" @bind="View.SelectedAgent" @bind:after="Run.OnAgentChangedAsync" disabled="@Run.Running">
+                @foreach (var agent in View.AvailableAgents)
+                {
+                    <option value="@agent.Name">@agent.Label</option>
+                }
+                @if (View.WorkspaceAgentChoices.Count > 0)
+                {
+                    <option disabled>──────────</option>
+                    @foreach (var agent in View.WorkspaceAgentChoices)
+                    {
+                        <option value="@agent.Name">@agent.Label</option>
+                    }
+                }
+            </select>
+        </div>
+
         <div class="control message">
             <label for="message">Message <span class="message-hint">Shift+Enter for a new line</span></label>
             <textarea id="message" rows="1" data-enter-submit @bind="View.Message" @bind:event="oninput"

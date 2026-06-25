@@ -32,7 +32,7 @@
 .step.llm-request .kind,
 .step.llm-response .kind { background: var(--llm-chip-bg); color: var(--llm-chip-text); }
 
-.step.final .kind { background: var(--accent-strong); color: #1a1206; }
+.step.final .kind { background: var(--accent-strong); color: var(--btn-primary-text, #fff); }
 
 .step.error .kind { background: var(--error-bg); color: var(--error-text); }
 

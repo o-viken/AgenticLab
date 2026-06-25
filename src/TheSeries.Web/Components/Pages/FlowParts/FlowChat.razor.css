@@ -45,51 +45,43 @@
     color: var(--text-dim);
 }
 
-/* One exchange: the user bubble then the agent bubble. */
+/* One exchange: the user message then the agent message, as a flat (bubble-free) list — v5 style. */
 .turn {
     display: flex;
     flex-direction: column;
-    gap: .4rem;
+    gap: .75rem;
 }
 
 .bubble {
-    border-radius: 12px;
-    padding: .55rem .8rem;
-    max-width: 88%;
+    padding: 0;
+    max-width: 100%;
 }
 
 .bubble .who {
     display: block;
-    font-size: .66rem;
+    font-size: .62rem;
     text-transform: uppercase;
-    letter-spacing: .5px;
-    margin-bottom: .25rem;
-    opacity: .8;
+    letter-spacing: .6px;
+    font-weight: 700;
+    margin-bottom: .2rem;
+    color: var(--text-faint);
 }
 
 .bubble p {
     margin: 0;
     font-size: .92rem;
-    line-height: 1.45;
+    line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+    color: var(--text);
 }
 
-.bubble.user {
-    align-self: flex-end;
-    background: rgba(var(--accent-rgb), .16);
-    border: 1px solid rgba(var(--accent-rgb), .3);
-}
-
-.bubble.user .who { color: var(--accent-soft); }
-
+.bubble.user,
 .bubble.agent {
-    align-self: flex-start;
-    background: var(--border-soft);
-    border: 1px solid var(--panel-border);
+    align-self: stretch;
+    background: transparent;
+    border: none;
 }
-
-.bubble.agent .who { color: var(--kind-text); }
 
 .bubble.agent .error { color: var(--error); }
 
@@ -129,6 +121,37 @@
 
 .chat-composer .control {
     min-width: 0;
+}
+
+/* Subtle, label-less agent picker at the top of the composer (moved here from Settings). Styled as a
+   quiet ghost dropdown — no border or fill at rest, muted text — so it stays out of the way like the
+   small agent/mode picker in a chat composer footer. */
+.chat-composer .control.agent-select {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: -.15rem;
+}
+
+.chat-composer .control.agent-select select {
+    flex: 0 0 auto;
+    max-width: 60%;
+    padding: .15rem 1.4rem .15rem .4rem;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background-color: transparent;
+    color: var(--text-dim);
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+}
+
+.chat-composer .control.agent-select select:hover:not(:disabled),
+.chat-composer .control.agent-select select:focus-visible {
+    color: var(--text);
+    background-color: var(--surface);
+    border-color: var(--panel-border);
 }
 
 /* Beat the shared `.control.message { flex: 1 1 320px }` atom: in this vertical composer that 320px

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheSeries — V2 Diagram-first (reorg)</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f9fafb;
+    --border: #e6e8ee; --border-strong: #d7dae3;
+    --text: #1b2030; --muted: #5b6478; --faint: #8b93a6;
+    --accent: #4f46e5; --accent-weak: #eef0fe; --accent-ink: #3730a3;
+    --radius: 8px; --radius-lg: 12px;
+    --shadow: 0 1px 2px rgba(20,24,40,.04), 0 8px 22px rgba(20,24,40,.06);
+    --app: #e5484d; --agent: #d6a51b; --user: #2a9d4a;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ---- Top toolbar (replaces left controls panel) ---- */
+  .toolbar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .toolbar .logo { font-weight: 800; color: var(--accent); font-size: 18px; }
+  .toolbar .title { font-weight: 700; font-size: 14px; margin-right: 6px; }
+  .tb-group { display: inline-flex; align-items: center; gap: 7px; }
+  .tb-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 600; }
+  select {
+    border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2);
+    color: var(--text); padding: 6px 9px; font: inherit; font-size: 13px;
+  }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .toolbar .spacer { flex: 1; }
+  .vendors { display: inline-flex; gap: 4px; }
+  .vendors .v { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; cursor: pointer; color: var(--faint); border: 1px solid transparent; }
+  .vendors .v:hover { background: var(--surface-2); color: var(--text); }
+  .vendors .v.active { background: var(--accent-weak); color: var(--accent-ink); border-color: #dcdcfb; }
+
+  /* ---- Workspace: hero diagram + right inspector ---- */
+  .work { flex: 1; display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+  .stage { padding: 18px; overflow: auto; display: flex; flex-direction: column; gap: 16px; }
+  .stage-head { display: flex; align-items: center; justify-content: space-between; }
+  .stage-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); }
+
+  .flow {
+    display: grid; grid-template-columns: 1fr auto 1.3fr auto 1fr; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 28px 22px; box-shadow: var(--shadow);
+  }
+  .node { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-2); padding: 18px 14px; text-align: center; }
+  .node .ic { font-size: 26px; }
+  .node .nm { font-weight: 700; margin-top: 5px; font-size: 15px; }
+  .node .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .node.harness { background: #fbfbff; border-color: #c9cdf6; }
+  .node.llm { border-color: #d9d3f0; }
+  .arrow { display: flex; flex-direction: column; gap: 6px; color: var(--faint); font-size: 11px; min-width: 80px; text-align: center; }
+  .arrow .line { height: 1px; background: repeating-linear-gradient(90deg, var(--border-strong) 0 6px, transparent 6px 12px); }
+  .arrow .anim { background: linear-gradient(90deg, var(--accent), transparent); animation: dash 1.4s linear infinite; height: 2px; }
+  @keyframes dash { from { opacity:.3 } 50% { opacity:1 } to { opacity:.3 } }
+  .subbox { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 9px; text-align: left; }
+  .subbox .t { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 700; margin-bottom: 6px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); margin: 2px 3px 2px 0; }
+  .chip.lit { background: var(--accent-weak); border-color: #dcdcfb; color: var(--accent-ink); }
+
+  /* anatomy strip below diagram */
+  .anatomy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .layer { border-top: 3px solid; border-radius: var(--radius); padding: 11px 12px; background: var(--surface); border: 1px solid var(--border); }
+  .layer.app { border-top-color: var(--app); }
+  .layer.agent { border-top-color: var(--agent); }
+  .layer.user { border-top-color: var(--user); }
+  .layer .lt { font-weight: 700; font-size: 12px; }
+  .layer .lb { font-size: 10px; color: var(--faint); font-weight: 600; margin-top: 1px; }
+  .layer .lc { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ---- Right inspector (steps + telemetry) ---- */
+  .inspector { border-left: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+  .insp-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .insp-tabs .t { flex: 1; text-align: center; padding: 10px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; }
+  .insp-tabs .t.on { color: var(--accent-ink); border-color: var(--accent); }
+  .insp-body { padding: 12px; overflow: auto; }
+  .stepitem { padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 7px; font-size: 12px; }
+  .stepitem .top { display: flex; justify-content: space-between; align-items: center; }
+  .stepitem .tag { font-size: 10px; padding: 1px 7px; border-radius: 4px; background: var(--accent-weak); color: var(--accent-ink); }
+  .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .metric span:last-child { font-weight: 700; }
+
+  /* ---- Bottom chat dock ---- */
+  .dock { border-top: 1px solid var(--border); background: var(--surface); padding: 10px 16px; display: flex; gap: 10px; align-items: flex-end; }
+  .dock .recent { flex: 0 0 auto; max-width: 38%; font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 10px; background: var(--surface-2); }
+  .dock .recent b { color: var(--text); }
+  .dock textarea { flex: 1; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); padding: 9px 11px; font: inherit; font-size: 13px; resize: none; min-height: 42px; }
+  .btn { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: var(--radius); padding: 10px 16px; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  @media (max-width: 900px) {
+    .app { height: auto; min-height: 100vh; overflow: visible; }
+    .toolbar { position: sticky; top: 0; z-index: 10; }
+    .toolbar .title, .toolbar .tb-label { display: none; }
+    .work { display: block; }
+    .stage { padding: 12px; }
+    .flow { grid-template-columns: 1fr; padding: 16px; gap: 8px; }
+    .flow .arrow { transform: rotate(90deg); min-width: 0; height: 26px; }
+    .anatomy { grid-template-columns: 1fr; }
+    .inspector { border-left: 0; border-top: 1px solid var(--border); }
+    .dock { position: sticky; bottom: 0; flex-wrap: wrap; }
+    .dock .recent { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- toolbar -->
+    <header class="toolbar">
+      <span class="logo">≋</span>
+      <span class="title">Agent Application Flow</span>
+      <div class="tb-group"><span class="tb-label">Agent</span>
+        <select><option>ChatBot</option><option>WikiAssistant</option><option>Coder</option></select>
+      </div>
+      <div class="tb-group"><span class="tb-label">Detail</span>
+        <div class="seg" id="seg">
+          <button>Simple</button><button>Technical</button><button class="on">Expert</button>
+        </div>
+      </div>
+      <span class="spacer"></span>
+      <div class="vendors">
+        <div class="v active" title="Default">◆</div>
+        <div class="v" title="Copilot">⧉</div>
+        <div class="v" title="ChatGPT">✸</div>
+        <div class="v" title="Claude">✳</div>
+        <div class="v" title="Gemini">✦</div>
+      </div>
+    </header>
+
+    <!-- workspace -->
+    <div class="work">
+      <section class="stage">
+        <div class="stage-head">
+          <h2>Live data flow</h2>
+          <label style="font-size:12px;color:var(--muted)"><input type="checkbox" checked> Show harness anatomy</label>
+        </div>
+
+        <div class="flow">
+          <div class="node user"><div class="ic">🙂</div><div class="nm">User</div><div class="sub">Human</div></div>
+          <div class="arrow"><div class="anim"></div><div>Input ▶</div><div class="line"></div></div>
+          <div class="node harness">
+            <div class="ic">🧩</div><div class="nm">Harness</div><div class="sub">Client + AiService · ChatBot</div>
+            <div class="subbox"><div class="t">Tools</div><span class="chip lit">SearchWiki</span><span class="chip">Calculate</span></div>
+          </div>
+          <div class="arrow"><div class="anim"></div><div>turn 1 / 1</div><div class="line"></div></div>
+          <div class="node llm"><div class="ic">✦</div><div class="nm">LLM</div><div class="sub">Azure OpenAI · gpt-5.3-chat</div></div>
+        </div>
+
+        <div class="anatomy">
+          <div class="layer app"><div class="lt">System prompt</div><div class="lb">application · 1,820 chars</div><div class="lc">Operating rules, harness framing, tool grounding.</div></div>
+          <div class="layer agent"><div class="lt">Persona &amp; tools</div><div class="lb">agent · 640 chars</div><div class="lc">Friendly companion · [x] SearchWiki [x] Calculate</div></div>
+          <div class="layer user"><div class="lt">User prompt</div><div class="lb">user · 38 chars</div><div class="lc">"How tall is the Eiffel Tower in metres?"</div></div>
+        </div>
+      </section>
+
+      <!-- inspector -->
+      <aside class="inspector">
+        <div class="insp-tabs">
+          <div class="t on">Steps</div><div class="t">Telemetry</div><div class="t">Learn</div>
+        </div>
+        <div class="insp-body">
+          <div class="stepitem"><div class="top"><span>received</span><span class="tag">received</span></div></div>
+          <div class="stepitem"><div class="top"><span>llm-request</span><span class="tag">turn 1</span></div></div>
+          <div class="stepitem"><div class="top"><span>tool-call · SearchWiki</span><span class="tag">tool</span></div></div>
+          <div class="stepitem"><div class="top"><span>tool-result</span><span class="tag">result</span></div></div>
+          <div class="stepitem"><div class="top"><span>final answer</span><span class="tag">final</span></div></div>
+          <hr style="border:0;border-top:1px solid var(--border);margin:12px 0" />
+          <div class="metric"><span>Turns</span><span>1</span></div>
+          <div class="metric"><span>Context</span><span>~2,498 chars</span></div>
+          <div class="metric"><span>Persona</span><span>640 chars</span></div>
+          <div class="metric"><span>Tools</span><span>1,210 chars</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- bottom chat dock -->
+    <footer class="dock">
+      <div class="recent"><b>ChatBot:</b> The Eiffel Tower is about 330 m tall (with antennas).</div>
+      <textarea placeholder="Ask something…"></textarea>
+      <button class="btn">New</button>
+      <button class="btn primary">Send</button>
+    </footer>
+  </div>
+
+  <script>
+    document.querySelectorAll('#seg button').forEach(b => b.onclick = () => {
+      document.querySelectorAll('#seg button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    });
+    document.querySelectorAll('.insp-tabs .t').forEach(t => t.onclick = () => {
+      document.querySelectorAll('.insp-tabs .t').forEach(x => x.classList.remove('on')); t.classList.add('on');
+    });
+    document.querySelectorAll('.vendors .v').forEach(v => v.onclick = () => {
+      document.querySelectorAll('.vendors .v').forEach(x => x.classList.remove('active')); v.classList.add('active');
+    });
+  </script>
+</body>
+</html>

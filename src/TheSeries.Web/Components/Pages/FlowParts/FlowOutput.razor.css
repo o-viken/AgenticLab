@@ -57,10 +57,11 @@
 
 .log,
 .reply {
-    padding: 1rem 1.25rem;
-    background: var(--surface-panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 14px;
+    padding: .9rem 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--panel-border);
+    border-radius: 0;
 }
 
 .log h2,

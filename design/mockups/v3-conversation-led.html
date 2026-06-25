@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheSeries — V3 Conversation-led (reorg)</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f9fafb;
+    --border: #e6e8ee; --border-strong: #d7dae3;
+    --text: #1b2030; --muted: #5b6478; --faint: #8b93a6;
+    --accent: #4f46e5; --accent-weak: #eef0fe; --accent-ink: #3730a3;
+    --radius: 8px; --radius-lg: 14px;
+    --shadow: 0 1px 2px rgba(20,24,40,.04), 0 10px 26px rgba(20,24,40,.07);
+    --app: #e5484d; --agent: #d6a51b; --user: #2a9d4a;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* slim vendor rail */
+  .rail { width: 52px; flex: 0 0 52px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 6px; }
+  .rail .brand { font-weight: 800; color: var(--accent); font-size: 18px; }
+  .rail .sep { width: 22px; height: 1px; background: var(--border); margin: 3px 0; }
+  .rail .v { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; color: var(--faint); border: 1px solid transparent; }
+  .rail .v:hover { background: var(--surface-2); color: var(--text); }
+  .rail .v.active { background: var(--accent-weak); color: var(--accent-ink); border-color: #dcdcfb; }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .topbar h1 { margin: 0; font-size: 15px; font-weight: 700; }
+  .topbar select { border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); padding: 6px 9px; font: inherit; font-size: 13px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .ghost { border: 1px solid var(--border-strong); background: var(--surface); border-radius: var(--radius); padding: 7px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .topbar .ghost.on { background: var(--accent-weak); color: var(--accent-ink); border-color: #dcdcfb; }
+
+  /* conversation column */
+  .convo-wrap { flex: 1; display: flex; min-height: 0; }
+  .convo { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .scroll { flex: 1; overflow: auto; padding: 22px clamp(16px, 6vw, 80px); }
+  .thread { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .msg { display: flex; gap: 12px; }
+  .av { width: 30px; height: 30px; border-radius: 8px; flex: 0 0 30px; display: grid; place-items: center; font-size: 15px; }
+  .av.u { background: var(--accent-weak); color: var(--accent-ink); }
+  .av.a { background: #f0f1f4; }
+  .msg .content { flex: 1; }
+  .msg .who { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 700; margin-bottom: 3px; }
+  .msg .txt { font-size: 14px; }
+  .msg .meta { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .pill:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* composer */
+  .composer { border-top: 1px solid var(--border); background: var(--surface); padding: 14px clamp(16px, 6vw, 80px); }
+  .composer .inner { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 8px 8px 8px 14px; background: var(--surface-2); }
+  .composer textarea { flex: 1; border: 0; background: transparent; resize: none; font: inherit; font-size: 14px; outline: none; min-height: 24px; max-height: 140px; padding: 6px 0; }
+  .send { border: 0; background: var(--accent); color: #fff; border-radius: 10px; width: 38px; height: 38px; font-size: 16px; cursor: pointer; flex: 0 0 38px; }
+
+  /* inspector slide-over (the flow diagram) */
+  .inspector { width: 0; flex: 0 0 0; border-left: 1px solid var(--border); background: var(--surface); overflow: hidden; transition: flex-basis .2s ease, width .2s ease; }
+  body.insp-open .inspector { width: 380px; flex: 0 0 380px; }
+  .insp-inner { width: 380px; height: 100%; display: flex; flex-direction: column; }
+  .insp-head { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+  .insp-head .x { cursor: pointer; color: var(--muted); border: 0; background: transparent; font-size: 16px; }
+  .insp-body { padding: 14px; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+
+  .flow-mini { display: flex; flex-direction: column; gap: 8px; }
+  .fnode { border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface-2); padding: 11px 12px; display: flex; gap: 10px; align-items: center; }
+  .fnode .ic { font-size: 18px; }
+  .fnode .nm { font-weight: 700; font-size: 13px; }
+  .fnode .sub { font-size: 11px; color: var(--muted); }
+  .fconn { text-align: center; color: var(--faint); font-size: 13px; }
+
+  .layer { border-left: 3px solid; border-radius: var(--radius); padding: 9px 11px; background: var(--surface-2); border: 1px solid var(--border); }
+  .layer.app { border-left-color: var(--app); } .layer.agent { border-left-color: var(--agent); } .layer.user { border-left-color: var(--user); }
+  .layer .lt { font-weight: 700; font-size: 12px; display: flex; justify-content: space-between; }
+  .layer .lt .b { font-size: 10px; color: var(--faint); font-weight: 600; }
+  .layer .lc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .secttitle { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 700; }
+
+  @media (max-width: 880px) {
+    .app { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+    .rail { width: 100%; flex-direction: row; height: 50px; padding: 0 10px; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .rail .sep { width: 1px; height: 20px; }
+    .topbar { position: sticky; top: 0; z-index: 6; }
+    .topbar h1 { font-size: 14px; }
+    .scroll { padding: 16px; }
+    .composer { padding: 12px; position: sticky; bottom: 0; }
+    /* inspector becomes a full-screen overlay */
+    .inspector { position: fixed; inset: 0; z-index: 50; width: 100% !important; flex-basis: auto; border-left: 0; transform: translateX(100%); transition: transform .22s ease; }
+    body.insp-open .inspector { transform: translateX(0); width: 100% !important; }
+    .insp-inner { width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <nav class="rail">
+      <div class="brand">≋</div><div class="sep"></div>
+      <div class="v active" title="Default">◆</div>
+      <div class="v" title="Copilot">⧉</div>
+      <div class="v" title="ChatGPT">✸</div>
+      <div class="v" title="Claude">✳</div>
+      <div class="v" title="Gemini">✦</div>
+      <div class="v" title="M365">◍</div>
+    </nav>
+
+    <div class="main">
+      <header class="topbar">
+        <h1>TheSeries</h1>
+        <select><option>ChatBot</option><option>WikiAssistant</option><option>Coder</option></select>
+        <span class="spacer"></span>
+        <button class="ghost" id="inspBtn">⧉ Inspect flow</button>
+        <button class="ghost">+ New</button>
+      </header>
+
+      <div class="convo-wrap">
+        <div class="convo">
+          <div class="scroll">
+            <div class="thread">
+              <div class="msg">
+                <div class="av u">🙂</div>
+                <div class="content"><div class="who">You</div><div class="txt">How tall is the Eiffel Tower in metres?</div></div>
+              </div>
+              <div class="msg">
+                <div class="av a">🤖</div>
+                <div class="content">
+                  <div class="who">ChatBot</div>
+                  <div class="txt">The Eiffel Tower stands about <b>330 metres</b> tall including its antennas (around 300 m to the tip of the structure itself).</div>
+                  <div class="meta">
+                    <span class="pill" onclick="openInsp()"><span class="dot" style="background:var(--accent)"></span>1 turn · 5 steps</span>
+                    <span class="pill"><span class="dot" style="background:var(--app)"></span>SearchWiki</span>
+                    <span class="pill" onclick="openInsp()">View flow →</span>
+                  </div>
+                </div>
+              </div>
+              <div class="msg">
+                <div class="av u">🙂</div>
+                <div class="content"><div class="who">You</div><div class="txt">And how many feet is that?</div></div>
+              </div>
+              <div class="msg">
+                <div class="av a">🤖</div>
+                <div class="content">
+                  <div class="who">ChatBot</div>
+                  <div class="txt">About <b>1,083 feet</b> (330 m × 3.281).</div>
+                  <div class="meta">
+                    <span class="pill" onclick="openInsp()"><span class="dot" style="background:var(--accent)"></span>1 turn · 3 steps</span>
+                    <span class="pill"><span class="dot" style="background:var(--agent)"></span>Calculate</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer">
+            <div class="inner">
+              <textarea placeholder="Message ChatBot…" rows="1"></textarea>
+              <button class="send">↑</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- inspector: the flow visualization, on demand -->
+        <aside class="inspector">
+          <div class="insp-inner">
+            <div class="insp-head">Flow inspector <button class="x" onclick="closeInsp()">✕</button></div>
+            <div class="insp-body">
+              <div class="secttitle">Data flow</div>
+              <div class="flow-mini">
+                <div class="fnode"><span class="ic">🙂</span><div><div class="nm">User</div><div class="sub">Human · "And how many feet…"</div></div></div>
+                <div class="fconn">▼ input</div>
+                <div class="fnode"><span class="ic">🧩</span><div><div class="nm">Harness</div><div class="sub">AiService · ChatBot · tool: Calculate</div></div></div>
+                <div class="fconn">▼ turn 1/1</div>
+                <div class="fnode"><span class="ic">✦</span><div><div class="nm">LLM</div><div class="sub">Azure OpenAI · gpt-5.3-chat</div></div></div>
+              </div>
+
+              <div class="secttitle">Harness anatomy</div>
+              <div class="layer app"><div class="lt">System prompt <span class="b">app · 1,820</span></div><div class="lc">Operating rules + harness framing.</div></div>
+              <div class="layer agent"><div class="lt">Persona &amp; tools <span class="b">agent · 640</span></div><div class="lc">Friendly companion · [x] Calculate</div></div>
+              <div class="layer user"><div class="lt">User prompt <span class="b">user · 24</span></div><div class="lc">"And how many feet is that?"</div></div>
+
+              <div class="secttitle">Steps</div>
+              <div class="layer"><div class="lt">received → llm-request → tool-call → tool-result → final</div></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openInsp(){ document.body.classList.add('insp-open'); document.getElementById('inspBtn').classList.add('on'); }
+    function closeInsp(){ document.body.classList.remove('insp-open'); document.getElementById('inspBtn').classList.remove('on'); }
+    document.getElementById('inspBtn').onclick = () => document.body.classList.contains('insp-open') ? closeInsp() : openInsp();
+    document.querySelectorAll('.rail .v').forEach(v => v.onclick = () => { document.querySelectorAll('.rail .v').forEach(x=>x.classList.remove('active')); v.classList.add('active'); });
+  </script>
+</body>
+</html>

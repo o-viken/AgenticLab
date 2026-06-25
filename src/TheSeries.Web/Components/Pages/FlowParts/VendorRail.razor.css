@@ -2,15 +2,15 @@
    so it re-colours automatically with the active vendor. */
 
 .vendor-rail {
-    flex: 0 0 64px;
-    width: 64px;
+    flex: 0 0 54px;
+    width: 54px;
     align-self: stretch;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    padding: 0.75rem 0;
-    background: var(--surface-2);
+    gap: 0.35rem;
+    padding: 0.6rem 0;
+    background: var(--surface);
     border-right: 1px solid var(--panel-border);
     overflow: visible;
     /* Sit above the shell's content (the diagram uses z-index 5, the mobile sticky header 20)
@@ -19,9 +19,9 @@
 }
 
 .rail-divider {
-    width: 28px;
+    width: 22px;
     height: 1px;
-    margin: 0.15rem 0 0.35rem;
+    margin: 0.1rem 0 0.25rem;
     background: var(--panel-border);
 }
 
@@ -48,27 +48,27 @@
 .rail-item.active::before {
     content: "";
     position: absolute;
-    left: -0.75rem;
+    left: -0.6rem;
     top: 50%;
     transform: translateY(-50%);
     width: 3px;
-    height: 26px;
-    border-radius: 0 3px 3px 0;
+    height: 22px;
+    border-radius: 0 2px 2px 0;
     background: var(--accent);
 }
 
 .rail-icon {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 10px;
     background: transparent;
     color: var(--text-muted);
-    opacity: 0.7;
+    opacity: 0.75;
     cursor: pointer;
     transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -76,8 +76,8 @@
 .rail-icon:hover:not(:disabled) {
     opacity: 1;
     color: var(--text);
-    background: var(--surface);
-    border-color: var(--panel-border);
+    background: var(--surface-2);
+    border-color: transparent;
 }
 
 .rail-icon:disabled {
@@ -88,13 +88,13 @@
 .rail-item.active .rail-icon {
     opacity: 1;
     color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.14);
-    border-color: rgba(var(--accent-rgb), 0.4);
+    background: var(--accent-weak, rgba(var(--accent-rgb), 0.14));
+    border-color: rgba(var(--accent-rgb), 0.3);
 }
 
 .rail-icon svg {
-    width: 24px;
-    height: 24px;
+    width: 21px;
+    height: 21px;
 }
 
 /* Hover tooltip card. Sits flush against the rail's right edge (no gap) so moving the

@@ -456,15 +456,6 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         _ => "p-full",
     };
 
-    /// <summary>A one-line description of the selected detail level, shown under the ladder control.</summary>
-    public string DetailLevelHint => _perspective switch
-    {
-        Perspective.Simple => "User ↔ Service · the model is hidden inside",
-        Perspective.NonTechnical => "User → Application → LLM",
-        Perspective.Technical => "User → Client → AiService → LLM",
-        _ => "Full harness · tools, context and every step",
-    };
-
     /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
     public string VendorClass => VendorCatalog.CssClass(_vendor);
 

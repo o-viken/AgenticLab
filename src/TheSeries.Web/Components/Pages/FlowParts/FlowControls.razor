@@ -1,27 +1,9 @@
-@* The control part of the left panel: agent picker, per-tool toggles, the optional workspace input,
-   the auto-step delay and the stepping mode. Reads and writes the shared view/run state. The vendor
-   picker now lives in the left-edge VendorRail; the chat (message box, run buttons, answer box,
-   last-response echo) lives in the sibling FlowChat component. *@
+@* The control part of the left panel: per-tool toggles, the optional workspace input, the auto-step
+   delay and the stepping mode. Reads and writes the shared view/run state. The vendor picker lives in
+   the left-edge VendorRail; the agent picker and chat (message box, run buttons, answer box) live in
+   the sibling FlowChat component. *@
 
 <section class="controls settings-controls">
-    <div class="control">
-        <label for="agent">Agent</label>
-        <select id="agent" @bind="View.SelectedAgent" @bind:after="Run.OnAgentChangedAsync" disabled="@Run.Running">
-            @foreach (var agent in View.AvailableAgents)
-            {
-                <option value="@agent.Name">@agent.Label</option>
-            }
-            @if (View.WorkspaceAgentChoices.Count > 0)
-            {
-                <option disabled>──────────</option>
-                @foreach (var agent in View.WorkspaceAgentChoices)
-                {
-                    <option value="@agent.Name">@agent.Label</option>
-                }
-            }
-        </select>
-    </div>
-
     <div class="control">
         <label for="delay">Auto step delay <span>@View.StepDelayMs ms</span></label>
         <input id="delay" type="range" min="0" max="3000" step="50"

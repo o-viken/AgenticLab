@@ -10,7 +10,7 @@
             <div class="mode-toggle perspective-toggle ladder">
                 <button type="button" class="@(View.Perspective == Perspective.Simple ? "selected" : "")"
                         @onclick="@(() => View.Perspective = Perspective.Simple)"
-                        title="User ↔ Service (the model is hidden inside)">Simple</button>
+                        title="User ↔ Service (the model is hidden inside)">Basic</button>
                 <button type="button" class="@(View.Perspective == Perspective.NonTechnical ? "selected" : "")"
                         @onclick="@(() => View.Perspective = Perspective.NonTechnical)"
                         title="User → Application → LLM">Non-technical</button>
@@ -21,7 +21,6 @@
                         @onclick="@(() => View.Perspective = Perspective.Expert)"
                         title="Full harness, tools and steps">Expert</button>
             </div>
-            <span class="detail-sublabel">@View.DetailLevelHint</span>
         </div>
 
         <div class="diagram-control">

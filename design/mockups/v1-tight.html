@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TheSeries — V1 Minimal (tightened 3-panel)</title>
+<style>
+  /* ---- Design tokens (light, neutral, single accent) ---- */
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #fafbfc;
+    --border: #e6e8ee;
+    --border-strong: #d7dae3;
+    --text: #1b2030;
+    --muted: #5b6478;
+    --faint: #8b93a6;
+    --accent: #4f46e5;
+    --accent-weak: #eef0fe;
+    --accent-ink: #3730a3;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 2px rgba(20,24,40,.04), 0 6px 18px rgba(20,24,40,.05);
+    /* Fixed contributor semantics (NOT branding) */
+    --app: #e5484d;
+    --agent: #d6a51b;
+    --user: #2a9d4a;
+    --gap: 12px;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ---- Vendor rail ---- */
+  .rail {
+    width: 56px; flex: 0 0 56px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 12px 0; gap: 8px;
+  }
+  .rail .brand { font-weight: 800; color: var(--accent); font-size: 18px; letter-spacing: -.5px; }
+  .rail .sep { width: 24px; height: 1px; background: var(--border); margin: 4px 0; }
+  .rail .v {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--faint); border: 1px solid transparent; font-size: 15px;
+    transition: .15s;
+  }
+  .rail .v:hover { background: var(--surface-2); color: var(--text); }
+  .rail .v.active { background: var(--accent-weak); color: var(--accent-ink); border-color: #dcdcfb; }
+
+  /* ---- Shell ---- */
+  .shell { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .head {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .head h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
+  .head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+  .head .toggle { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+  .body {
+    flex: 1; display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--gap); padding: var(--gap); min-height: 0;
+  }
+
+  /* ---- Panel atom ---- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  }
+  .panel-head {
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--faint); display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-body { padding: 12px; overflow: auto; min-height: 0; }
+
+  /* ---- Tabs (controls) ---- */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); padding: 0 6px; }
+  .tab {
+    padding: 9px 10px; font-size: 12px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent; cursor: pointer; user-select: none;
+  }
+  .tab.active { color: var(--accent-ink); border-color: var(--accent); }
+
+  .field { margin-bottom: 14px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); margin-bottom: 5px; font-weight: 600; }
+  select, input[type=text], textarea {
+    width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius);
+    background: var(--surface-2); color: var(--text); padding: 8px 10px; font: inherit; font-size: 13px;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 8px; }
+  .btn {
+    border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+    border-radius: var(--radius); padding: 9px 14px; font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #4338ca; }
+  .btn:hover { border-color: var(--accent); }
+
+  /* chat bubbles */
+  .chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .bub { max-width: 85%; padding: 8px 11px; border-radius: 12px; font-size: 13px; }
+  .bub .who { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); margin-bottom: 3px; font-weight: 700; }
+  .bub.me { align-self: flex-end; background: var(--accent-weak); border: 1px solid #e0e1fb; }
+  .bub.bot { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--border); }
+
+  /* ---- Diagram ---- */
+  .stage { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
+  .stage .panel-body { display: flex; flex-direction: column; gap: 14px; }
+
+  .diagram-controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    padding: 10px 12px; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .ladder { display: inline-flex; flex-direction: column; gap: 4px; }
+  .ladder .cap { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 700; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; padding: 2px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .checkline { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+
+  .flow {
+    display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 8px;
+    padding: 8px 0;
+  }
+  .node {
+    border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface);
+    padding: 14px 12px; text-align: center; box-shadow: var(--shadow);
+  }
+  .node .ic { font-size: 22px; }
+  .node .nm { font-weight: 700; margin-top: 4px; font-size: 14px; }
+  .node .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .node.harness { border-color: #c9cdf6; }
+  .node.llm { border-color: #d9d3f0; }
+  .arrow { display: flex; flex-direction: column; gap: 6px; color: var(--faint); font-size: 11px; min-width: 70px; }
+  .arrow .a { display: flex; align-items: center; gap: 6px; }
+  .arrow .line { flex: 1; height: 1px; background: repeating-linear-gradient(90deg, var(--border-strong) 0 6px, transparent 6px 12px); }
+
+  .subbox { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; text-align: left; }
+  .subbox .t { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 700; margin-bottom: 5px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); margin: 2px 3px 2px 0; }
+
+  /* ---- Expert anatomy ---- */
+  .anatomy { display: none; flex-direction: column; gap: 10px; }
+  body.expert .anatomy { display: flex; }
+  body.expert .flow { display: none; }
+  .layer { border-left: 3px solid; border-radius: var(--radius); padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); }
+  .layer.app { border-left-color: var(--app); }
+  .layer.agent { border-left-color: var(--agent); }
+  .layer.user { border-left-color: var(--user); }
+  .layer .lh { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 12px; }
+  .layer .badge { font-size: 10px; color: var(--faint); font-weight: 600; }
+  .layer .lc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .ctxbar { display: flex; gap: 0; height: 10px; border-radius: 999px; overflow: hidden; margin-top: 6px; border: 1px solid var(--border); }
+  .ctxbar i { display: block; height: 100%; }
+  .ctxchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .ctxchip { font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); display: flex; gap: 6px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+
+  .steps summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .stepitem { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); margin-top: 6px; font-size: 12px; display: flex; justify-content: space-between; }
+  .stepitem .tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--accent-weak); color: var(--accent-ink); }
+
+  .mobile-tabbar { display: none; }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 860px) {
+    .app { flex-direction: column; height: auto; min-height: 100vh; overflow: visible; }
+    .rail {
+      width: 100%; flex-direction: row; height: 52px; padding: 0 10px;
+      border-right: 0; border-bottom: 1px solid var(--border); justify-content: flex-start; overflow-x: auto;
+    }
+    .rail .sep { width: 1px; height: 22px; }
+    .head { position: sticky; top: 0; z-index: 5; }
+    .head p { display: none; }
+    .body { display: block; padding: 10px; }
+    .body > .panel { margin-bottom: 10px; }
+    .controls-panel { display: none; }
+    body.show-controls .controls-panel { display: flex; position: fixed; inset: 52px 0 56px; z-index: 30; border-radius: 0; }
+    .flow { grid-template-columns: 1fr; }
+    .flow .arrow { flex-direction: row; min-width: 0; justify-content: center; transform: rotate(90deg); height: 28px; }
+    .mobile-tabbar {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 56px; z-index: 40;
+      background: var(--surface); border-top: 1px solid var(--border);
+    }
+    .mobile-tabbar button { flex: 1; border: 0; background: transparent; font: inherit; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; }
+    .mobile-tabbar button .mi { font-size: 18px; }
+    .mobile-tabbar button.on { color: var(--accent-ink); }
+    body { padding-bottom: 56px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- vendor rail -->
+    <nav class="rail">
+      <div class="brand">≋</div>
+      <div class="sep"></div>
+      <div class="v active" title="Default">◆</div>
+      <div class="v" title="Copilot">⧉</div>
+      <div class="v" title="ChatGPT">✸</div>
+      <div class="v" title="Claude">✳</div>
+      <div class="v" title="Gemini">✦</div>
+      <div class="v" title="M365">◍</div>
+    </nav>
+
+    <div class="shell">
+      <header class="head">
+        <div>
+          <h1>Agent Application Flow</h1>
+          <p>Watch data travel from the user, through the harness, to the tools and the LLM — and back.</p>
+        </div>
+        <label class="toggle"><input type="checkbox" /> Show concept info</label>
+      </header>
+
+      <main class="body">
+        <!-- CONTROLS -->
+        <section class="panel controls-panel">
+          <div class="tabs">
+            <div class="tab active">Chat</div>
+            <div class="tab">Settings</div>
+            <div class="tab">History</div>
+            <div class="tab">Workspace</div>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;">
+            <div class="chat">
+              <div class="bub me"><div class="who">You</div>hi</div>
+              <div class="bub bot"><div class="who">ChatBot</div>hey there! how's it going? 😊</div>
+            </div>
+            <div class="field" style="margin-top:auto;">
+              <div class="label">Message</div>
+              <textarea placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"></textarea>
+            </div>
+            <div class="row">
+              <button class="btn primary" style="flex:1">Send</button>
+              <button class="btn">New</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- MAIN -->
+        <section class="panel stage">
+          <div class="panel-head">Main · ChatBot <span style="color:var(--faint);font-weight:600;">Azure OpenAI · gpt-5.3-chat</span></div>
+          <div class="panel-body">
+            <!-- diagram controls -->
+            <div class="diagram-controls">
+              <div class="ladder">
+                <span class="cap">Detail level</span>
+                <div class="seg" id="seg">
+                  <button data-lvl="simple">Simple</button>
+                  <button data-lvl="nontech">Non-tech</button>
+                  <button data-lvl="tech">Technical</button>
+                  <button data-lvl="expert" class="on">Expert</button>
+                </div>
+              </div>
+              <label class="checkline"><input type="checkbox" /> Environment &amp; risk</label>
+              <label class="checkline"><input type="checkbox" id="anatomyToggle" checked /> Expand harness</label>
+            </div>
+
+            <!-- compact flow -->
+            <div class="flow">
+              <div class="node user">
+                <div class="ic">🙂</div><div class="nm">User</div><div class="sub">Human</div>
+              </div>
+              <div class="arrow">
+                <div class="a"><span class="line"></span>▶</div>
+                <div style="text-align:center">Input</div>
+                <div class="a">◀<span class="line"></span></div>
+              </div>
+              <div class="node harness">
+                <div class="ic">🧩</div><div class="nm">Harness</div><div class="sub">Client + AiService · ChatBot</div>
+                <div class="subbox">
+                  <div class="t">Tools</div>
+                  <span class="chip">SearchWiki</span><span class="chip">Calculate</span>
+                </div>
+              </div>
+              <div class="arrow">
+                <div class="a"><span class="line"></span>▶</div>
+                <div style="text-align:center">turn 1/1</div>
+                <div class="a">◀<span class="line"></span></div>
+              </div>
+              <div class="node llm">
+                <div class="ic">✦</div><div class="nm">LLM (MCP)</div><div class="sub">Azure OpenAI · gpt-5.3-chat</div>
+              </div>
+            </div>
+
+            <!-- expert anatomy -->
+            <div class="anatomy">
+              <div class="layer app">
+                <div class="lh">System prompt + harness <span class="badge">application · 1,820 chars</span></div>
+                <div class="lc">Operating rules: ground answers in tool results, prefer tools over memory, be concise.</div>
+              </div>
+              <div class="layer agent">
+                <div class="lh">Agent persona &amp; tools <span class="badge">agent · 640 chars</span></div>
+                <div class="lc">Friendly conversational companion · Tools: [x] SearchWiki &nbsp; [x] Calculate</div>
+              </div>
+              <div class="layer user">
+                <div class="lh">User prompt <span class="badge">user · 2 chars</span></div>
+                <div class="lc">"hi"</div>
+              </div>
+              <div class="layer">
+                <div class="lh">Context <span class="badge">~2,462 chars this turn</span></div>
+                <div class="ctxbar">
+                  <i style="width:62%;background:var(--app)"></i>
+                  <i style="width:26%;background:var(--agent)"></i>
+                  <i style="width:12%;background:var(--user)"></i>
+                </div>
+                <div class="ctxchips">
+                  <span class="ctxchip"><span class="dot" style="background:var(--user)"></span>user: "hi"</span>
+                  <span class="ctxchip"><span class="dot" style="background:var(--agent)"></span>assistant: "hey there! how's it going?…"</span>
+                </div>
+              </div>
+            </div>
+
+            <details class="steps" open>
+              <summary>Steps &amp; reply · 2 steps</summary>
+              <div class="stepitem"><span>received · user message</span><span class="tag">received</span></div>
+              <div class="stepitem"><span>llm-response · final answer</span><span class="tag">final</span></div>
+            </details>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- mobile bottom tab bar -->
+  <nav class="mobile-tabbar">
+    <button class="on" onclick="document.body.classList.remove('show-controls')"><span class="mi">▦</span>Flow</button>
+    <button onclick="document.body.classList.add('show-controls')"><span class="mi">💬</span>Chat</button>
+    <button><span class="mi">⚙</span>Settings</button>
+    <button><span class="mi">ⓘ</span>Learn</button>
+  </nav>
+
+  <script>
+    // tabs
+    document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+    });
+    // detail-level segmented + expert anatomy
+    const seg = document.getElementById('seg');
+    function applyExpert(){
+      document.body.classList.toggle('expert',
+        seg.querySelector('.on')?.dataset.lvl === 'expert' &&
+        document.getElementById('anatomyToggle').checked);
+    }
+    seg.querySelectorAll('button').forEach(b => b.onclick = () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); applyExpert();
+    });
+    document.getElementById('anatomyToggle').onchange = applyExpert;
+    applyExpert();
+  </script>
+</body>
+</html>

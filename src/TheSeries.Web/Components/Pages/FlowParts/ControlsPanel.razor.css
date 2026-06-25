@@ -12,29 +12,42 @@
 }
 
 /* Tab strip ----------------------------------------------------------- */
+/* A minimal icon-over-label nav bar (mirrors the redesign sketch): evenly-spread tabs, each a small
+   line icon above a quiet label; the active tab lifts to the accent colour with a soft underline. */
 .tab-strip {
     display: flex;
-    flex-wrap: wrap;
-    gap: .25rem;
+    gap: .15rem;
     border-bottom: 1px solid var(--panel-border);
     padding-bottom: .15rem;
 }
 
 .tab-strip .tab {
+    position: relative;
+    flex: 1 1 0;
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
-    gap: .35rem;
-    padding: .45rem .7rem;
+    gap: .2rem;
+    padding: .5rem .35rem .45rem;
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
     color: var(--text-dim);
-    font-size: .82rem;
+    font-size: .72rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .4px;
+    letter-spacing: .2px;
     cursor: pointer;
-    border-radius: 6px 6px 0 0;
+    border-radius: 8px 8px 0 0;
+    transition: color .15s ease, background .15s ease;
+}
+
+.tab-strip .tab .tab-icon {
+    display: inline-flex;
+}
+
+.tab-strip .tab .tab-icon svg {
+    width: 19px;
+    height: 19px;
 }
 
 .tab-strip .tab:hover {
@@ -48,16 +61,20 @@
 }
 
 .tab-badge {
+    position: absolute;
+    top: .25rem;
+    right: 50%;
+    transform: translateX(1.05rem);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.15rem;
-    height: 1.15rem;
-    padding: 0 .3rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 .28rem;
     border-radius: 999px;
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
-    font-size: .68rem;
+    font-size: .64rem;
     font-weight: 700;
     line-height: 1;
 }

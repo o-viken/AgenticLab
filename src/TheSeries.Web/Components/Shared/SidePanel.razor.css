@@ -19,6 +19,7 @@
     background: var(--surface, #11152400);
     border: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
     border-radius: 12px;
+    box-shadow: var(--shadow, none);
 }
 
 /* Header bar: title on the left, actions (incl. collapse button) on the right. */
@@ -92,7 +93,7 @@
     width: 2px;
     transform: translateX(-50%);
     border-radius: 2px;
-    background: var(--panel-border, rgba(120, 140, 190, .3));
+    background: transparent;
     transition: background .15s ease;
 }
 
