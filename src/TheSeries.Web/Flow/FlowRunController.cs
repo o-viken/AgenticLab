@@ -448,7 +448,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         try
         {
             await foreach (var flowEvent in ai.StreamFlowAsync(
-                view.Message, view.SelectedAgent, _sessionId, _conversationId,
+                _runMessage, view.SelectedAgent, _sessionId, _conversationId,
                 view.Mode == FlowMode.Manual, view.StepDelayMs, view.Workspace,
                 view.DisabledToolsOrNull, view.VendorKey, token))
             {
