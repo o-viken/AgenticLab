@@ -1,0 +1,11 @@
+{
+  "title": "Tokenization & inference",
+  "category": "core",
+  "summary": "How a language model reads text as discrete tokens and generates a reply one token at a time, predicting each next token from a probability distribution over its vocabulary.",
+  "links": [
+    { "label": "OpenAI — What are tokens", "url": "https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them" },
+    { "label": "OpenAI Tokenizer (interactive)", "url": "https://platform.openai.com/tokenizer" },
+    { "label": "Hugging Face — Tokenizers", "url": "https://huggingface.co/learn/nlp-course/chapter6/1" },
+    { "label": "Wikipedia — Autoregressive model", "url": "https://en.wikipedia.org/wiki/Autoregressive_model" }
+  ]
+}

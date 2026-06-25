@@ -52,6 +52,10 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _showEnvironment;
     private bool _showPromptSignature;
     private bool _promptSignatureDelta;
+    private bool _showInferenceView;
+    private bool _showEmbeddingsView;
+    private bool _showNetworkView;
+    private string? _selectedToken;
     private bool _showConcepts;
     private bool _expandHarness;
     private bool _showFullHarnessPrompt;
@@ -349,6 +353,62 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         get => _promptSignatureDelta;
         set { _promptSignatureDelta = value; Notify(); }
     }
+
+    /// <summary>
+    /// Whether the simulated inference panel (the latest prompt tokenized + the answer replayed as
+    /// autoregressively generated tokens) is shown (Expert only). The tokens are a client-side fabrication.
+    /// </summary>
+    public bool ShowInferenceView
+    {
+        get => _showInferenceView;
+        set { _showInferenceView = value; Notify(); }
+    }
+
+    /// <summary>
+    /// Whether the simulated embeddings panel (prompt tokens as fake vectors and a 2-D meaning map) is shown
+    /// (Expert only). The vectors are a client-side fabrication.
+    /// </summary>
+    public bool ShowEmbeddingsView
+    {
+        get => _showEmbeddingsView;
+        set { _showEmbeddingsView = value; Notify(); }
+    }
+
+    /// <summary>
+    /// Whether the simulated neural-network panel (a symbolic forward pass that consumes the embedding
+    /// vectors) is shown (Expert only). The network is a client-side fabrication.
+    /// </summary>
+    public bool ShowNetworkView
+    {
+        get => _showNetworkView;
+        set { _showNetworkView = value; Notify(); }
+    }
+
+    /// <summary>
+    /// The token the user has "pinned" (by clicking it in the Inference or Embeddings panels), normalised to
+    /// lower-cased + trimmed so the same word matches across panels. When set, that token is cross-highlighted
+    /// everywhere it appears and its fabricated vector/coordinates are shown numerically and fed into the
+    /// symbolic network's input layer — linking the tokenizer, the embedding and the forward pass. Null when
+    /// nothing is selected.
+    /// </summary>
+    public string? SelectedToken => _selectedToken;
+
+    /// <summary>
+    /// Toggles the pinned token: clicking the already-selected token clears the selection, otherwise selects
+    /// the (normalised) token. Blank/whitespace tokens are ignored (they carry no embedding).
+    /// </summary>
+    public void SelectToken(string? text)
+    {
+        var key = string.IsNullOrWhiteSpace(text) ? null : text.Trim().ToLowerInvariant();
+        _selectedToken = (key is not null && key == _selectedToken) ? null : key;
+        Notify();
+    }
+
+    /// <summary>Whether <paramref name="text"/> is the currently pinned token (case/whitespace-insensitive).</summary>
+    public bool IsTokenSelected(string? text)
+        => _selectedToken is not null
+           && !string.IsNullOrWhiteSpace(text)
+           && string.Equals(text.Trim().ToLowerInvariant(), _selectedToken, StringComparison.Ordinal);
 
     // --- Stepping helper toggles -----------------------------------------
 

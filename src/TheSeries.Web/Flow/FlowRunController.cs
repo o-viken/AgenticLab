@@ -53,6 +53,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private int _totalTurns;
     private PromptSignatureView _promptSignature = PromptSignatureView.Empty;
     private AnatomySizes _anatomySizes = AnatomySizes.Empty;
+    private InferenceView _inference = InferenceView.Empty;
+    private EmbeddingsView _embeddings = EmbeddingsView.Empty;
 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
@@ -150,6 +152,13 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _anatomySizes = latestRequest is null
             ? AnatomySizes.Empty
             : PromptSignatureBuilder.AnatomySizesFor(latestRequest);
+
+        // The simulated inference view reads the current run's events directly: the latest llm-request for
+        // the user message + prompt-token estimate, and the latest final answer to replay as generated tokens.
+        _inference = InferenceBuilder.Build(_events);
+
+        // The embeddings/NN view reuses the inference view's prompt tokenization (fake vectors + 2-D map).
+        _embeddings = EmbeddingBuilder.Build(_inference);
     }
 
     // --- Exposed state ----------------------------------------------------
@@ -343,6 +352,34 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         {
             EnsureComputed();
             return _promptSignature;
+        }
+    }
+
+    /// <summary>
+    /// The simulated "inside the LLM" inference view for the current run: the latest user message tokenized
+    /// and the final answer replayed as autoregressively generated tokens (with fabricated candidate lists).
+    /// Drives the Inference panel. Purely illustrative — the backend exposes no tokens.
+    /// </summary>
+    public InferenceView Inference
+    {
+        get
+        {
+            EnsureComputed();
+            return _inference;
+        }
+    }
+
+    /// <summary>
+    /// The simulated embeddings &amp; neural-network view for the current run: the prompt's tokens as fake
+    /// vectors with 2-D positions, plus the predicted next token. Drives the Embeddings panel. Purely
+    /// illustrative — the backend exposes no embeddings.
+    /// </summary>
+    public EmbeddingsView Embeddings
+    {
+        get
+        {
+            EnsureComputed();
+            return _embeddings;
         }
     }
 

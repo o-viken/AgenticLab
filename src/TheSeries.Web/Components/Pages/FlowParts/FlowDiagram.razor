@@ -44,6 +44,9 @@
                 <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.ExpandHarness" /> Expand harness</label>
                     <label class="check"><input type="checkbox" @bind="View.ShowPromptSignature" /> Prompt signature</label>
+                    <label class="check"><input type="checkbox" @bind="View.ShowInferenceView" /> Inference</label>
+                    <label class="check"><input type="checkbox" @bind="View.ShowEmbeddingsView" /> Embeddings</label>
+                    <label class="check"><input type="checkbox" @bind="View.ShowNetworkView" /> Neural network</label>
                 </div>
             </div>
         }
@@ -167,6 +170,27 @@
     {
         <div class="signature-row">
             <PromptSignature />
+        </div>
+    }
+
+    @if (View.Perspective == Perspective.Expert && View.ShowInferenceView)
+    {
+        <div class="inference-row">
+            <Inference />
+        </div>
+    }
+
+    @if (View.Perspective == Perspective.Expert && View.ShowEmbeddingsView)
+    {
+        <div class="embeddings-row">
+            <Embeddings />
+        </div>
+    }
+
+    @if (View.Perspective == Perspective.Expert && View.ShowNetworkView)
+    {
+        <div class="network-row">
+            <Network />
         </div>
     }
 </section>

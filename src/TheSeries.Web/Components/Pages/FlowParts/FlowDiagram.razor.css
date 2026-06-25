@@ -22,6 +22,24 @@
     margin-top: 1.5rem;
 }
 
+/* The inference panel spans the full grid width on its own row below the nodes. */
+.diagram ::deep .inference-row {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
+}
+
+/* The embeddings & network panel spans the full grid width on its own row below the nodes. */
+.diagram ::deep .embeddings-row {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
+}
+
+/* The neural-network panel spans the full grid width on its own row below the nodes. */
+.diagram ::deep .network-row {
+    grid-column: 1 / -1;
+    margin-top: 1.5rem;
+}
+
 /* View controls (Perspective + Boundaries) live on the diagram they affect,
    as a left-aligned row above the nodes (full grid width, first row). */
 .diagram ::deep .diagram-controls {

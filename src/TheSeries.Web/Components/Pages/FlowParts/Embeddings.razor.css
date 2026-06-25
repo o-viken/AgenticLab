@@ -1,0 +1,306 @@
+/* The embeddings & network panel: a full-width card under the diagram simulating token embeddings (a
+   heatmap strip per token), a 2-D "meaning map" and a symbolic neural-network forward pass. Inherits the
+   themed CSS variables from .flow-app so it follows the active vendor palette; the heatmap is a fixed
+   red↔blue diverging scale (it encodes vector sign, not branding). */
+
+.embeddings {
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: .75rem .85rem;
+    border-radius: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+}
+
+.emb-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+}
+
+.emb-title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.emb-title-group ::deep .concept-info {
+    position: static;
+    align-self: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: .75rem;
+}
+
+.emb-title {
+    font-weight: 700;
+    color: var(--anatomy-heading);
+    font-size: .9rem;
+}
+
+.emb-tag {
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: .1rem .45rem;
+}
+
+.emb-empty {
+    font-size: .72rem;
+    color: var(--text-dim);
+    font-style: italic;
+}
+
+.emb-stage {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+}
+
+.emb-stage-head {
+    display: flex;
+    align-items: baseline;
+    gap: .45rem;
+    flex-wrap: wrap;
+}
+
+.emb-step {
+    font-weight: 700;
+    color: var(--anatomy-heading);
+}
+
+.emb-stage-title {
+    font-weight: 600;
+    font-size: .82rem;
+    color: var(--text);
+}
+
+.emb-stage-meta {
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+/* ① Token → vector heatmap strips */
+.emb-vectors {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: .5rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    border: 1px solid var(--border);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.emb-vrow {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    align-items: center;
+    gap: .5rem;
+}
+
+.emb-vlabel {
+    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-size: .72rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.emb-strip {
+    display: flex;
+    gap: 2px;
+    height: 16px;
+}
+
+.emb-cell {
+    flex: 1 1 0;
+    border-radius: 2px;
+    min-width: 6px;
+}
+
+/* ② Meaning map scatter */
+.emb-scatter {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at center, color-mix(in srgb, var(--surface) 75%, transparent), color-mix(in srgb, var(--surface) 40%, transparent));
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.emb-axis {
+    position: absolute;
+    background: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.emb-axis-x {
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+}
+
+.emb-axis-y {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+}
+
+.emb-point {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    white-space: nowrap;
+}
+
+.emb-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--contrib-user);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--contrib-user) 25%, transparent);
+    flex: 0 0 auto;
+}
+
+.emb-plabel {
+    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-size: .66rem;
+    color: var(--text-dim);
+}
+
+.emb-point:hover {
+    z-index: 5;
+}
+
+.emb-point:hover .emb-plabel {
+    color: var(--text);
+}
+
+/* --- Interactive linking: a pinned token cross-highlights & shows its numbers --------------------- */
+
+/* Clickable affordance on the token rows and scatter points. */
+.emb-vrow.clickable,
+.emb-point.clickable {
+    cursor: pointer;
+}
+
+.emb-vrow.clickable {
+    border-radius: 6px;
+    padding: 1px 3px;
+    margin: -1px -3px;
+    transition: background .12s ease;
+}
+
+.emb-vrow.clickable:hover {
+    background: color-mix(in srgb, var(--contrib-user) 14%, transparent);
+}
+
+/* The pinned token, highlighted everywhere it appears. */
+.emb-vrow.selected {
+    background: color-mix(in srgb, var(--contrib-user) 22%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--contrib-user) 55%, transparent);
+}
+
+.emb-vrow.selected .emb-vlabel {
+    font-weight: 700;
+}
+
+.emb-point.selected {
+    z-index: 6;
+}
+
+.emb-point.selected .emb-dot {
+    background: var(--contrib-agent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--contrib-agent) 35%, transparent);
+}
+
+.emb-point.selected .emb-plabel {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* Numeric detail card for the pinned token's vector + coordinates. */
+.emb-detail {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    padding: .55rem .6rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--contrib-user) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--contrib-user) 35%, var(--border));
+}
+
+.emb-detail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+.emb-detail-tok {
+    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-weight: 700;
+    font-size: .8rem;
+    color: var(--text);
+}
+
+.emb-detail-coord {
+    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.emb-detail-vec {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+}
+
+.emb-num {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-width: 44px;
+    padding: .2rem .25rem;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    border: 1px solid var(--border);
+}
+
+.emb-num-dim {
+    font-size: .56rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.emb-num-val {
+    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.emb-detail-hint,
+.emb-hint {
+    font-size: .66rem;
+    color: var(--text-dim);
+    font-style: italic;
+}

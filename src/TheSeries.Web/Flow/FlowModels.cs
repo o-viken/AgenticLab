@@ -156,6 +156,85 @@ internal sealed record AnatomySizes(int PersonaChars, int ToolsChars)
 }
 
 /// <summary>
+/// One alternative the (simulated) model could have emitted at a generation step: the candidate token
+/// <paramref name="Text"/> and its fabricated <paramref name="Probability"/> (0–1). Shown as the hover
+/// popover on a generated token to illustrate next-token sampling — these numbers are invented, not real.
+/// </summary>
+internal sealed record TokenCandidate(string Text, double Probability)
+{
+    /// <summary>The probability as a whole-number percentage for display (e.g. 71).</summary>
+    public int Percent => (int)Math.Round(Probability * 100);
+}
+
+/// <summary>
+/// One simulated token in the inference view: its <paramref name="Text"/>, the (fabricated)
+/// <paramref name="Probability"/> the model "chose" it with, and the <paramref name="Candidates"/> it was
+/// chosen from (empty for prompt tokens, which are not generated). Purely illustrative — no real tokenizer
+/// or model logits are involved.
+/// </summary>
+internal sealed record SimToken(string Text, double Probability, IReadOnlyList<TokenCandidate> Candidates)
+{
+    /// <summary>The chosen token's probability as a whole-number percentage for display.</summary>
+    public int Percent => (int)Math.Round(Probability * 100);
+
+    /// <summary>Whether this token carries a candidate list to reveal on hover.</summary>
+    public bool HasCandidates => Candidates.Count > 0;
+}
+
+/// <summary>
+/// The simulated "inside the LLM" view (Expert · Inference toggle): the latest user message split into
+/// <paramref name="PromptTokens"/> (word-piece chips), the final answer replayed as
+/// <paramref name="ResponseTokens"/> (autoregressively generated chips), and a whole-prompt
+/// <paramref name="PromptTokenEstimate"/> (≈ chars / 4 across the whole request). All of it is a
+/// client-side fabrication for teaching — the backend does not expose tokens.
+/// </summary>
+internal sealed record InferenceView(
+    IReadOnlyList<SimToken> PromptTokens,
+    IReadOnlyList<SimToken> ResponseTokens,
+    int PromptTokenEstimate,
+    bool HasPrompt,
+    bool HasResponse)
+{
+    /// <summary>An empty inference view shown before the first request/answer of a run.</summary>
+    public static readonly InferenceView Empty = new(
+        Array.Empty<SimToken>(), Array.Empty<SimToken>(), 0, false, false);
+
+    /// <summary>Number of tokens shown for the (latest) user message.</summary>
+    public int PromptTokenCount => PromptTokens.Count;
+
+    /// <summary>Number of generated tokens shown for the answer.</summary>
+    public int ResponseTokenCount => ResponseTokens.Count;
+}
+
+/// <summary>
+/// One token's fabricated embedding in the Embeddings view: its <paramref name="Text"/>, a small fixed-length
+/// <paramref name="Vector"/> (each component in −1…1, rendered as a diverging heatmap strip) and a
+/// <paramref name="X"/>/<paramref name="Y"/> position in 0…1 (the vector projected onto two fixed axes) used
+/// for the 2-D "meaning map" scatter. Identical tokens get identical vectors, so they land on the same spot.
+/// The numbers are invented client-side (deterministic) — not a real embedding model.
+/// </summary>
+internal sealed record EmbeddingToken(string Text, IReadOnlyList<double> Vector, double X, double Y);
+
+/// <summary>
+/// The simulated embeddings/neural-network view (Expert · Embeddings &amp; network toggle): the latest
+/// prompt's meaningful tokens turned into fake <paramref name="Tokens"/> (vector + 2-D position), the vector
+/// <paramref name="Dimensions"/> shown, and the optional <paramref name="PredictedToken"/> the symbolic
+/// forward-pass diagram resolves to (the run's first generated token, when an answer exists). Purely
+/// illustrative — the backend exposes no embeddings or network internals.
+/// </summary>
+internal sealed record EmbeddingsView(
+    IReadOnlyList<EmbeddingToken> Tokens,
+    int Dimensions,
+    string? PredictedToken)
+{
+    /// <summary>An empty view shown before the first request of a run.</summary>
+    public static readonly EmbeddingsView Empty = new(Array.Empty<EmbeddingToken>(), 0, null);
+
+    /// <summary>Whether any token embeddings are available to show.</summary>
+    public bool HasTokens => Tokens.Count > 0;
+}
+
+/// <summary>
 /// A vendor-scoped agent choice: the backend agent name plus the product-flavoured label shown in the picker.
 /// </summary>
 internal sealed record AgentChoice(string Name, string Label);

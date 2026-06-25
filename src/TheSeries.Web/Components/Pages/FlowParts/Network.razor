@@ -1,0 +1,478 @@
+@implements IDisposable
+
+@* The "neural network" panel (Expert · Neural network toggle): a deliberately *simulated* symbolic
+   forward pass through a tiny fully-connected network (embedding → hidden layers → logits → softmax →
+   next token). It now *decodes*: a timer loops through the generated answer one token at a time, and for
+   each step shows the softmax **distribution** over candidates, which one is **picked**, lights the output
+   nodes by probability and replays a forward-pass sweep. When a token is pinned (in the Embeddings or
+   Inference panels) the 8 input nodes light up, sized and tinted by that token's embedding vector. The
+   shape, weights, distribution and sweep are invented client-side — the backend exposes no real internals. *@
+
+<div class="network @(_playing ? null : "paused")">
+    <div class="net-head">
+        <span class="net-title-group">
+            <ConceptInfoButton Id="neural-network" Title="Learn about neural networks" />
+            <span class="net-title">Neural network</span>
+        </span>
+        <span class="net-tag">simulated</span>
+    </div>
+
+    @if (!Emb.HasTokens)
+    {
+        <span class="net-empty">the network view appears once the agent sends its first request…</span>
+    }
+    else
+    {
+        var decoding = Gen.Count > 0;
+        var step = decoding ? CurStep % Gen.Count : 0;
+        var cur = decoding ? Gen[step] : null;
+        var ordered = cur is { HasCandidates: true } ? Ordered(cur) : null;
+        // Scatter the candidates across the output nodes (deterministically per token) so the highest one
+        // isn't permanently parked on the first node; the picked candidate is rank 0.
+        var slots = ordered is not null ? OutputSlots(cur!.Text, LayerSizes[^1], ordered.Count) : null;
+        var pickedRank = 0;
+        // The input layer's values: the pinned token's real vector if one is pinned, otherwise a vector
+        // derived from the *current decode token* so the input layer changes on every step (stays live).
+        var inputVec = BuildInputVector(cur);
+
+        <div class="net-stage">
+            <div class="net-stage-head">
+                <span class="net-step">→</span>
+                <span class="net-stage-title">Forward pass</span>
+                <span class="net-stage-meta">the embedding vectors flow through the network → logits → softmax → next token</span>
+            </div>
+            <div class="net-nn">
+                <svg class="net-nn-svg" viewBox="0 0 @VbW @VbH" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Simplified neural network forward pass">
+                    @* fully-connected edges between adjacent layers *@
+                    @for (var l = 0; l < LayerSizes.Length - 1; l++)
+                    {
+                        for (var i = 0; i < LayerSizes[l]; i++)
+                        {
+                            for (var j = 0; j < LayerSizes[l + 1]; j++)
+                            {
+                                <line class="net-edge"
+                                      x1="@F(LayerX(l))" y1="@F(NodeY(LayerSizes[l], i))"
+                                      x2="@F(LayerX(l + 1))" y2="@F(NodeY(LayerSizes[l + 1], j))" />
+                            }
+                        }
+                    }
+                    @* nodes *@
+                    @for (var l = 0; l < LayerSizes.Length; l++)
+                    {
+                        var cls = l == 0 ? "in" : l == LayerSizes.Length - 1 ? "out" : "hid";
+                        var isInput = l == 0;
+                        var isOutput = l == LayerSizes.Length - 1;
+                        for (var i = 0; i < LayerSizes[l]; i++)
+                        {
+                            var rank = isOutput && slots is not null ? slots[i] : -1;
+                            <circle class="net-node @cls @(isInput && inputVec is not null ? "live" : null) @(isOutput && rank == pickedRank ? "fired" : null)"
+                                    cx="@F(LayerX(l))" cy="@F(NodeY(LayerSizes[l], i))"
+                                    r="@F(NodeRadius(isInput, i, rank, ordered, inputVec))"
+                                    style="@NodeStyle(isInput, i, rank, ordered, inputVec)" />
+                        }
+                    }
+                    @* input-node value labels — show each component's size (live current-token vector, or the pinned token's) *@
+                    @if (inputVec is { } iv)
+                    {
+                        @InputValueLabels(iv)
+                    }
+                    @* forward-pass signal sweep — re-keyed each decode step so it replays per token *@
+                    <rect @key="step" class="net-pulse" x="0" y="0" width="22" height="@VbH" />
+                </svg>
+                <div class="net-nn-labels">
+                    <span>embedding</span>
+                    <span>hidden ×2</span>
+                    <span>logits → softmax</span>
+                </div>
+                @if (Selected is { } selNote)
+                {
+                    <div class="net-nn-note">input layer = <b>@selNote.Text.Trim()</b>'s @Emb.Dimensions numbers (node size &amp; colour = each value)</div>
+                }
+                else if (cur is { } curNote)
+                {
+                    <div class="net-nn-note">input layer = the current token <b>@Display(curNote.Text)</b>'s vector — it changes each step. Pin a token in <b>Embeddings</b> or <b>Inference</b> to inspect one.</div>
+                }
+                else
+                {
+                    <div class="net-nn-note">pin a token in <b>Embeddings</b> or <b>Inference</b> to light up the input layer with its vector</div>
+                }
+            </div>
+        </div>
+
+        @if (decoding && ordered is { Count: > 0 })
+        {
+            <div class="net-stage">
+                <div class="net-stage-head">
+                    <span class="net-step net-step-loop @(_playing ? "spinning" : null)">↻</span>
+                    <span class="net-stage-title">Sample the next token</span>
+                    <span class="net-stage-meta">token @(step + 1) / @Gen.Count · softmax → a distribution over candidates, then one is picked</span>
+                    <span class="net-steps" role="group" aria-label="decode controls">
+                        <button type="button" class="net-stepbtn" title="Previous token" aria-label="Previous token" @onclick="StepPrev">‹</button>
+                        <button type="button" class="net-stepbtn play @(_playing ? "on" : null)"
+                                title="@(_playing ? "Pause auto-decode" : "Play auto-decode")"
+                                aria-label="@(_playing ? "Pause auto-decode" : "Play auto-decode")"
+                                @onclick="TogglePlay">@(_playing ? "❚❚" : "▶")</button>
+                        <button type="button" class="net-stepbtn" title="Next token" aria-label="Next token" @onclick="StepNext">›</button>
+                    </span>
+                </div>
+
+                <div class="net-output" aria-label="answer generated so far">
+                    @for (var i = 0; i <= step; i++)
+                    {
+                        <span class="net-otok @(i == step ? "current" : null)">@Display(Gen[i].Text)</span>
+                    }
+                    <span class="net-caret">▌</span>
+                </div>
+
+                <div class="net-dist">
+                    <div class="net-dist-cap">
+                        <span class="net-dist-note">softmax runs over the <b>whole vocabulary</b> (~@Vocab.ToString("N0") tokens) — the top @ordered.Count shown</span>
+                        <span class="net-sampling">
+                            <span class="net-knob" title="Temperature flattens (high) or sharpens (low) the distribution before sampling">temp <b>@Temperature.ToString("0.0", Inv)</b></span>
+                            <span class="net-knob" title="top_p (nucleus): only the smallest set of tokens whose probabilities add up to this share are kept">top_p <b>@TopP.ToString("0.00", Inv)</b></span>
+                        </span>
+                    </div>
+                    @foreach (var cand in ordered)
+                    {
+                        var picked = cand.Text == cur!.Text;
+                        <div class="net-cand @(picked ? "picked" : null)">
+                            <span class="net-cand-text">@Display(cand.Text)</span>
+                            <span class="net-cand-bar"><span class="net-cand-fill" style="width:@(cand.Percent)%"></span></span>
+                            <span class="net-cand-num">@cand.Percent%</span>
+                            @if (picked)
+                            {
+                                <span class="net-cand-pick">◀ pick</span>
+                            }
+                        </div>
+                    }
+                    <div class="net-cand net-cand-rest">
+                        <span class="net-cand-text">+ @((Vocab - ordered.Count).ToString("N0")) more tokens</span>
+                        <span class="net-cand-bar"><span class="net-cand-fill" style="width:@RestPercent(ordered)%"></span></span>
+                        <span class="net-cand-num">@RestPercent(ordered)%</span>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    private EmbeddingsView Emb => Run.Embeddings;
+
+    /// <summary>The simulated generated answer tokens (each carrying a fabricated candidate distribution).</summary>
+    private IReadOnlyList<SimToken> Gen => Run.Inference.ResponseTokens;
+
+    /// <summary>The decode step the loop is currently on (advanced by the timer, wrapped modulo the token count).</summary>
+    private int CurStep => _curStep;
+
+    private int _curStep;
+    private System.Timers.Timer? _timer;
+    private int _lastGenCount = -1;
+    private bool _playing = true;
+
+    // A lightweight wall-clock timer "decodes" the answer one token at a time so the distribution/pick
+    // animates on a loop (independent of the per-event run re-renders). The component only exists while the
+    // Neural network toggle is on, so the timer's lifetime is bounded by the panel's visibility.
+    protected override void OnInitialized()
+    {
+        _timer = new System.Timers.Timer(1100) { AutoReset = true };
+        _timer.Elapsed += (_, _) => Advance();
+        _timer.Start();
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Restart (and resume) the loop from the first token whenever the generated answer changes (new run/turn).
+        var count = Gen.Count;
+        if (count != _lastGenCount)
+        {
+            _lastGenCount = count;
+            _curStep = 0;
+            _playing = count > 0;
+        }
+    }
+
+    private void Advance()
+    {
+        if (!_playing)
+        {
+            return;
+        }
+
+        var count = Gen.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
+        // Stop at the final token instead of looping — the paused state freezes every animation.
+        if (_curStep >= count - 1)
+        {
+            _playing = false;
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _curStep++;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Toggle the auto-decode loop; pausing lets the user walk the tokens by hand. Pressing play at
+    /// the end replays from the first token.</summary>
+    private void TogglePlay()
+    {
+        _playing = !_playing;
+        if (_playing && Gen.Count > 0 && _curStep >= Gen.Count - 1)
+        {
+            _curStep = 0;
+        }
+    }
+
+    /// <summary>Advance one token by hand (also pauses the auto-loop so it stays put).</summary>
+    private void StepNext()
+    {
+        var count = Gen.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
+        _playing = false;
+        _curStep = (_curStep + 1) % count;
+    }
+
+    /// <summary>Step back one token by hand (also pauses the auto-loop).</summary>
+    private void StepPrev()
+    {
+        var count = Gen.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
+        _playing = false;
+        _curStep = (_curStep - 1 + count) % count;
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    /// <summary>The pinned token's embedding, when the selected token is one of this view's tokens.</summary>
+    private EmbeddingToken? Selected
+    {
+        get
+        {
+            if (View.SelectedToken is null)
+            {
+                return null;
+            }
+
+            foreach (var token in Emb.Tokens)
+            {
+                if (View.IsTokenSelected(token.Text))
+                {
+                    return token;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    // Simulated sampling settings shown next to the distribution (the backend never exposes the real values).
+    private const int Vocab = 50_257;
+    private const double Temperature = 0.7;
+    private const double TopP = 0.9;
+
+    /// <summary>The leftover probability mass spread across the rest of the vocabulary (everything not in the shown top candidates).</summary>
+    private static int RestPercent(IReadOnlyList<TokenCandidate> ordered)
+    {
+        var shown = 0;
+        foreach (var c in ordered)
+        {
+            shown += c.Percent;
+        }
+
+        return Math.Max(0, 100 - shown);
+    }
+
+    // Symbolic network shape: input (embedding) → two hidden layers → output. Input and output layers carry
+    // the same node count; only the top few output nodes map to real candidates (the rest stay at rest).
+    private static readonly int[] LayerSizes = { 8, 6, 5, 8 };
+    private const int VbW = 320;
+    private const int VbH = 120;
+
+    private static double LayerX(int layer) => 24 + layer * ((VbW - 48) / (double)(LayerSizes.Length - 1));
+
+    private static double NodeY(int count, int i) => (i + 1) / (double)(count + 1) * VbH;
+
+    private static string F(double value) => value.ToString("0.##", Inv);
+
+    // Builds the 8 input-layer values for the current render. A pinned token's real vector takes priority;
+    // otherwise the values are derived deterministically from the *current decode token*, so the input layer
+    // updates on every decode step (and freezes when the loop is paused). Null when there is nothing to show.
+    private double[]? BuildInputVector(SimToken? cur)
+    {
+        var dims = LayerSizes[0];
+
+        if (Selected is { } sel)
+        {
+            var v = new double[dims];
+            for (var i = 0; i < dims; i++)
+            {
+                v[i] = i < sel.Vector.Count ? sel.Vector[i] : 0.0;
+            }
+
+            return v;
+        }
+
+        if (cur is { Text.Length: > 0 } c)
+        {
+            var v = new double[dims];
+            for (var i = 0; i < dims; i++)
+            {
+                // FNV-1a of "<token>#<dim>" mapped to [-1, 1] — stable per token, different per dimension.
+                var h = InferenceBuilder.StableHash(c.Text + "#" + i);
+                v[i] = ((h % 2000) / 1000.0) - 1.0;
+            }
+
+            return v;
+        }
+
+        return null;
+    }
+
+    // The current step's candidate distribution, sorted high→low probability. The chosen token is the most
+    // probable entry, so it sorts first and maps to the first (fired) output node.
+    private static IReadOnlyList<TokenCandidate> Ordered(SimToken token)
+    {
+        var list = new List<TokenCandidate>(token.Candidates);
+        list.Sort((a, b) => b.Probability.CompareTo(a.Probability));
+        return list;
+    }
+
+    // Maps each candidate rank to an output-node position via a deterministic per-token shuffle, so the
+    // highest-probability (and picked) candidate lands on a different node each step rather than always the
+    // first. Returns an array of length <paramref name="nodeCount"/> whose value is the candidate rank shown
+    // on that node, or -1 for a resting node with no candidate.
+    private static int[] OutputSlots(string seedText, int nodeCount, int candidateCount)
+    {
+        var order = new int[nodeCount];
+        for (var i = 0; i < nodeCount; i++)
+        {
+            order[i] = i;
+        }
+
+        // Fisher–Yates shuffle seeded by the token text so the layout is stable across re-renders.
+        var rng = new Random(unchecked((int)InferenceBuilder.StableHash(seedText)));
+        for (var i = nodeCount - 1; i > 0; i--)
+        {
+            var j = rng.Next(i + 1);
+            (order[i], order[j]) = (order[j], order[i]);
+        }
+
+        var slots = new int[nodeCount];
+        for (var i = 0; i < nodeCount; i++)
+        {
+            slots[i] = -1;
+        }
+
+        for (var rank = 0; rank < candidateCount && rank < nodeCount; rank++)
+        {
+            slots[order[rank]] = rank;
+        }
+
+        return slots;
+    }
+
+    // Node radius: input nodes follow the supplied input vector (pinned or live); output nodes grow with
+    // their mapped candidate's probability (<paramref name="rank"/> &lt; 0 → a resting node at the default size).
+    private double NodeRadius(bool isInput, int i, int rank, IReadOnlyList<TokenCandidate>? ordered, double[]? inputVec)
+    {
+        if (isInput)
+        {
+            return inputVec is not null && i < inputVec.Length
+                ? 3.0 + Math.Min(1.0, Math.Abs(inputVec[i])) * 4.0
+                : 4.0;
+        }
+
+        if (rank >= 0 && ordered is not null && rank < ordered.Count)
+        {
+            return 3.0 + Math.Min(1.0, ordered[rank].Probability) * 5.0;
+        }
+
+        return 4.0;
+    }
+
+    // Node style: input nodes are tinted by their value's sign/size (red positive, blue negative); output
+    // nodes fade in by their mapped candidate's probability so the picked token's node is the brightest (its
+    // themed yellow fill comes from .net-node.out).
+    private string NodeStyle(bool isInput, int i, int rank, IReadOnlyList<TokenCandidate>? ordered, double[]? inputVec)
+    {
+        if (isInput)
+        {
+            return inputVec is not null && i < inputVec.Length ? $"fill:{Diverging(inputVec[i])}" : string.Empty;
+        }
+
+        if (rank >= 0 && ordered is not null && rank < ordered.Count)
+        {
+            var alpha = (0.25 + Math.Min(1.0, ordered[rank].Probability) * 0.75).ToString("0.##", Inv);
+            return $"opacity:{alpha}";
+        }
+
+        return string.Empty;
+    }
+
+    // SVG <text> labels showing each input node's component value (its "size"). Built as raw markup because
+    // Razor reserves the bare <text> tag; styled inline so it works without scoped-CSS rewriting.
+    private MarkupString InputValueLabels(double[] vec)
+    {
+        var sb = new System.Text.StringBuilder();
+        var x = F(LayerX(0) - 8);
+        const string style = "font-family:var(--mono,ui-monospace,Consolas,monospace);font-size:5px;fill:var(--text-dim)";
+        for (var i = 0; i < LayerSizes[0] && i < vec.Length; i++)
+        {
+            var y = F(NodeY(LayerSizes[0], i) + 2);
+            var val = vec[i].ToString("+0.0;-0.0", Inv);
+            sb.Append($"<text x=\"{x}\" y=\"{y}\" text-anchor=\"end\" style=\"{style}\">{val}</text>");
+        }
+
+        return new MarkupString(sb.ToString());
+    }
+
+    // Shared diverging colour (red positive, blue negative, opacity by magnitude) — matches the Embeddings
+    // heatmap so the same number reads the same in both panels.
+    private static string Diverging(double value)
+    {
+        var alpha = (0.12 + Math.Min(1.0, Math.Abs(value)) * 0.78).ToString("0.##", Inv);
+        var rgb = value >= 0 ? "229,84,84" : "74,140,255";
+        return $"rgba({rgb},{alpha})";
+    }
+
+    // Renders whitespace tokens with a visible glyph (↵/␣) so they don't vanish.
+    private static string Display(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        if (text.Contains('\n'))
+        {
+            return "↵";
+        }
+
+        return string.IsNullOrWhiteSpace(text) ? "␣" : text;
+    }
+}

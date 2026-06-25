@@ -269,7 +269,7 @@ internal static class PromptSignatureBuilder
     /// rejects them), so this re-escapes any control character that appears inside a string back into its
     /// JSON escape, leaving the structural whitespace between tokens untouched.
     /// </summary>
-    private static string ToStrictJson(string display)
+    internal static string ToStrictJson(string display)
     {
         var sb = new StringBuilder(display.Length + 16);
         var inString = false;

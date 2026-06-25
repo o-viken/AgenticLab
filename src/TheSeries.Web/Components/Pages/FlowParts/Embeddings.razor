@@ -1,0 +1,141 @@
+@* The "embeddings" panel (Expert · Embeddings toggle): a deliberately *simulated* teaching view. Step ①
+   turns each prompt token into a fake embedding vector (heatmap strip); step ② projects those vectors to a
+   2-D "meaning map" where identical tokens land together. The vectors and positions are invented
+   client-side — the backend exposes no embeddings. The symbolic forward pass that consumes these vectors
+   lives in the separate Neural network panel. *@
+
+<div class="embeddings">
+    <div class="emb-head">
+        <span class="emb-title-group">
+            <ConceptInfoButton Id="embeddings" Title="Learn about embeddings" />
+            <span class="emb-title">Embeddings</span>
+        </span>
+        <span class="emb-tag">simulated</span>
+    </div>
+
+    @if (!Emb.HasTokens)
+    {
+        <span class="emb-empty">the embeddings view appears once the agent sends its first request…</span>
+    }
+    else
+    {
+        <div class="emb-stage">
+            <div class="emb-stage-head">
+                <span class="emb-step">①</span>
+                <span class="emb-stage-title">Token → vector</span>
+                <span class="emb-stage-meta">each token becomes a list of @Emb.Dimensions numbers (an embedding)</span>
+            </div>
+            <div class="emb-vectors">
+                @foreach (var token in Emb.Tokens)
+                {
+                    <div class="emb-vrow clickable @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                         title="@token.Text" @onclick="@(() => View.SelectToken(token.Text))">
+                        <span class="emb-vlabel">@token.Text.Trim()</span>
+                        <div class="emb-strip">
+                            @foreach (var value in token.Vector)
+                            {
+                                <span class="emb-cell" style="@CellStyle(value)" title="@value.ToString("0.00", Inv)"></span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            @if (Selected is { } sel)
+            {
+                <div class="emb-detail">
+                    <div class="emb-detail-head">
+                        <span class="emb-detail-tok">@sel.Text.Trim()</span>
+                        <span class="emb-detail-coord">map (x, y) = (@sel.X.ToString("0.00", Inv), @sel.Y.ToString("0.00", Inv))</span>
+                    </div>
+                    <div class="emb-detail-vec">
+                        @for (var d = 0; d < sel.Vector.Count; d++)
+                        {
+                            <span class="emb-num">
+                                <span class="emb-num-dim">d@(d)</span>
+                                <span class="emb-num-val" style="@NumStyle(sel.Vector[d])">@sel.Vector[d].ToString("+0.00;-0.00", Inv)</span>
+                            </span>
+                        }
+                    </div>
+                    <span class="emb-detail-hint">this @Emb.Dimensions-number vector is the token's embedding — it feeds the Neural network panel's input layer</span>
+                </div>
+            }
+            else
+            {
+                <span class="emb-hint">click a token row (or a point on the map) to pin it and see its numbers</span>
+            }
+        </div>
+
+        <div class="emb-stage">
+            <div class="emb-stage-head">
+                <span class="emb-step">②</span>
+                <span class="emb-stage-title">Meaning map</span>
+                <span class="emb-stage-meta">the vectors placed in 2-D — near = similar (identical tokens overlap)</span>
+            </div>
+            <div class="emb-scatter">
+                <span class="emb-axis emb-axis-x"></span>
+                <span class="emb-axis emb-axis-y"></span>
+                @foreach (var token in Emb.Tokens)
+                {
+                    var left = (token.X * 100).ToString("0.##", Inv);
+                    var top = ((1 - token.Y) * 100).ToString("0.##", Inv);
+                    <span class="emb-point clickable @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                          style="left:@(left)%;top:@(top)%" title="@token.Text.Trim()"
+                          @onclick="@(() => View.SelectToken(token.Text))">
+                        <span class="emb-dot"></span>
+                        <span class="emb-plabel">@token.Text.Trim()</span>
+                    </span>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    private EmbeddingsView Emb => Run.Embeddings;
+
+    /// <summary>The pinned token's embedding, when the selected token is one of this view's tokens.</summary>
+    private EmbeddingToken? Selected
+    {
+        get
+        {
+            if (View.SelectedToken is null)
+            {
+                return null;
+            }
+
+            foreach (var token in Emb.Tokens)
+            {
+                if (View.IsTokenSelected(token.Text))
+                {
+                    return token;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    // A diverging heatmap cell: positive → red, negative → blue, opacity by magnitude.
+    private static string CellStyle(double value) => $"background:{Diverging(value)}";
+
+    // The numeric vector readout: tint each number red (positive) / blue (negative).
+    private static string NumStyle(double value)
+        => $"color:{(value >= 0 ? "rgb(198,72,72)" : "rgb(60,118,224)")}";
+
+    // Shared diverging colour (red positive, blue negative, opacity by magnitude) used by the heatmap cells
+    // (and matched by the Neural network panel's live input nodes) so the same number reads the same everywhere.
+    private static string Diverging(double value)
+    {
+        var alpha = (0.12 + Math.Min(1.0, Math.Abs(value)) * 0.78).ToString("0.##", Inv);
+        var rgb = value >= 0 ? "229,84,84" : "74,140,255";
+        return $"rgba({rgb},{alpha})";
+    }
+}

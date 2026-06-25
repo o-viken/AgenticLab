@@ -1,0 +1,139 @@
+@* The "inference" panel (Expert · Inference toggle): a deliberately *simulated* peek inside the LLM
+   node. Step ① tokenizes the latest user message into word-piece chips; step ② replays the final answer
+   as autoregressively generated tokens, revealed left→right via a staggered CSS animation. Hovering a
+   generated token shows a fabricated next-token candidate list with probability bars. The tokens and
+   probabilities are invented client-side — the backend exposes no real tokenizer or logits. *@
+
+<div class="inference">
+    <div class="inf-head">
+        <span class="inf-title-group">
+            <ConceptInfoButton Id="tokenization" Title="Learn about tokenization and inference" />
+            <span class="inf-title">Inference</span>
+        </span>
+        <span class="inf-tag">simulated</span>
+    </div>
+
+    @if (!Inf.HasPrompt)
+    {
+        <span class="inf-empty">the inference view appears once the agent sends its first request…</span>
+    }
+    else
+    {
+        <div class="inf-stage">
+            <div class="inf-stage-head">
+                <span class="inf-step">①</span>
+                <span class="inf-stage-title">Tokenize prompt</span>
+                <span class="inf-stage-meta">@Inf.PromptTokenCount message tokens · ~@Inf.PromptTokenEstimate.ToString("N0") whole-prompt est.</span>
+            </div>
+            <div class="inf-tokens prompt">
+                @foreach (var token in Inf.PromptTokens)
+                {
+                    var ws = IsWhitespace(token.Text);
+                    <span class="inf-tok prompt @(ws ? "ws" : "clickable") @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                          @onclick="@(() => OnTokenClick(token.Text, ws))">@Display(token.Text)</span>
+                }
+            </div>
+            @if (View.SelectedToken is not null)
+            {
+                <span class="inf-hint">pinned <b>@View.SelectedToken</b> — see its vector &amp; network input in <b>Embeddings &amp; network</b> (click again to unpin)</span>
+            }
+            else
+            {
+                <span class="inf-hint">click a prompt token to pin it and trace its embedding &amp; network input below</span>
+            }
+        </div>
+
+        @if (Inf.HasResponse)
+        {
+            <div class="inf-stage">
+                <div class="inf-stage-head">
+                    <span class="inf-step">②</span>
+                    <span class="inf-stage-title">Generate answer</span>
+                    <span class="inf-stage-meta">@Inf.ResponseTokenCount tokens · one prediction at a time →</span>
+                </div>
+                <div class="inf-tokens response">
+                    @{
+                        var genIndex = 0;
+                        var genCount = Inf.ResponseTokenCount;
+                        // Keep the whole generation reveal roughly constant (≈1–2s) regardless of answer
+                        // length: the per-token stagger shrinks as the answer grows, so a long answer pops
+                        // out faster per token instead of dragging on for many seconds.
+                        var totalReveal = Math.Clamp(genCount * 0.045, 1.0, 2.0);
+                        var stagger = genCount > 0 ? totalReveal / genCount : 0;
+                    }
+                    @foreach (var token in Inf.ResponseTokens)
+                    {
+                        var delay = (genIndex * stagger).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                        var predicted = genIndex == 0;
+                        genIndex++;
+                        <span class="inf-tok generated @(IsWhitespace(token.Text) ? "ws" : null) @(token.HasCandidates ? "has-pop" : null) @(predicted ? "predicted" : null)"
+                              style="animation-delay:@(delay)s"
+                              title="@(predicted ? "this first token is what the network's forward pass predicts" : null)">
+                            @Display(token.Text)
+                            @if (token.HasCandidates)
+                            {
+                                <span class="inf-pop">
+                                    <span class="inf-pop-head">next-token candidates</span>
+                                    @foreach (var candidate in token.Candidates)
+                                    {
+                                        <span class="inf-cand @(candidate.Text == token.Text ? "chosen" : null)">
+                                            <span class="inf-cand-text">@Display(candidate.Text)</span>
+                                            <span class="inf-cand-bar"><span class="inf-cand-fill" style="width:@(candidate.Percent)%"></span></span>
+                                            <span class="inf-cand-num">@candidate.Probability.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)</span>
+                                        </span>
+                                    }
+                                </span>
+                            }
+                        </span>
+                    }
+                </div>
+                <span class="inf-hint">hover a generated token to see the candidates it was sampled from</span>
+            </div>
+        }
+        else
+        {
+            <span class="inf-hint">the generated tokens appear once the agent produces its answer…</span>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    private InferenceView Inf => Run.Inference;
+
+    private void OnTokenClick(string text, bool whitespace)
+    {
+        if (!whitespace)
+        {
+            View.SelectToken(text);
+        }
+    }
+
+    private static bool IsWhitespace(string text) => !string.IsNullOrEmpty(text) && string.IsNullOrWhiteSpace(text);
+
+    // Renders whitespace tokens with a visible glyph (↵ for newlines, ␣ for spaces) so they don't vanish.
+    private static string Display(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return text;
+        }
+
+        if (text.Contains('\n'))
+        {
+            return "↵";
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return text == " " ? text : "␣";
+        }
+
+        return text;
+    }
+}
