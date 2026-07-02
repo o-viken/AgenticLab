@@ -32,5 +32,6 @@ public sealed class DefaultHarness : IVendorHarness
     {
         new VendorMode("ChatBot", "chat"),
         new VendorMode("WikiAssistant", "wiki"),
+        new VendorMode("TimeKeeper", "time"),
     };
 }

@@ -58,6 +58,7 @@ public sealed class WorkspaceAgentResolver
                     tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
                     RequiresWorkspace: true,
                     d.SupportsSkills,
+                    SupportsMcp: false,
                     d.RiskLevel.ToString(),
                     d.Guardrails,
                     _clients.ResolveDeployment(new WorkspaceDefinedAgent(d, tools)));

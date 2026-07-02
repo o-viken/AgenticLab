@@ -652,6 +652,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 
     /// <summary>Whether the currently selected agent uses workspace skills, so the harness Skills box is shown.</summary>
     public bool SelectedAgentSupportsSkills => Selected?.SupportsSkills ?? false;
+    public bool SelectedAgentSupportsMcp => Selected?.SupportsMcp ?? false;
 
     /// <summary>
     /// Whether the currently selected agent picks up the workspace's custom instructions. These apply to

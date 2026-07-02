@@ -15,6 +15,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private readonly List<SkillChip> _knownSkills = new();
     private readonly HashSet<string> _loadedSkills = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<InstructionChip> _knownInstructions = new();
+    private readonly List<McpChip> _knownMcp = new();
 
     // The message/agent of the run currently shown in the live panels, archived into _turns on next send.
     private string _runMessage = string.Empty;
@@ -166,6 +167,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public IReadOnlyList<FlowEvent> Events => _events;
     public IReadOnlyList<ConversationTurn> Turns => _turns;
     public IReadOnlyList<SkillChip> KnownSkills => _knownSkills;
+    public IReadOnlyList<McpChip> KnownMcp => _knownMcp;
     public bool IsSkillLoaded(string name) => _loadedSkills.Contains(name);
 
     /// <summary>The workspace's custom instructions, always injected into the agent's context when present.</summary>
@@ -765,7 +767,37 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     {
         await RefreshKnownSkillsAsync();
         await RefreshKnownInstructionsAsync();
+        await RefreshKnownMcpAsync();
         await RefreshHarnessPromptAsync();
+    }
+
+    /// <summary>
+    /// Refreshes the MCP discovery box: the tools the AI service discovered from its MCP server(s). The
+    /// connection is global (not workspace-scoped), so this just reflects what the agent supports.
+    /// </summary>
+    public async Task RefreshKnownMcpAsync()
+    {
+        _knownMcp.Clear();
+        if (!view.SelectedAgentSupportsMcp)
+        {
+            await NotifyAsync();
+            return;
+        }
+
+        try
+        {
+            var response = await ai.GetMcpAsync();
+            if (response is not null)
+            {
+                _knownMcp.AddRange(response.Servers.SelectMany(s => s.Tools.Select(t => new McpChip(t.Name, t.Description))));
+            }
+        }
+        catch
+        {
+            // Best-effort: the MCP catalogue is informational.
+        }
+
+        await NotifyAsync();
     }
 
 

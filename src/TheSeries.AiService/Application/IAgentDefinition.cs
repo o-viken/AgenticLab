@@ -77,6 +77,12 @@ public interface IAgentDefinition
     bool SupportsSkills { get; }
 
     /// <summary>
+    /// Whether this agent uses tools discovered from a remote Model Context Protocol (MCP) server.
+    /// Surfaced to clients so they can show which servers/tools were discovered for the agent.
+    /// </summary>
+    bool SupportsMcp { get; }
+
+    /// <summary>
     /// How much real-world impact this agent can have. Surfaced to clients so a user can understand
     /// the risk of letting the agent run before they do.
     /// </summary>

@@ -158,6 +158,19 @@ internal sealed class AiServiceClient(HttpClient http)
             cancellationToken);
     }
 
+    /// <summary>
+    /// Lists the MCP servers connected to the AI service and the tools discovered from them, so the
+    /// harness can show MCP discovery. Returns null on failure.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<McpResponse?> GetMcpAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await http.GetAsync("/mcp", cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<McpResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
     /// <summary>Clears a conversation's remembered history so the next message starts fresh.</summary>
     /// <param name="conversationId">The id of the conversation to reset.</param>
     /// <param name="cancellationToken">A token to cancel the request.</param>
@@ -171,11 +184,14 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "");
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "");
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
+internal sealed record McpResponse(IReadOnlyList<McpServerInfo> Servers);
+internal sealed record McpServerInfo(string Name, IReadOnlyList<McpToolDescriptor> Tools);
+internal sealed record McpToolDescriptor(string Name, string Description);
 internal sealed record InstructionsRequest(string? Workspace);
 internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
 internal sealed record InstructionInfo(string Name, string Description);

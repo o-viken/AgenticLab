@@ -759,6 +759,15 @@
     border: 1px solid var(--skills-border);
 }
 
+/* MCP-discovered tools box, mirrors the skills catalogue styling. */
+.diagram ::deep .node-inner.mcp {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: var(--skills-bg);
+    border: 1px solid var(--skills-border);
+}
+
 .diagram ::deep .skill-chips {
     display: flex;
     flex-wrap: wrap;

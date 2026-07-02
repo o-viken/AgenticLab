@@ -67,6 +67,26 @@
                 }
             </div>
         }
+        @if (View.SelectedAgentSupportsMcp)
+        {
+            <div class="mcp node-inner">
+                <ConceptInfoButton Id="mcp" Title="Learn about MCP" />
+                <span class="title">MCP servers</span>
+                @if (Run.KnownMcp.Count == 0)
+                {
+                    <span class="subtitle">no MCP server connected</span>
+                }
+                else
+                {
+                    <div class="skill-chips">
+                        @foreach (var tool in Run.KnownMcp)
+                        {
+                            <span class="skill-chip" title="@tool.Description">@tool.Name</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
     }
 </div>
 

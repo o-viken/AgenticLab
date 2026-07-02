@@ -53,6 +53,9 @@ builder.Services.AddSingleton<InstructionLoader>();
 builder.Services.AddSingleton<WorkspaceAgentLoader>();
 builder.Services.AddSingleton<WorkspaceAgentResolver>();
 
+// Connects to the remote MCP server (Aspire resource 'mcpserver') and exposes its discovered tools.
+builder.Services.AddSingleton<McpToolProvider>();
+
 // Maps a brand/vendor key (sent when a brand theme is selected in the web flow) to a vendor-flavoured
 // harness system prompt that replaces the shared harness for a single run. The catalog is infrastructure
 // (Application); the representative prompt content for each vendor lives in Demo/Vendors and is injected.
@@ -76,6 +79,7 @@ builder.Services.AddSingleton<IAgentDefinition, CoderAgent>();
 builder.Services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
 builder.Services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
 builder.Services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
+builder.Services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
 
 // Builds (and caches) one chat client per Azure OpenAI deployment so agents can run on different models.
 builder.Services.AddSingleton<ChatClientProvider>();
@@ -93,6 +97,9 @@ builder.Services.AddSingleton<FlowControlRegistry>();
 builder.Services.AddSingleton<FlowTracer>();
 
 var app = builder.Build();
+
+// Discover the MCP server's tools at startup so MCP-using agents pick them up. Degrades gracefully.
+await app.Services.GetRequiredService<McpToolProvider>().ConnectAsync();
 
 app.MapDefaultEndpoints();
 
@@ -144,6 +151,12 @@ app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgent
         ? Results.Ok(new AgentsResponse(Array.Empty<AgentInfo>(), string.Empty))
         : Results.Ok(new AgentsResponse(workspaceAgents.ListAgents(), string.Empty));
 });
+
+// Lists the MCP servers connected to the AI service and the tools discovered from them, so a client can
+// show MCP discovery before/after a run. Backed by the live MCP client connection established at startup.
+app.MapGet("/mcp", (McpToolProvider mcp) =>
+    Results.Ok(new McpResponse([new McpServerInfo(mcp.ServerName, mcp.ToolInfos
+        .Select(t => new McpToolDescriptor(t.Name, t.Description)).ToList())])));
 
 // Returns the effective harness (system) prompt for a given agent + vendor so a client can show the
 // active system prompt before a run. A selected vendor's harness replaces the agent's own; otherwise the
@@ -345,6 +358,9 @@ internal sealed record InstructionsRequest(string? Workspace);
 internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
 internal sealed record InstructionInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
+internal sealed record McpResponse(IReadOnlyList<McpServerInfo> Servers);
+internal sealed record McpServerInfo(string Name, IReadOnlyList<McpToolDescriptor> Tools);
+internal sealed record McpToolDescriptor(string Name, string Description);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);

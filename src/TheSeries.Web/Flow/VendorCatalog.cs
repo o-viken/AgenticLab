@@ -87,6 +87,7 @@ internal static class VendorCatalog
         new("shell", "⌨️", "Terminal", "Local process · allowlisted", new[] { "RunCommand" }),
         new("skills", "📚", "Skills", "Local · workspace SKILL.md", new[] { "ReadSkill" }),
         new("microsoft365", "🗂️", "Microsoft 365", "Microsoft Graph · sample data", new[] { "SearchEmail", "SearchFiles", "SearchChats", "GetCalendar", "FindPeople", "SummarizeDocument", "SendMail" }),
+        new("mcp", "🧩", "MCP server", "MCP · HTTP · mcpserver", new[] { "GetCurrentTime" }),
     };
 
     /// <summary>

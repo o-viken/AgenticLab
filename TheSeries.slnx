@@ -3,6 +3,7 @@
     <Project Path="src/TheSeries.AiService/TheSeries.AiService.csproj" />
     <Project Path="src/TheSeries.AppHost/TheSeries.AppHost.csproj" />
     <Project Path="src/TheSeries.Console/TheSeries.Console.csproj" />
+    <Project Path="src/TheSeries.McpServer/TheSeries.McpServer.csproj" />
     <Project Path="src/TheSeries.ServiceDefaults/TheSeries.ServiceDefaults.csproj" />
     <Project Path="src/TheSeries.Web/TheSeries.Web.csproj" />
   </Folder>
