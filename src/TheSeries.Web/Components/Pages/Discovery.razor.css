@@ -1,0 +1,737 @@
+.discovery-app {
+    --page-bg: #fbfbfc;
+    --surface: #ffffff;
+    --text: #14161d;
+    --text-muted: #6a7180;
+    --text-faint: #9aa0ad;
+    --accent: #4f46e5;
+    --border: #e2e3e9;
+    --border-soft: #f1f2f5;
+    --code-bg: #f4f5f8;
+
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 1.75rem clamp(1rem, 4vw, 3rem);
+    background: var(--page-bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.discovery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.discovery-header h1 {
+    margin: 0 0 .35rem;
+    font-size: 1.55rem;
+    letter-spacing: -.01em;
+}
+
+.discovery-header-text p {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.back-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.discovery-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+}
+
+/* Stepping controls (mirrors the flow page's Auto/Step + pace controls). */
+.stepping {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+}
+
+.mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.mode-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: .82rem;
+    font-weight: 600;
+    padding: .38rem .8rem;
+    cursor: pointer;
+}
+
+.mode-toggle button.selected {
+    background: var(--accent);
+    color: #fff;
+}
+
+.delay {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .8rem;
+    color: var(--text-muted);
+}
+
+.delay input[type="range"] {
+    accent-color: var(--accent);
+}
+
+.delay-val {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+    min-width: 3.5rem;
+}
+
+.step-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+    font-size: .82rem;
+    padding: .38rem .8rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.step-btn.next {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.step-btn.stop {
+    border-color: #f0c2c2;
+    color: #b42323;
+}
+
+.step-btn:hover {
+    background: var(--code-bg);
+}
+
+.rediscover {
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: .92rem;
+    padding: .55rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity .15s ease, transform .1s ease;
+}
+
+.rediscover:hover:not(:disabled) {
+    opacity: .9;
+}
+
+.rediscover:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.rediscover:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+.rediscover.small {
+    font-size: .8rem;
+    padding: .35rem .75rem;
+    background: var(--surface);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.rediscover.small:hover:not(:disabled) {
+    background: var(--code-bg);
+    opacity: 1;
+}
+
+.startup-flag {
+    font-size: .82rem;
+    padding: .3rem .65rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface);
+}
+
+.startup-flag.on {
+    border-color: #bfe3cb;
+    background: #eaf6ee;
+    color: #2a7d49;
+}
+
+.startup-flag.off {
+    border-color: #e6d3b3;
+    background: #fbf3e3;
+    color: #8a6d1f;
+}
+
+.last-run {
+    font-size: .82rem;
+    color: var(--text-faint);
+}
+
+.discovery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+.source-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.source-head {
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.source-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+.source-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.source-subtitle {
+    margin: .4rem 0 .6rem;
+    color: var(--text-muted);
+    font-size: .86rem;
+    line-height: 1.45;
+}
+
+.source-endpoint {
+    margin: 0;
+    font-size: .82rem;
+}
+
+.endpoint-label {
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .68rem;
+    color: var(--text-faint);
+    margin-right: .5rem;
+}
+
+.source-endpoint code {
+    background: var(--code-bg);
+    padding: .1rem .4rem;
+    border-radius: 5px;
+    font-size: .8rem;
+    word-break: break-all;
+}
+
+.endpoint-none {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+.state-badge {
+    font-size: .74rem;
+    font-weight: 600;
+    padding: .22rem .6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.state-connected {
+    background: #eaf6ee;
+    color: #2a7d49;
+    border-color: #bfe3cb;
+}
+
+.state-failed {
+    background: #fdeaea;
+    color: #b42323;
+    border-color: #f0c2c2;
+}
+
+.state-connecting {
+    background: #eef0fe;
+    color: #3730a3;
+    border-color: #c9cdf6;
+}
+
+.state-none {
+    background: #fbf3e3;
+    color: #8a6d1f;
+    border-color: #e6d3b3;
+}
+
+.state-notrun {
+    background: #f4f5f8;
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+
+.source-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+/* Head action row (per-source re-discover). */
+.source-head-actions {
+    margin-top: .7rem;
+}
+
+/* ============================================================
+   Client ↔ server discovery flow diagram (mirrors the agent
+   flow view's directional send/recv arrows).
+   ============================================================ */
+.disc-flow {
+    --connector: #c2c6d2;
+    --accent-flow: var(--accent);
+    --accent-rgb: 79, 70, 229;
+
+    display: flex;
+    align-items: stretch;
+    gap: .5rem;
+    padding: 1rem .75rem;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: #fcfcfd;
+}
+
+.disc-node {
+    flex: 0 0 auto;
+    width: 8.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: .15rem;
+    padding: .7rem .5rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.disc-node.server {
+    background: #f6f7f9;
+}
+
+.disc-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
+    background: #eef0fe;
+}
+
+.disc-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.disc-node-title {
+    font-weight: 700;
+    font-size: .9rem;
+}
+
+.disc-node-sub {
+    font-size: .68rem;
+    color: var(--text-faint);
+    max-width: 100%;
+}
+
+.disc-node-sub code {
+    font-size: .64rem;
+    background: var(--code-bg);
+    padding: .05rem .3rem;
+    border-radius: 4px;
+    display: inline-block;
+    max-width: 7.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.disc-conns {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.1rem;
+    min-width: 90px;
+}
+
+.disc-conn {
+    position: relative;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.disc-conn::before {
+    content: "";
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    top: 50%;
+    height: 2px;
+    transform: translateY(-50%);
+    background: repeating-linear-gradient(90deg, var(--connector) 0 7px, transparent 7px 14px);
+    background-size: 14px 100%;
+}
+
+/* Arrowheads: send points right (client→server), recv points left (server→client). */
+.disc-conn.send::after {
+    content: "";
+    position: absolute;
+    right: 3%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 9px solid var(--connector);
+}
+
+.disc-conn.recv::after {
+    content: "";
+    position: absolute;
+    left: 3%;
+    top: 50%;
+    transform: translateY(-50%);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 9px solid var(--connector);
+}
+
+.disc-flow-label {
+    position: relative;
+    z-index: 1;
+    font-size: .66rem;
+    color: var(--text-faint);
+    background: #fcfcfd;
+    padding: .05rem .4rem;
+    border-radius: 4px;
+}
+
+/* Active (lit) arrows: animated marching dashes + accent colour, like the flow view. */
+.disc-conn.send.active::before {
+    background: repeating-linear-gradient(90deg, var(--accent-flow) 0 7px, transparent 7px 14px);
+    background-size: 14px 100%;
+    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .55));
+    animation: disc-dash-right .5s linear infinite;
+}
+
+.disc-conn.recv.active::before {
+    background: repeating-linear-gradient(90deg, var(--accent-flow) 0 7px, transparent 7px 14px);
+    background-size: 14px 100%;
+    filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .55));
+    animation: disc-dash-left .5s linear infinite;
+}
+
+.disc-conn.send.active::after {
+    border-left-color: var(--accent-flow);
+}
+
+.disc-conn.recv.active::after {
+    border-right-color: var(--accent-flow);
+}
+
+.disc-conn.active .disc-flow-label {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+@keyframes disc-dash-right {
+    to {
+        background-position: 14px 0;
+    }
+}
+
+@keyframes disc-dash-left {
+    to {
+        background-position: -14px 0;
+    }
+}
+
+.section-label {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: .68rem;
+    color: var(--text-faint);
+    margin-bottom: .5rem;
+}
+
+.item-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.item-row {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+    animation: chip-pop .25s ease;
+}
+
+.item-row.open {
+    border-color: #d9d3f0;
+}
+
+.item-toggle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    padding: .4rem .6rem;
+    cursor: pointer;
+    font: inherit;
+    color: var(--text);
+}
+
+.item-toggle:disabled {
+    cursor: default;
+}
+
+.item-toggle:hover:not(:disabled) {
+    background: var(--code-bg);
+}
+
+.chevron {
+    display: inline-flex;
+    width: .9rem;
+    justify-content: center;
+    color: var(--text-faint);
+    font-size: .7rem;
+    flex: 0 0 auto;
+}
+
+.chevron.placeholder {
+    visibility: hidden;
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: .85rem;
+    color: #3730a3;
+}
+
+.item-kind {
+    margin-left: auto;
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-faint);
+    background: #f3f0fb;
+    border: 1px solid #d9d3f0;
+    padding: .08rem .4rem;
+    border-radius: 999px;
+}
+
+.item-def {
+    padding: .1rem .7rem .6rem 2rem;
+    border-top: 1px dashed var(--border-soft);
+}
+
+.def-label {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-size: .62rem;
+    color: var(--text-faint);
+    margin: .4rem 0 .2rem;
+}
+
+.def-body {
+    margin: 0;
+    font-size: .8rem;
+    line-height: 1.45;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@keyframes chip-pop {
+    from {
+        opacity: 0;
+        transform: scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.empty {
+    color: var(--text-faint);
+    font-size: .84rem;
+    font-style: italic;
+}
+
+.source-error {
+    margin: .6rem 0 0;
+    color: #b42323;
+    font-size: .82rem;
+}
+
+.source-log {
+    border-top: 1px solid var(--border-soft);
+    padding-top: .9rem;
+}
+
+.log-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    overflow: visible;
+}
+
+.log-step {
+    font-size: .82rem;
+    border-left: 3px solid var(--border);
+    animation: step-in .2s ease;
+}
+
+.step-row {
+    display: flex;
+    align-items: baseline;
+    gap: .55rem;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    padding: .25rem .1rem .25rem .6rem;
+    cursor: pointer;
+}
+
+.step-row:disabled {
+    cursor: default;
+}
+
+.step-row:hover:not(:disabled) {
+    background: var(--code-bg);
+}
+
+.step-row .chevron {
+    align-self: center;
+}
+
+@keyframes step-in {
+    from {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.step-kind {
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .64rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    min-width: 5.5rem;
+    flex: 0 0 auto;
+}
+
+.step-msg {
+    color: var(--text);
+}
+
+.step-done {
+    border-left-color: #2a7d49;
+}
+
+.step-error {
+    border-left-color: #b42323;
+}
+
+.step-error .step-msg {
+    color: #b42323;
+}
+
+.step-item {
+    border-left-color: var(--accent);
+}
+
+.step-warn {
+    border-left-color: #8a6d1f;
+}
+
+.step-send {
+    border-left-color: #6b63ea;
+}
+
+/* Expanded detail below a step: the discovered tool/agent definition (name + description) or message. */
+.step-detail {
+    padding: .1rem .7rem .55rem 2rem;
+    border-top: 1px dashed var(--border-soft);
+}
+
+.detail-title {
+    display: block;
+    font-weight: 700;
+    font-size: .8rem;
+    margin: .35rem 0 .2rem;
+}
+
+.detail-body {
+    margin: 0;
+    font-size: .78rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    word-break: break-word;
+}

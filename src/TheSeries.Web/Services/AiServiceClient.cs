@@ -195,6 +195,61 @@ internal sealed class AiServiceClient(HttpClient http)
             JsonOptions,
             cancellationToken);
     }
+
+    /// <summary>
+    /// Gets a snapshot of every discovery source's status (endpoint, state, last-run time and discovered
+    /// tools/agents) plus whether discovery runs at startup, so the discovery page can render the last-known
+    /// result without running discovery again. Returns null on failure.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<DiscoverySnapshotResponse?> GetDiscoveryAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await http.GetAsync("/discovery", cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<DiscoverySnapshotResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
+    /// Runs a discovery pass on the service for the requested source (clean up, re-discover MCP tools
+    /// and/or A2A agents, then refresh the discovery-using agents) and yields each
+    /// <see cref="DiscoveryEventDto"/> as a Server-Sent Event so the discovery process can be visualized
+    /// live. The run is paced on the server by the matching <see cref="SendControlAsync"/> calls (keyed by
+    /// session id), so it can be stepped, paused, resumed or stopped.
+    /// </summary>
+    /// <param name="sessionId">The unique id shared with the control calls.</param>
+    /// <param name="source">The source to discover: <c>"mcp"</c>, <c>"a2a"</c>, or <c>"all"</c>/null for both.</param>
+    /// <param name="manual">When <c>true</c>, the run starts in manual stepping mode.</param>
+    /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
+    /// <param name="cancellationToken">A token to cancel the stream.</param>
+    public async IAsyncEnumerable<DiscoveryEventDto> StreamDiscoveryAsync(
+        string sessionId,
+        string? source,
+        bool manual,
+        int stepDelayMs,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/discovery/stream")
+        {
+            Content = JsonContent.Create(new DiscoveryStreamRequest(sessionId, source, manual, stepDelayMs)),
+        };
+        request.Headers.Accept.ParseAdd("text/event-stream");
+
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var parser = SseParser.Create(stream, (_, data) =>
+            JsonSerializer.Deserialize<DiscoveryEventDto>(data, JsonOptions));
+
+        await foreach (var item in parser.EnumerateAsync(cancellationToken))
+        {
+            if (item.Data is { } evt)
+            {
+                yield return evt;
+            }
+        }
+    }
 }
 
 internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "");
@@ -220,3 +275,18 @@ internal sealed record FlowChatRequest(string Message, string? Agent, string Ses
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);
+
+/// <summary>A snapshot of every discovery source's status plus whether discovery runs at startup.</summary>
+public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnlyList<DiscoverySourceStatusDto> Sources);
+
+/// <summary>The last-known status of a discovery source (MCP or A2A).</summary>
+public sealed record DiscoverySourceStatusDto(string Source, string? Endpoint, string State, string? Error, DateTimeOffset? LastRunUtc, IReadOnlyList<DiscoveryItemDto> Items);
+
+/// <summary>A discovered tool (MCP) or agent (A2A): its name and description.</summary>
+public sealed record DiscoveryItemDto(string Name, string Description);
+
+/// <summary>A single streamed step of a live discovery run.</summary>
+public sealed record DiscoveryEventDto(string Source, string Kind, string Message, DiscoveryItemDto? Item = null, int Sequence = 0);
+
+/// <summary>Requests a discovery run for a source, paced by a stepping session (reusing /chat/control).</summary>
+internal sealed record DiscoveryStreamRequest(string SessionId, string? Source = null, bool Manual = false, int StepDelayMs = 0);

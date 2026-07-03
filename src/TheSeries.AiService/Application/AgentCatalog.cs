@@ -90,6 +90,31 @@ public sealed class AgentCatalog
     /// <summary>The available agents, in registration order.</summary>
     public IReadOnlyList<AgentInfo> Agents { get; }
 
+    /// <summary>
+    /// Rebuilds the cached agents whose tools come from a discovery source (MCP or A2A) so a re-discovery
+    /// takes effect on already-built agents. Each agent bakes its <see cref="IAgentDefinition.Tools"/> when
+    /// it is constructed, and MCP/A2A agents expose the discovered tools by reference; after a re-discovery
+    /// reassigns those tool lists, the agents must be rebuilt from their retained build (chat client +
+    /// definition) so they call the freshly discovered tools. Agents that do not use discovery are left
+    /// untouched.
+    /// </summary>
+    public void RefreshDiscoveryAgents()
+    {
+        foreach (var (name, build) in _builds)
+        {
+            if (!build.Definition.SupportsMcp && !build.Definition.SupportsA2A)
+            {
+                continue;
+            }
+
+            _agents[name] = new ChatClientAgent(
+                build.Client,
+                instructions: build.Definition.Instructions,
+                name: build.Definition.Name,
+                tools: build.Definition.Tools);
+        }
+    }
+
     /// <summary>Resolves the agent by name (case-insensitive), or the default when <paramref name="name"/> is null/blank.</summary>
     /// <param name="name">The requested agent name, or null/blank for the default.</param>
     /// <param name="agent">The resolved agent when found.</param>

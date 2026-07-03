@@ -721,6 +721,24 @@
     margin-top: 0;
 }
 
+/* Link to the standalone discovery page. */
+.discovery-link {
+    flex: 0 0 auto;
+    padding: .45rem .8rem;
+    background: var(--surface);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    color: var(--link-accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .85rem;
+    white-space: nowrap;
+}
+
+.discovery-link:hover {
+    border-color: var(--accent);
+}
+
 /* ============================================================
    Page body layout. Three columns — a left (controls) panel, the
    centre flow, and a right (learning) panel — driven by the

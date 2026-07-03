@@ -101,13 +101,19 @@ builder.Services.AddSingleton<ConversationStore>();
 builder.Services.AddSingleton<FlowControlRegistry>();
 builder.Services.AddSingleton<FlowTracer>();
 
+// Orchestrates MCP + A2A discovery and projects it into a stream of discovery events for the visualization UI.
+builder.Services.AddSingleton<DiscoveryTracer>();
+
 var app = builder.Build();
 
-// Discover the MCP server's tools at startup so MCP-using agents pick them up. Degrades gracefully.
-await app.Services.GetRequiredService<McpToolProvider>().ConnectAsync();
-
-// Connect to the A2A agent server at startup so the orchestrator's delegation tool is available. Degrades gracefully.
-await app.Services.GetRequiredService<A2AAgentProvider>().ConnectAsync();
+// Discover the MCP server's tools and connect to the A2A server at startup so discovery-using agents pick
+// them up, unless disabled via Discovery:OnStartup. Either way discovery can be (re)run on demand from the
+// discovery page. Degrades gracefully when a server is unavailable.
+if (app.Services.GetRequiredService<DiscoveryTracer>().DiscoverOnStartup)
+{
+    await app.Services.GetRequiredService<McpToolProvider>().ConnectAsync();
+    await app.Services.GetRequiredService<A2AAgentProvider>().ConnectAsync();
+}
 
 app.MapDefaultEndpoints();
 
@@ -171,6 +177,23 @@ app.MapGet("/mcp", (McpToolProvider mcp) =>
 app.MapGet("/a2a", (A2AAgentProvider a2a) =>
     Results.Ok(new A2AResponse(a2a.AgentInfos
         .Select(a => new A2AAgentDescriptor(a.Name, a.Description)).ToList())));
+
+// Returns a snapshot of every discovery source's status (endpoint, state, last-run time and discovered
+// tools/agents) plus whether discovery runs at startup, so a client can render the last-known result
+// without running discovery again.
+app.MapGet("/discovery", (DiscoveryTracer discovery) =>
+    Results.Ok(discovery.Snapshot()));
+
+// Runs a discovery pass for the requested source (clean up, then re-discover MCP tools and/or A2A
+// agents, then refresh the discovery-using agents) and streams each step as a Server-Sent Event so the
+// process can be visualized live. The run is paced by a FlowSession (reusing the agent-flow stepping
+// mechanism) so the client can step, pause, resume or stop it via POST /chat/control. Has side effects
+// (tears down and rebuilds the discovery connections), hence POST.
+app.MapPost("/discovery/stream", (DiscoveryStreamRequest request, DiscoveryTracer discovery, FlowControlRegistry registry, CancellationToken cancellationToken) =>
+{
+    var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
+    return TypedResults.ServerSentEvents(discovery.StreamAsync(request.Source, session, cancellationToken));
+});
 
 // Returns the effective harness (system) prompt for a given agent + vendor so a client can show the
 // active system prompt before a run. A selected vendor's harness replaces the agent's own; otherwise the
@@ -385,3 +408,4 @@ internal sealed record VendorModeInfo(string Agent, string Label);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
+internal sealed record DiscoveryStreamRequest(string SessionId, string? Source = null, bool Manual = false, int StepDelayMs = 0);

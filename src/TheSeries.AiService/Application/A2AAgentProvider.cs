@@ -21,33 +21,70 @@ public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAg
     private readonly Dictionary<string, A2AClient> _clients = new(StringComparer.OrdinalIgnoreCase);
     private IList<AITool> _tools = [];
     private IReadOnlyList<A2AAgentInfo> _agentInfos = [];
+    private DiscoverySourceStatus _status = new("a2a", null, DiscoveryState.NotRun, null, null, []);
 
     /// <summary>Whether at least one remote A2A agent was discovered.</summary>
     public bool IsConnected => _clients.Count > 0;
 
-    /// <summary>The A2A delegation tools, ready to be handed to an agent. Empty until <see cref="ConnectAsync"/> runs.</summary>
+    /// <summary>The A2A delegation tools, ready to be handed to an agent. Empty until discovery runs.</summary>
     public IList<AITool> GetTools() => _tools;
 
     /// <summary>The discovered A2A agents' names and descriptions, surfaced so clients can show what was discovered.</summary>
     public IReadOnlyList<A2AAgentInfo> AgentInfos => _agentInfos;
 
+    /// <summary>The current discovery status (endpoint, state, last-run time and discovered agents).</summary>
+    public DiscoverySourceStatus Status => _status;
+
     /// <summary>
     /// Resolves the remote A2A server's endpoint (via service discovery, falling back to the <c>A2A:Endpoint</c>
     /// configuration value for a standalone run), discovers the agents it hosts and builds an
     /// <see cref="A2AClient"/> for each. Safe to call once at startup; failures are logged and leave the tool
-    /// list empty so the agents still load.
+    /// list empty so the agents still load. This is a convenience wrapper that drains <see cref="RediscoverAsync"/>.
     /// </summary>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        await foreach (var _ in RediscoverAsync(cancellationToken))
+        {
+            // Draining the stream performs the discovery; the events are only needed by streaming callers.
+        }
+    }
+
+    /// <summary>
+    /// Tears down any existing A2A clients and cached tools, then re-resolves the A2A server's endpoint,
+    /// re-discovers the agents it hosts and rebuilds an <see cref="A2AClient"/> for each, yielding a
+    /// <see cref="DiscoveryEvent"/> for each step so the process can be visualized. Failures are logged and
+    /// leave the tool list empty so the agents still load.
+    /// </summary>
+    public async IAsyncEnumerable<DiscoveryEvent> RediscoverAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var seq = 0;
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Start, "Starting A2A agent discovery.", Sequence: seq++);
+
+        // Clean up any previous clients and cached tools before rediscovering (the shared HttpClient is kept).
+        _clients.Clear();
+        _tools = [];
+        _agentInfos = [];
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Cleanup, "Cleared previous A2A clients and cached tools.", Sequence: seq++);
+
         var baseEndpoint = configuration["services:a2aserver:http:0"]
             ?? configuration["services:a2aserver:https:0"]
             ?? configuration["A2A:Endpoint"];
         if (string.IsNullOrWhiteSpace(baseEndpoint))
         {
             logger.LogWarning("No A2A server endpoint configured (services:a2aserver:* or A2A:Endpoint); skipping A2A agent discovery.");
-            return;
+            _status = new DiscoverySourceStatus("a2a", null, DiscoveryState.NoEndpoint, null, DateTimeOffset.UtcNow, []);
+            yield return new DiscoveryEvent("a2a", DiscoveryEventKind.NoEndpoint, "No A2A server endpoint configured; skipping discovery.", Sequence: seq++);
+            yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Done, "A2A discovery finished (no endpoint).", Sequence: seq++);
+            yield break;
         }
 
+        _status = _status with { Endpoint = baseEndpoint, State = DiscoveryState.Connecting };
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Endpoint, $"Resolved A2A endpoint {baseEndpoint}.", Sequence: seq++);
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Connecting, "Requesting the A2A server's agent roster.", Sequence: seq++);
+
+        IReadOnlyList<A2ADiscoveredAgent>? agents = null;
+        string? error = null;
         try
         {
             var baseUri = new Uri(baseEndpoint);
@@ -55,7 +92,7 @@ public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAg
             // Discover the agents this server hosts so the roster is not hard-coded here.
             var discovery = await _http.GetFromJsonAsync<A2ADiscoveryResponse>(
                 new Uri(baseUri, "/agents"), cancellationToken);
-            var agents = discovery?.Agents ?? [];
+            agents = discovery?.Agents ?? [];
 
             foreach (var agent in agents)
             {
@@ -66,38 +103,61 @@ public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAg
 
                 _clients[agent.Name] = new A2AClient(new Uri(baseUri, agent.Path), _http);
             }
-
-            if (_clients.Count == 0)
-            {
-                logger.LogWarning("A2A server at {Endpoint} reported no agents; the orchestrator will run without A2A delegation.", baseUri);
-                return;
-            }
-
-            _agentInfos = agents
-                .Where(a => _clients.ContainsKey(a.Name))
-                .Select(a => new A2AAgentInfo(a.Name, a.Description))
-                .ToList();
-
-            // One generic delegation tool routes to any discovered agent by name. Its description lists the
-            // available agents so the model knows who it can delegate to.
-            var roster = string.Join("; ", _agentInfos.Select(a => $"{a.Name} — {a.Description}"));
-            _tools =
-            [
-                AIFunctionFactory.Create(DelegateToAgentAsync, new AIFunctionFactoryOptions
-                {
-                    Name = "DelegateToAgent",
-                    Description = "Delegate a question to a named specialist agent over the A2A protocol and " +
-                        $"return its answer. Available agents: {roster}.",
-                }),
-            ];
-
-            logger.LogInformation("Discovered {Count} A2A agent(s) at {Endpoint}: {Agents}.",
-                _clients.Count, baseUri, string.Join(", ", _clients.Keys));
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not connect to the A2A server at {Endpoint}; the orchestrator will run without A2A delegation.", baseEndpoint);
+            error = ex.Message;
         }
+
+        if (error is not null)
+        {
+            _clients.Clear();
+            _status = new DiscoverySourceStatus("a2a", baseEndpoint, DiscoveryState.Failed, error, DateTimeOffset.UtcNow, []);
+            yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Error, $"Could not reach A2A server: {error}", Sequence: seq++);
+            yield break;
+        }
+
+        if (_clients.Count == 0)
+        {
+            logger.LogWarning("A2A server at {Endpoint} reported no agents; the orchestrator will run without A2A delegation.", baseEndpoint);
+            _status = new DiscoverySourceStatus("a2a", baseEndpoint, DiscoveryState.Connected, null, DateTimeOffset.UtcNow, []);
+            yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Done, "A2A discovery finished — no agents reported.", Sequence: seq++);
+            yield break;
+        }
+
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Listing, "Listing A2A agents.", Sequence: seq++);
+
+        _agentInfos = agents!
+            .Where(a => _clients.ContainsKey(a.Name))
+            .Select(a => new A2AAgentInfo(a.Name, a.Description))
+            .ToList();
+
+        var items = new List<DiscoveryItem>();
+        foreach (var info in _agentInfos)
+        {
+            var item = new DiscoveryItem(info.Name, info.Description);
+            items.Add(item);
+            yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Item, $"Discovered agent '{info.Name}'.", item, seq++);
+        }
+
+        // One generic delegation tool routes to any discovered agent by name. Its description lists the
+        // available agents so the model knows who it can delegate to.
+        var roster = string.Join("; ", _agentInfos.Select(a => $"{a.Name} — {a.Description}"));
+        _tools =
+        [
+            AIFunctionFactory.Create(DelegateToAgentAsync, new AIFunctionFactoryOptions
+            {
+                Name = "DelegateToAgent",
+                Description = "Delegate a question to a named specialist agent over the A2A protocol and " +
+                    $"return its answer. Available agents: {roster}.",
+            }),
+        ];
+
+        _status = new DiscoverySourceStatus("a2a", baseEndpoint, DiscoveryState.Connected, null, DateTimeOffset.UtcNow, items);
+        logger.LogInformation("Discovered {Count} A2A agent(s) at {Endpoint}: {Agents}.",
+            _clients.Count, baseEndpoint, string.Join(", ", _clients.Keys));
+        yield return new DiscoveryEvent("a2a", DiscoveryEventKind.Done, $"A2A discovery finished — {items.Count} agent(s).", Sequence: seq++);
     }
 
     /// <summary>
