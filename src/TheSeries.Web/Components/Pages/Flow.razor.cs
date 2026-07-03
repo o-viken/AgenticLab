@@ -14,6 +14,8 @@ public partial class Flow : IDisposable
 {
     private const string VendorStorageKey = "theseries-vendor";
     private const string PanelStorageKey = "theseries-panels";
+    private const string WorkspaceBasesStorageKey = "theseries-workspace-bases";
+    private const string RecentWorkspacesStorageKey = "theseries-workspace-recent";
 
     [Inject]
     private AiServiceClient Ai { get; set; } = default!;
@@ -32,6 +34,7 @@ public partial class Flow : IDisposable
         _view = new FlowViewState(Concepts);
         _run = new FlowRunController(Ai, _view);
         _view.Changed += OnViewChanged;
+        _view.WorkspacePrefsChanged += OnWorkspacePrefsChanged;
         _run.Changed += OnRunChangedAsync;
     }
 
@@ -85,6 +88,22 @@ public partial class Flow : IDisposable
             {
                 _view.InitPanels(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
                     panels.LeftWidth, panels.RightWidth, panels.BottomHeight);
+                StateHasChanged();
+            }
+
+            var storedBases = await JS.InvokeAsync<string?>("localStorage.getItem", WorkspaceBasesStorageKey);
+            var storedRecent = await JS.InvokeAsync<string?>("localStorage.getItem", RecentWorkspacesStorageKey);
+            if (!string.IsNullOrEmpty(storedBases) || !string.IsNullOrEmpty(storedRecent))
+            {
+                var recent = string.IsNullOrEmpty(storedRecent)
+                    ? Array.Empty<string>()
+                    : storedRecent.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                _view.InitWorkspacePrefs(storedBases, recent);
+                if (_view.WorkspaceBasePaths.Count > 0)
+                {
+                    await _run.RefreshWorkspaceSuggestionsAsync();
+                }
+
                 StateHasChanged();
             }
         }
@@ -167,11 +186,28 @@ public partial class Flow : IDisposable
 
     private void OnViewChanged() => _ = InvokeAsync(StateHasChanged);
 
+    // Persists the workspace preferences (base folders + recent paths) whenever they change.
+    private void OnWorkspacePrefsChanged() => _ = PersistWorkspacePrefsAsync();
+
+    private async Task PersistWorkspacePrefsAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", WorkspaceBasesStorageKey, _view.WorkspaceBases);
+            await JS.InvokeVoidAsync("localStorage.setItem", RecentWorkspacesStorageKey, string.Join('\n', _view.RecentWorkspaces));
+        }
+        catch
+        {
+            // Persisting the workspace preferences is best-effort.
+        }
+    }
+
     private Task OnRunChangedAsync() => InvokeAsync(StateHasChanged);
 
     public void Dispose()
     {
         _view.Changed -= OnViewChanged;
+        _view.WorkspacePrefsChanged -= OnWorkspacePrefsChanged;
         _run.Changed -= OnRunChangedAsync;
         _run.Dispose();
     }

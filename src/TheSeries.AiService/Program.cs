@@ -35,6 +35,18 @@ builder.Services.AddSingleton<Microsoft365Tool>();
 builder.Services.AddSingleton<FileSystemTool>();
 builder.Services.AddSingleton<TerminalTool>();
 
+// HttpClient used by the web-fetch tool. A descriptive User-Agent and a bounded timeout keep a slow or
+// hostile endpoint from hanging a run.
+builder.Services.AddHttpClient("webfetch", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("TheSeries-WebFetch/1.0 (https://github.com/Equinor/the-series)");
+});
+
+// Lets an agent fetch a public http(s) URL (the backend counterpart of a VS Code agent's web/fetch tool).
+builder.Services.AddSingleton(sp =>
+    new WebFetchTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("webfetch")));
+
 // Lets an agent pause a streaming run to ask the user a clarifying question.
 builder.Services.AddSingleton<AskQuestionTool>();
 
@@ -166,6 +178,12 @@ app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgent
         : Results.Ok(new AgentsResponse(workspaceAgents.ListAgents(), string.Empty));
 });
 
+// Lists the immediate sub-folders of one or more base folders so a client can suggest workspace paths
+// (e.g. the repo folders under a "GitHub" directory the user pointed at). A read-only directory listing
+// that skips hidden/system folders and caps the result; returns an empty list when no base exists.
+app.MapPost("/workspaces", (WorkspaceBrowseRequest request) =>
+    Results.Ok(new WorkspaceBrowseResponse(BrowseWorkspaces(request.Bases))));
+
 // Lists the MCP servers connected to the AI service and the tools discovered from them, so a client can
 // show MCP discovery before/after a run. Backed by the live MCP client connection established at startup.
 app.MapGet("/mcp", (McpToolProvider mcp) =>
@@ -264,7 +282,9 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Workspace
         return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
     }
 
-    return await RunChat(workspaceAgent, definition.Name, definition.SupportsSkills, request, conversations, skills, instructions, cancellationToken);
+    // Workspace-defined agents always support workspace skills (see WorkspaceDefinedAgent), so the skill
+    // catalogue is injected for their runs regardless of the agent file's `skills` field.
+    return await RunChat(workspaceAgent, definition.Name, supportsSkills: true, request, conversations, skills, instructions, cancellationToken);
 });
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
@@ -273,7 +293,7 @@ app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowCon
 {
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
     return TypedResults.ServerSentEvents(
-        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.Vendor, session, cancellationToken),
+        tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, request.Vendor, session, cancellationToken),
         eventType: "flow");
 });
 
@@ -345,6 +365,83 @@ static WorkspaceScope? OpenWorkspace(string? path)
     }
 }
 
+// Lists the immediate sub-directories of each supplied base folder (the candidate repo folders), used to
+// suggest workspace paths in the UI. Skips blank/non-existent bases and hidden/system sub-folders, dedups
+// by full path, and caps the result so a huge base folder can't flood the client. Purely read-only.
+static IReadOnlyList<WorkspaceEntry> BrowseWorkspaces(IReadOnlyList<string>? bases)
+{
+    if (bases is not { Count: > 0 })
+    {
+        return Array.Empty<WorkspaceEntry>();
+    }
+
+    const int maxEntries = 300;
+    var entries = new List<WorkspaceEntry>();
+    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var raw in bases)
+    {
+        if (entries.Count >= maxEntries || string.IsNullOrWhiteSpace(raw))
+        {
+            continue;
+        }
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(raw.Trim());
+        }
+        catch
+        {
+            continue;
+        }
+
+        if (!Directory.Exists(full))
+        {
+            continue;
+        }
+
+        IEnumerable<string> subdirs;
+        try
+        {
+            subdirs = Directory.EnumerateDirectories(full).OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            // A base we can't read (permissions) simply contributes nothing.
+            continue;
+        }
+
+        foreach (var dir in subdirs)
+        {
+            if (entries.Count >= maxEntries)
+            {
+                break;
+            }
+
+            try
+            {
+                var attrs = File.GetAttributes(dir);
+                if (attrs.HasFlag(FileAttributes.Hidden) || attrs.HasFlag(FileAttributes.System))
+                {
+                    continue;
+                }
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (seen.Add(dir))
+            {
+                entries.Add(new WorkspaceEntry(dir, Path.GetFileName(dir), full));
+            }
+        }
+    }
+
+    return entries;
+}
+
 // Runs a (built-in or workspace-defined) agent for one /chat turn, continuing the supplied conversation,
 // injecting the workspace's custom instructions (always, when present) and its skill catalogue (when the
 // agent uses skills), and hiding any tools the caller disabled for this run. Any required workspace scope
@@ -358,8 +455,15 @@ static async Task<IResult> RunChat(AIAgent agent, string resolvedName, bool supp
         : request.ConversationId.Trim();
     var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
 
-    // Surface the workspace's custom instructions (always, when present) and its skills (names +
-    // descriptions, when the agent uses them) to the agent for this run only.
+    // Custom instructions are opt-in (default off): only the ones the caller enabled are injected. Skills
+    // default on: the caller can disable a subset. Both scopes stay active for the whole (single) run.
+    using var instructionScope = InstructionFilterScope.Begin(request.EnabledInstructions ?? Array.Empty<string>());
+    using var skillScope = request.DisabledSkills is { Count: > 0 } disabledSkills
+        ? SkillFilterScope.Begin(disabledSkills)
+        : null;
+
+    // Surface the workspace's custom instructions (opted in) and its skills (names + descriptions, when
+    // the agent uses them) to the agent for this run only.
     var runOptions = BuildRunOptions(supportsSkills, skills, instructions);
 
     // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
@@ -385,7 +489,7 @@ static AgentRunOptions? BuildRunOptions(bool supportsSkills, SkillLoader skills,
         : new ChatClientAgentRunOptions(new ChatOptions { Instructions = combined });
 }
 
-internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
@@ -395,6 +499,9 @@ internal sealed record InstructionsRequest(string? Workspace);
 internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
 internal sealed record InstructionInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
+internal sealed record WorkspaceBrowseRequest(IReadOnlyList<string>? Bases);
+internal sealed record WorkspaceBrowseResponse(IReadOnlyList<WorkspaceEntry> Directories);
+internal sealed record WorkspaceEntry(string Path, string Name, string Base);
 internal sealed record McpResponse(IReadOnlyList<McpServerInfo> Servers);
 internal sealed record McpServerInfo(string Name, IReadOnlyList<McpToolDescriptor> Tools);
 internal sealed record McpToolDescriptor(string Name, string Description);
@@ -405,7 +512,7 @@ internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
 internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
 internal sealed record VendorModeInfo(string Agent, string Label);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 internal sealed record DiscoveryStreamRequest(string SessionId, string? Source = null, bool Manual = false, int StepDelayMs = 0);

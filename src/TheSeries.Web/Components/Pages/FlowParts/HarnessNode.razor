@@ -37,7 +37,7 @@
                     @foreach (var tool in View.SelectedAgentToolNames)
                     {
                         <span class="tool-chip @View.ToolRiskClass(tool) @(View.IsToolEnabled(tool) ? "" : "off")"
-                              title="@View.ToolRiskTitle(tool)">
+                              title="@ChipTitle(tool)">
                             @tool
                         </span>
                     }
@@ -116,4 +116,13 @@
 
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
+
+    // The chip tooltip: the tool's risk explanation, plus (for a workspace agent) the declared token it
+    // was mapped from, so it's visible that a VS Code-style token became this app's backend tool.
+    private string ChipTitle(string tool)
+    {
+        var title = View.ToolRiskTitle(tool);
+        var mappedFrom = View.ToolMappedFrom(tool);
+        return mappedFrom is null ? title : $"{title} · mapped from {mappedFrom}";
+    }
 }

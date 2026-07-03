@@ -22,7 +22,10 @@ internal sealed class WorkspaceDefinedAgent(WorkspaceAgentDefinition definition,
     public override bool RequiresWorkspace => true;
 
     /// <inheritdoc />
-    public override bool SupportsSkills => definition.SupportsSkills;
+    // Every workspace-defined agent supports workspace skills: it already runs confined to the workspace,
+    // so the skill catalogue that lives there is always relevant. (The agent file's `skills` field is
+    // retained on the definition for reference but no longer gates this.)
+    public override bool SupportsSkills => true;
 
     /// <inheritdoc />
     public override AgentRiskLevel RiskLevel => definition.RiskLevel;

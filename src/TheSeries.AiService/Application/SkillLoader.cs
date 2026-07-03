@@ -18,12 +18,26 @@ namespace TheSeries.AiService.Application;
 /// </summary>
 public sealed class SkillLoader
 {
-    private const string SkillsFolder = "skills";
     private const string SkillFileName = "SKILL.md";
 
+    // The folders scanned for the folder-per-skill convention (each sub-directory holds a SKILL.md). Covers
+    // a top-level `skills/` folder, GitHub Copilot's `.github/skills/` and Claude Code's `.claude/skills/`.
+    private static readonly string[] SkillFolders = { "skills", ".github/skills", ".claude/skills" };
+
+    // The folders scanned for the flat, one-file-per-skill convention, each paired with the suffix that
+    // marks a file there. The skill name comes from the file name; the full body is loaded on demand by
+    // ReadSkill. Covers VS Code prompt files and Claude Code slash-command playbooks.
+    private static readonly (string Folder, string Suffix)[] FlatSkillSources =
+    {
+        (".github/prompts", ".prompt.md"),
+        (".claude/commands", ".md"),
+    };
+
     /// <summary>
-    /// Loads the skills declared in the active workspace. Returns an empty list when no workspace is
-    /// active, when the workspace has no <c>skills/</c> folder, or when no skill declares a name.
+    /// Loads the skills declared in the active workspace, from the folder-per-skill convention
+    /// (<c>skills/*/SKILL.md</c>, <c>.github/skills/*/SKILL.md</c>, <c>.claude/skills/*/SKILL.md</c>) and the
+    /// flat-file convention (<c>.github/prompts/*.prompt.md</c>, <c>.claude/commands/*.md</c>). Returns an
+    /// empty list when no workspace is active or when the workspace declares none. De-duplicated by name.
     /// </summary>
     /// <returns>The discovered skills, ordered by name (case-insensitive).</returns>
     internal IReadOnlyList<SkillDefinition> Load()
@@ -34,32 +48,78 @@ public sealed class SkillLoader
             return [];
         }
 
-        var skillsRoot = scope.ResolvePath(SkillsFolder);
-        if (!Directory.Exists(skillsRoot))
-        {
-            return [];
-        }
-
         var skills = new List<SkillDefinition>();
-        foreach (var dir in Directory.EnumerateDirectories(skillsRoot))
+
+        // Folder-per-skill (a SKILL.md per sub-directory).
+        foreach (var folder in SkillFolders)
         {
-            var file = Path.Combine(dir, SkillFileName);
-            if (!File.Exists(file))
+            var skillsRoot = scope.ResolvePath(folder);
+            if (!Directory.Exists(skillsRoot))
             {
                 continue;
             }
 
-            var (name, description) = ReadFrontmatter(file);
-            if (string.IsNullOrWhiteSpace(name))
+            foreach (var dir in Directory.EnumerateDirectories(skillsRoot))
             {
-                continue;
-            }
+                var file = Path.Combine(dir, SkillFileName);
+                if (!File.Exists(file))
+                {
+                    continue;
+                }
 
-            var id = Path.GetFileName(dir);
-            skills.Add(new SkillDefinition(name, description, $"{SkillsFolder}/{id}/{SkillFileName}"));
+                var (name, description) = ReadFrontmatter(file);
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                var id = Path.GetFileName(dir);
+                skills.Add(new SkillDefinition(name, description, $"{folder}/{id}/{SkillFileName}"));
+            }
         }
 
-        return skills.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        // Flat, one-file-per-skill (prompt/command files): the name is the file name; the description is
+        // the optional frontmatter's, and the full body is read on demand by ReadSkill.
+        foreach (var (folder, suffix) in FlatSkillSources)
+        {
+            var skillsRoot = scope.ResolvePath(folder);
+            if (!Directory.Exists(skillsRoot))
+            {
+                continue;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(skillsRoot, "*" + suffix, SearchOption.TopDirectoryOnly))
+            {
+                var fileName = Path.GetFileName(file);
+                var name = fileName[..^suffix.Length];
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                var (_, description) = ReadFrontmatter(file);
+                skills.Add(new SkillDefinition(name, description, $"{folder}/{fileName}"));
+            }
+        }
+
+        return skills
+            .GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// The skills available to the model this run: <see cref="Load"/> minus any the caller disabled via
+    /// the active <see cref="SkillFilterScope"/> (skills default to enabled). Used to build the catalogue
+    /// and to resolve <c>ReadSkill</c>, so a disabled skill is neither offered nor loadable.
+    /// </summary>
+    /// <returns>The enabled skills, ordered by name (case-insensitive).</returns>
+    internal IReadOnlyList<SkillDefinition> LoadAvailable()
+    {
+        var scope = SkillFilterScope.Current;
+        var all = Load();
+        return scope is null ? all : all.Where(s => !scope.IsDisabled(s.Name)).ToList();
     }
 
     /// <summary>
@@ -70,7 +130,7 @@ public sealed class SkillLoader
     /// <returns>The context block, or <c>null</c> when there are no skills.</returns>
     public string? BuildContextBlock()
     {
-        var skills = Load();
+        var skills = LoadAvailable();
         if (skills.Count == 0)
         {
             return null;

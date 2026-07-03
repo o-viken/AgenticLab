@@ -11,8 +11,7 @@ internal enum FlowMode
 /// Which tab is active in the left Controls panel, reorganised from two stacked cards into a tabbed view.
 /// <list type="bullet">
 /// <item><description><see cref="Chat"/>: the agent picker, message box, run/stepping buttons and conversation log (FlowChat).</description></item>
-/// <item><description><see cref="Settings"/>: step delay, stepping mode, tool toggles and workspace input (FlowControls).</description></item>
-/// <item><description><see cref="Workspace"/>: the workspace's discovered skills and custom instructions.</description></item>
+/// <item><description><see cref="Settings"/>: step delay, stepping mode, tool toggles, workspace input and the discovered skills/custom instructions (FlowControls).</description></item>
 /// <item><description><see cref="Telemetry"/>: live run figures — turns, context size, persona/tools chars and event count.</description></item>
 /// </list>
 /// </summary>
@@ -20,7 +19,6 @@ internal enum ControlsTab
 {
     Chat,
     Settings,
-    Workspace,
     Telemetry,
 }
 
@@ -77,6 +75,20 @@ internal sealed record ConversationTurn(
 
 /// <summary>A skill discovered in the workspace and offered to the agent: its name and one-line description.</summary>
 internal sealed record SkillChip(string Name, string Description);
+
+/// <summary>
+/// One suggestion shown in the workspace picker: the full folder <paramref name="Path"/> (used as the
+/// value when picked), the <paramref name="Name"/> (the repo folder name, shown prominently) and whether
+/// it is a <paramref name="IsRecent"/> previously-used workspace (vs a folder discovered under a base).
+/// </summary>
+internal sealed record WorkspaceSuggestion(string Path, string Name, bool IsRecent);
+
+/// <summary>
+/// One line of the workspace agent's tool-name mapping display: the declared token(s) from the agent
+/// file (each rendered on its own line) and the backend tool they resolved to. <paramref name="Mapped"/>
+/// is <c>null</c> and <paramref name="Dropped"/> is <c>true</c> when the token had no matching backend tool.
+/// </summary>
+internal sealed record ToolMappingLine(IReadOnlyList<string> Declared, string? Mapped, bool Dropped);
 
 /// <summary>A custom instruction discovered in the workspace and always injected: its name and one-line description.</summary>
 internal sealed record InstructionChip(string Name, string Description);

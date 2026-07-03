@@ -1,6 +1,15 @@
 namespace TheSeries.AiService.Application;
 
 /// <summary>
+/// One declared tool token from a workspace agent file and the backend tool it resolved to, so the UI can
+/// show that (and how) a VS Code-style token was mapped. <paramref name="Mapped"/> is <c>null</c> when the
+/// token had no matching backend tool and was dropped.
+/// </summary>
+/// <param name="Declared">The tool token exactly as written in the agent file (e.g. <c>search/fileSearch</c>).</param>
+/// <param name="Mapped">The backend tool name it mapped to (e.g. <c>ListFiles</c>), or <c>null</c> when dropped.</param>
+public sealed record ToolMapping(string Declared, string? Mapped);
+
+/// <summary>
 /// A user-authored agent discovered in the active workspace's <c>agents/</c> folder (one
 /// <c>&lt;name&gt;.agent.yaml</c> file per agent). Unlike the built-in <see cref="IAgentDefinition"/>s
 /// these are not registered at start-up; they are loaded per request from the workspace and turned into
@@ -15,6 +24,7 @@ namespace TheSeries.AiService.Application;
 /// <param name="SupportsSkills">Whether the agent participates in workspace skills (its catalogue is injected per run).</param>
 /// <param name="ModelId">The Azure OpenAI deployment the agent should run on (from the YAML <c>model</c>), or <c>null</c> for the default.</param>
 /// <param name="RelativePath">The workspace-relative path of the YAML file the agent was loaded from.</param>
+/// <param name="ToolMappings">Each declared tool token and the backend tool it mapped to, so the UI can show the mapping.</param>
 public sealed record WorkspaceAgentDefinition(
     string Name,
     string Description,
@@ -24,4 +34,5 @@ public sealed record WorkspaceAgentDefinition(
     IReadOnlyList<string> Guardrails,
     bool SupportsSkills,
     string? ModelId,
-    string RelativePath);
+    string RelativePath,
+    IReadOnlyList<ToolMapping> ToolMappings);

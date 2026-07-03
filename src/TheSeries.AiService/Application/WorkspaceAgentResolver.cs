@@ -30,11 +30,12 @@ public sealed class WorkspaceAgentResolver
         FileSystemTool files,
         TerminalTool terminal,
         SkillsTool skills,
-        AskQuestionTool ask)
+        AskQuestionTool ask,
+        WebFetchTool web)
     {
         _clients = clients;
         _loader = loader;
-        _registry = new[] { files.AsTools(), terminal.AsTools(), skills.AsTools(), ask.AsTools() }
+        _registry = new[] { files.AsTools(), terminal.AsTools(), skills.AsTools(), ask.AsTools(), web.AsTools() }
             .SelectMany(t => t)
             .OfType<AIFunction>()
             .GroupBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
@@ -52,17 +53,19 @@ public sealed class WorkspaceAgentResolver
             .Select(d =>
             {
                 var tools = ResolveTools(d.ToolNames);
+                var agent = new WorkspaceDefinedAgent(d, tools);
                 return new AgentInfo(
                     d.Name,
                     d.Description,
                     tools.OfType<AIFunction>().Select(f => f.Name).ToList(),
                     RequiresWorkspace: true,
-                    d.SupportsSkills,
+                    agent.SupportsSkills,
                     SupportsMcp: false,
                     SupportsA2A: false,
                     d.RiskLevel.ToString(),
                     d.Guardrails,
-                    _clients.ResolveDeployment(new WorkspaceDefinedAgent(d, tools)));
+                    _clients.ResolveDeployment(agent),
+                    d.ToolMappings);
             })
             .ToList();
 
@@ -103,6 +106,9 @@ public sealed class WorkspaceAgentResolver
     }
 
     // Maps the agent's declared tool names to the registered tool functions, dropping any that are unknown.
+    // Every workspace agent supports workspace skills, so the ReadSkill tool is always granted (even when the
+    // agent file does not list it) — otherwise the model can only see the <skills> catalogue but has no way to
+    // load a skill's body and resorts to guessing a file path with ReadFile.
     private IList<AITool> ResolveTools(IReadOnlyList<string> toolNames)
     {
         var tools = new List<AITool>();
@@ -112,6 +118,12 @@ public sealed class WorkspaceAgentResolver
             {
                 tools.Add(function);
             }
+        }
+
+        if (_registry.TryGetValue(nameof(SkillsTool.ReadSkill), out var readSkill) &&
+            !tools.Contains(readSkill))
+        {
+            tools.Add(readSkill);
         }
 
         return tools;

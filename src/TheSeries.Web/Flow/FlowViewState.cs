@@ -14,6 +14,8 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private readonly List<AgentInfo> _workspaceAgents = new();
     private readonly Dictionary<string, VendorInfo> _vendors = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _disabledTools = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _disabledSkills = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _enabledInstructions = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<int> _expanded = new();
 
     /// <summary>The narrowest a side panel may be dragged before it should be collapsed instead.</summary>
@@ -37,6 +39,9 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private string _message = string.Empty;
     private string? _selectedAgent;
     private string _workspace = string.Empty;
+    private string _workspaceBases = string.Empty;
+    private readonly List<string> _recentWorkspaces = new();
+    private readonly List<WorkspaceEntry> _workspaceDirectories = new();
     private int _stepDelayMs = 600;
     private FlowMode _mode = FlowMode.Auto;
     private ControlsTab _activeControlsTab = ControlsTab.Chat;
@@ -148,6 +153,8 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 
             _selectedAgent = value;
             _disabledTools.Clear();
+            _disabledSkills.Clear();
+            _enabledInstructions.Clear();
             Notify();
         }
     }
@@ -160,6 +167,118 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     {
         get => _workspace;
         set { _workspace = value; Notify(); }
+    }
+
+    /// <summary>
+    /// Raised when a persisted workspace preference (the base folders or the recent-paths list) changes,
+    /// so the hosting page can save it to localStorage. Separate from <see cref="Changed"/> so ordinary
+    /// re-renders don't trigger a save.
+    /// </summary>
+    public event Action? WorkspacePrefsChanged;
+
+    private void NotifyPrefs()
+    {
+        WorkspacePrefsChanged?.Invoke();
+        Notify();
+    }
+
+    /// <summary>
+    /// The base folders (one per line, or ';'-separated) the user points at so the workspace input can
+    /// suggest the repo sub-folders under them. Persisted across sessions.
+    /// </summary>
+    public string WorkspaceBases
+    {
+        get => _workspaceBases;
+        set { _workspaceBases = value ?? string.Empty; NotifyPrefs(); }
+    }
+
+    /// <summary>The parsed, de-duplicated base folder paths (split on newlines and semicolons).</summary>
+    public IReadOnlyList<string> WorkspaceBasePaths =>
+        _workspaceBases
+            .Split(['\n', '\r', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>The most recently used workspace paths, newest first. Persisted across sessions.</summary>
+    public IReadOnlyList<string> RecentWorkspaces => _recentWorkspaces;
+
+    /// <summary>Replaces the discovered repo sub-folders (from the base folders) used for suggestions.</summary>
+    public void SetWorkspaceDirectories(IEnumerable<WorkspaceEntry> directories)
+    {
+        _workspaceDirectories.Clear();
+        _workspaceDirectories.AddRange(directories);
+        Notify();
+    }
+
+    /// <summary>Records a used workspace path at the top of the recent list (de-duped, capped), and persists it.</summary>
+    public void AddRecentWorkspace(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        var trimmed = path.Trim();
+        _recentWorkspaces.RemoveAll(p => string.Equals(p, trimmed, StringComparison.OrdinalIgnoreCase));
+        _recentWorkspaces.Insert(0, trimmed);
+        while (_recentWorkspaces.Count > 8)
+        {
+            _recentWorkspaces.RemoveAt(_recentWorkspaces.Count - 1);
+        }
+
+        NotifyPrefs();
+    }
+
+    /// <summary>Restores the persisted workspace preferences on load without re-triggering a save.</summary>
+    public void InitWorkspacePrefs(string? bases, IEnumerable<string>? recent)
+    {
+        _workspaceBases = bases ?? string.Empty;
+        _recentWorkspaces.Clear();
+        if (recent is not null)
+        {
+            _recentWorkspaces.AddRange(recent.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim()));
+        }
+
+        Notify();
+    }
+
+    /// <summary>
+    /// The suggestions offered in the workspace picker: the recently-used paths first, then the repo
+    /// sub-folders discovered under the base folders, de-duplicated by full path. Each carries the repo
+    /// folder name (shown prominently) so a long path prefix doesn't obscure which repo it is.
+    /// </summary>
+    public IReadOnlyList<WorkspaceSuggestion> WorkspaceSuggestions
+    {
+        get
+        {
+            var list = new List<WorkspaceSuggestion>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var recent in _recentWorkspaces)
+            {
+                if (seen.Add(recent))
+                {
+                    list.Add(new WorkspaceSuggestion(recent, FolderName(recent), IsRecent: true));
+                }
+            }
+
+            foreach (var dir in _workspaceDirectories)
+            {
+                if (seen.Add(dir.Path))
+                {
+                    list.Add(new WorkspaceSuggestion(dir.Path, dir.Name, IsRecent: false));
+                }
+            }
+
+            return list;
+        }
+    }
+
+    // The last path segment (the repo/folder name) of a full workspace path, ignoring a trailing slash.
+    private static string FolderName(string path)
+    {
+        var trimmed = path.TrimEnd('/', '\\');
+        var name = System.IO.Path.GetFileName(trimmed);
+        return string.IsNullOrEmpty(name) ? path : name;
     }
 
     /// <summary>The auto-mode server-side delay applied before each step, in milliseconds.</summary>
@@ -303,6 +422,54 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     /// <summary>The disabled tool names for the next run, or null when none are disabled.</summary>
     public IReadOnlyList<string>? DisabledToolsOrNull =>
         _disabledTools.Count > 0 ? _disabledTools.ToArray() : null;
+
+    // --- Skill toggles (default on) ---------------------------------------
+
+    /// <summary>Whether the given skill is enabled (offered to the model) for the next run. Skills default on.</summary>
+    public bool IsSkillEnabled(string skill) => !_disabledSkills.Contains(skill);
+
+    /// <summary>Switches a skill on or off for the next run.</summary>
+    public void SetSkillEnabled(string skill, bool enabled)
+    {
+        if (enabled)
+        {
+            _disabledSkills.Remove(skill);
+        }
+        else
+        {
+            _disabledSkills.Add(skill);
+        }
+
+        Notify();
+    }
+
+    /// <summary>The disabled skill names for the next run, or null when none are disabled.</summary>
+    public IReadOnlyList<string>? DisabledSkillsOrNull =>
+        _disabledSkills.Count > 0 ? _disabledSkills.ToArray() : null;
+
+    // --- Instruction toggles (default off) --------------------------------
+
+    /// <summary>Whether the given custom instruction is enabled (injected) for the next run. Instructions default off.</summary>
+    public bool IsInstructionEnabled(string instruction) => _enabledInstructions.Contains(instruction);
+
+    /// <summary>Switches a custom instruction on or off for the next run.</summary>
+    public void SetInstructionEnabled(string instruction, bool enabled)
+    {
+        if (enabled)
+        {
+            _enabledInstructions.Add(instruction);
+        }
+        else
+        {
+            _enabledInstructions.Remove(instruction);
+        }
+
+        Notify();
+    }
+
+    /// <summary>The enabled custom-instruction names for the next run, or null when none are enabled.</summary>
+    public IReadOnlyList<string>? EnabledInstructionsOrNull =>
+        _enabledInstructions.Count > 0 ? _enabledInstructions.ToArray() : null;
 
     // --- Diagram toggles --------------------------------------------------
 
@@ -721,6 +888,57 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 
     /// <summary>A tooltip explaining a tool's risk tier and why (e.g. read-only vs. runs commands on the host).</summary>
     public string ToolRiskTitle(string tool) => $"{tool} — {ToolRiskCatalog.Reason(tool)}";
+
+    /// <summary>The declared tool token(s) from the workspace agent file that mapped to the given backend
+    /// tool, or <c>null</c> when the tool was not produced by an alias mapping (a built-in agent, or a
+    /// <c>.agent.yaml</c> agent that declares backend names directly). Used to show that a VS Code-style
+    /// token (e.g. <c>read/readFile</c>) was mapped to this app's tool (e.g. <c>ReadFile</c>).</summary>
+    public string? ToolMappedFrom(string tool)
+    {
+        var declared = Selected?.ToolMappings?
+            .Where(m => string.Equals(m.Mapped, tool, StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(m.Declared, tool, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Declared)
+            .ToList();
+        return declared is { Count: > 0 } ? string.Join(", ", declared) : null;
+    }
+
+    /// <summary>
+    /// The declared→mapped tool lines for the selected workspace agent, shown so it is visible that the
+    /// agent file's VS Code-style tool tokens were mapped to this app's backend tools. Returns an empty
+    /// list unless at least one token was aliased (i.e. differs from its backend name) or dropped — so a
+    /// <c>.agent.yaml</c> agent that declares backend names directly shows nothing. Declared tokens are
+    /// grouped by the backend tool they produced; dropped tokens (no backend equivalent) are listed last.
+    /// </summary>
+    public IReadOnlyList<ToolMappingLine> ToolMappingLines
+    {
+        get
+        {
+            var mappings = Selected?.ToolMappings;
+            if (mappings is not { Count: > 0 })
+            {
+                return Array.Empty<ToolMappingLine>();
+            }
+
+            var interesting = mappings.Any(m =>
+                m.Mapped is null || !string.Equals(m.Declared, m.Mapped, StringComparison.OrdinalIgnoreCase));
+            if (!interesting)
+            {
+                return Array.Empty<ToolMappingLine>();
+            }
+
+            var resolved = mappings
+                .Where(m => m.Mapped is not null)
+                .GroupBy(m => m.Mapped!, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new ToolMappingLine(g.Select(m => m.Declared).ToList(), g.Key, Dropped: false));
+
+            var dropped = mappings
+                .Where(m => m.Mapped is null)
+                .Select(m => new ToolMappingLine([m.Declared], null, Dropped: true));
+
+            return resolved.Concat(dropped).ToList();
+        }
+    }
 
 
     /// <summary>The selected agent's persona/description, shown in the harness anatomy view.</summary>

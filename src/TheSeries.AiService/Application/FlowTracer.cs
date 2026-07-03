@@ -58,6 +58,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         string conversationId,
         string? workspace,
         IReadOnlyList<string>? disabledTools,
+        IReadOnlyList<string>? disabledSkills,
+        IReadOnlyList<string>? enabledInstructions,
         string? vendor,
         FlowSession session,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -109,7 +111,9 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             }
 
             resolvedName = definition.Name;
-            supportsSkills = definition.SupportsSkills;
+            // Workspace-defined agents always support workspace skills (see WorkspaceDefinedAgent), so the
+            // skill catalogue is injected for their runs regardless of the agent file's `skills` field.
+            supportsSkills = true;
         }
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, session.StopToken);
@@ -128,6 +132,13 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                 ? ToolFilterScope.Begin(disabledTools)
                 : null;
 
+            // Custom instructions are opt-in (default off): only enabled ones are injected. Skills default
+            // on: the caller can disable a subset.
+            using var instructionScope = InstructionFilterScope.Begin(enabledInstructions ?? Array.Empty<string>());
+            using var skillScope = disabledSkills is { Count: > 0 }
+                ? SkillFilterScope.Begin(disabledSkills)
+                : null;
+
             // Lets an AskQuestion tool call pause the run and resume when the user answers (via /chat/control).
             using var userInput = UserInputScope.Begin();
             session.UserInput = userInput;
@@ -142,10 +153,12 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             // recorded and the later turns (the calls made after each tool result) are silently lost.
             var agentSession = await conversations.GetOrCreateAsync(conversationId, agent, token);
 
-            // Surface the workspace's custom instructions (always, when present) and its skills (names +
+            // Surface the workspace's custom instructions (opted in) and its skills (names +
             // descriptions, when the agent uses them) to the agent for this run only. The scope's
-            // AsyncLocal is reset by the earlier yields, so re-assert it before reading them.
+            // AsyncLocal is reset by the earlier yields, so re-assert them before reading them.
             workspaceScope?.Activate();
+            instructionScope.Activate();
+            skillScope?.Activate();
             var runOptions = BuildRunOptions(supportsSkills);
 
             await using var updates = agent.RunStreamingAsync(message, agentSession, runOptions, token)
@@ -156,6 +169,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                 capture.Activate();
                 workspaceScope?.Activate();
                 toolScope?.Activate();
+                instructionScope.Activate();
+                skillScope?.Activate();
                 userInput.Activate();
                 if (!await updates.MoveNextAsync())
                 {

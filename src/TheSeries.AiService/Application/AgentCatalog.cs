@@ -16,7 +16,8 @@ namespace TheSeries.AiService.Application;
 /// <param name="RiskLevel">How much real-world impact the agent can have (<c>None</c>, <c>Low</c>, <c>Medium</c>, <c>High</c>).</param>
 /// <param name="Guardrails">The safety mechanisms enforced for this agent, surfaced so the user understands the risk.</param>
 /// <param name="ModelId">The Azure OpenAI deployment the agent runs on, surfaced so clients can show which model answers.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId);
+/// <param name="ToolMappings">For workspace agents, each declared tool token and the backend tool it mapped to; empty for built-in agents.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId, IReadOnlyList<ToolMapping> ToolMappings);
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
@@ -81,7 +82,8 @@ public sealed class AgentCatalog
             d.SupportsA2A,
             d.RiskLevel.ToString(),
             d.Guardrails,
-            deployments[d.Name])).ToList();
+            deployments[d.Name],
+            Array.Empty<ToolMapping>())).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

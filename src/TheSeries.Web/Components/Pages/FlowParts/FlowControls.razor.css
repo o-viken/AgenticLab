@@ -31,6 +31,322 @@
     color: var(--text-dim);
 }
 
+/* Tool-name mapping for workspace agents: shows that the agent file's VS Code-style tool tokens
+   (e.g. read/readFile) were mapped to this app's backend tools (e.g. ReadFile). */
+.tool-mappings {
+    margin-top: .5rem;
+    padding-top: .5rem;
+    border-top: 1px dashed var(--tools-border, rgba(127, 127, 127, .35));
+}
+
+.tool-mappings-title {
+    display: block;
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-dim);
+    margin-bottom: .35rem;
+}
+
+.tool-mappings ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+.tool-mappings li {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+    flex-wrap: wrap;
+}
+
+/* Declared tokens stack vertically so multiple tokens mapping to one tool are each on their own line. */
+.tool-mappings .declared {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+}
+
+.tool-mappings code {
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: .82rem;
+    background: var(--tool-chip-bg, rgba(127, 127, 127, .12));
+    color: var(--tool-chip-text, inherit);
+    padding: .05rem .35rem;
+    border-radius: .3rem;
+}
+
+.tool-mappings .arrow {
+    color: var(--text-dim);
+}
+
+.tool-mappings li.dropped {
+    opacity: .7;
+}
+
+.tool-mappings .dropped-label {
+    font-style: italic;
+    color: var(--text-dim);
+}
+
+/* Repo base folders: the input that feeds workspace-path suggestions under the Workspace box. */
+.bases-label {
+    margin-top: .5rem;
+    font-size: .8rem;
+    color: var(--text-dim);
+}
+
+.bases-input {
+    width: 100%;
+    resize: vertical;
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: .85rem;
+}
+
+.bases-hint {
+    margin-top: .3rem;
+    font-size: .78rem;
+    color: var(--text-dim);
+}
+
+/* Compact, expandable resource lists (workspace skills + custom instructions): a checkbox + name row
+   per item, click the name to reveal its description. Skills default enabled, instructions default off. */
+.resource-control {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.resource-empty,
+.resource-note {
+    font-size: .8rem;
+    color: var(--text-dim);
+    margin: 0;
+}
+
+.resource-note {
+    font-style: italic;
+}
+
+.resource-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+}
+
+.resource-item {
+    border: 1px solid transparent;
+    border-radius: 6px;
+}
+
+.resource-item.off {
+    opacity: .55;
+}
+
+.resource-item.on {
+    border-color: var(--accent, #e59700);
+    background: var(--tools-active-bg, rgba(229, 151, 0, .1));
+}
+
+.resource-row {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .2rem .3rem;
+}
+
+.resource-row input[type="checkbox"] {
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+.resource-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    font-size: .9rem;
+    padding: 0;
+}
+
+.resource-caret {
+    flex: 0 0 auto;
+    color: var(--text-dim);
+    transition: transform .12s ease;
+    font-size: .75rem;
+}
+
+.resource-caret.open {
+    transform: rotate(90deg);
+}
+
+.resource-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.resource-detail {
+    padding: 0 .3rem .35rem 1.9rem;
+    font-size: .82rem;
+    color: var(--text-dim);
+}
+
+/* Workspace repo picker: a filterable dropdown of discovered/recent repos under the Workspace input. */
+.workspace-picker {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: .35rem;
+}
+
+.workspace-picker .workspace-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.picker-toggle {
+    flex: 0 0 auto;
+    width: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text);
+    cursor: pointer;
+    font-size: .9rem;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.picker-toggle:hover:not(:disabled) {
+    border-color: var(--accent, #e59700);
+}
+
+.picker-toggle:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+.picker-toggle .picker-caret {
+    transition: transform .15s ease;
+}
+
+.picker-toggle.open .picker-caret {
+    transform: rotate(180deg);
+}
+
+.picker-panel {
+    position: absolute;
+    top: calc(100% + .3rem);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--input-bg, #0d1117);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+    padding: .45rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    max-height: 320px;
+}
+
+.picker-filter {
+    width: 100%;
+    font-size: .85rem;
+}
+
+.picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.picker-item {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    padding: .45rem .55rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background .1s ease, border-color .1s ease;
+}
+
+.picker-item:hover {
+    background: var(--tool-chip-bg, rgba(127, 127, 127, .12));
+    border-color: var(--border);
+}
+
+.picker-item.selected {
+    border-color: var(--accent, #e59700);
+    background: var(--tools-active-bg, rgba(229, 151, 0, .12));
+}
+
+.picker-item-head {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+
+.picker-item .repo-name {
+    font-weight: 600;
+    font-size: .95rem;
+}
+
+.picker-item .repo-badge {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: .05rem .35rem;
+    border-radius: 999px;
+    background: var(--tool-chip-bg, rgba(127, 127, 127, .18));
+    color: var(--tool-chip-text, var(--text-dim));
+}
+
+.picker-item .repo-path {
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: .72rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.picker-empty {
+    padding: .5rem .55rem;
+    font-size: .85rem;
+    font-style: italic;
+    color: var(--text-dim);
+}
+
 .tool-toggles .check {
     display: inline-flex;
     align-items: center;

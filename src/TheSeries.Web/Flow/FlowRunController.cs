@@ -417,6 +417,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _responseHint = null;
         _runMessage = view.Message;
         _runAgent = view.SelectedAgent;
+        // Remember the workspace this run used so it can be suggested again next time.
+        view.AddRecentWorkspace(view.Workspace);
         // Clear the composer so the sent message moves into the conversation log, not lingering in the box.
         view.Message = string.Empty;
         _events.Clear();
@@ -493,7 +495,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             await foreach (var flowEvent in ai.StreamFlowAsync(
                 _runMessage, view.SelectedAgent, _sessionId, _conversationId,
                 view.Mode == FlowMode.Manual, view.StepDelayMs, view.Workspace,
-                view.DisabledToolsOrNull, view.VendorKey, token))
+                view.DisabledToolsOrNull, view.DisabledSkillsOrNull, view.EnabledInstructionsOrNull, view.VendorKey, token))
             {
                 _events.Add(flowEvent);
                 BumpState();
@@ -742,6 +744,31 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         await RefreshKnownInstructionsAsync();
         await RefreshWorkspaceAgentsAsync();
         await RefreshHarnessPromptAsync();
+    }
+
+    /// <summary>
+    /// Loads the repo sub-folders under the configured base folders so the workspace input can suggest
+    /// them. Clears the suggestions when no base folders are set. Wired to the base-folders input changing.
+    /// </summary>
+    public async Task RefreshWorkspaceSuggestionsAsync()
+    {
+        var bases = view.WorkspaceBasePaths;
+        if (bases.Count == 0)
+        {
+            view.SetWorkspaceDirectories(Array.Empty<WorkspaceEntry>());
+            return;
+        }
+
+        try
+        {
+            var response = await ai.GetWorkspaceDirectoriesAsync(bases);
+            view.SetWorkspaceDirectories(response?.Directories ?? Array.Empty<WorkspaceEntry>());
+        }
+        catch
+        {
+            // Best-effort: suggestions are informational and a base path may still be mid-edit.
+            view.SetWorkspaceDirectories(Array.Empty<WorkspaceEntry>());
+        }
     }
 
     /// <summary>

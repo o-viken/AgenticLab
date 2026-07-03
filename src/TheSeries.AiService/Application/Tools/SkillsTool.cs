@@ -22,7 +22,7 @@ public sealed class SkillsTool(SkillLoader loader, SkillMatcher matcher)
         [Description("The name of the skill to load, exactly as shown in the <skills> list, e.g. 'get-date'.")] string name,
         CancellationToken cancellationToken = default)
     {
-        var skills = loader.Load();
+        var skills = loader.LoadAvailable();
         if (skills.Count == 0)
         {
             return "No skills are available in this workspace.";

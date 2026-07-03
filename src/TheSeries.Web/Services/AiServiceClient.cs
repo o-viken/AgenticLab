@@ -42,6 +42,21 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 
     /// <summary>
+    /// Lists the immediate sub-folders of the given base folders so the workspace input can suggest repo
+    /// paths (e.g. the folders under a "GitHub" directory). Returns null on failure; skips bases that do
+    /// not exist.
+    /// </summary>
+    /// <param name="bases">The base folders to enumerate sub-directories of.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    public async Task<WorkspaceBrowseResponse?> GetWorkspaceDirectoriesAsync(IReadOnlyList<string> bases, CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PostAsJsonAsync("/workspaces", new WorkspaceBrowseRequest(bases), JsonOptions, cancellationToken);
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<WorkspaceBrowseResponse>(JsonOptions, cancellationToken)
+            : null;
+    }
+
+    /// <summary>
     /// Lists the skills discovered in the given workspace (names + descriptions) so the catalogue can be
     /// shown in the harness before a run. Returns an empty list when the path is missing or declares none.
     /// </summary>
@@ -97,6 +112,8 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="stepDelayMs">The auto-mode server-side delay applied before each step, in milliseconds.</param>
     /// <param name="workspace">The workspace path for agents that require one; null/blank otherwise.</param>
     /// <param name="disabledTools">The names of the agent's tools to hide from the model for this run; null/empty to offer them all.</param>
+    /// <param name="disabledSkills">The names of the agent's skills to hide from the model for this run; null/empty to offer them all.</param>
+    /// <param name="enabledInstructions">The names of the workspace custom instructions to inject this run; null/empty to inject none (they default off).</param>
     /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
@@ -108,12 +125,14 @@ internal sealed class AiServiceClient(HttpClient http)
         int stepDelayMs,
         string? workspace,
         IReadOnlyList<string>? disabledTools,
+        IReadOnlyList<string>? disabledSkills,
+        IReadOnlyList<string>? enabledInstructions,
         string? vendor,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, vendor)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, disabledSkills, enabledInstructions, vendor)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -252,7 +271,8 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "");
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null);
+internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
@@ -266,12 +286,15 @@ internal sealed record InstructionsRequest(string? Workspace);
 internal sealed record InstructionsResponse(IReadOnlyList<InstructionInfo> Instructions);
 internal sealed record InstructionInfo(string Name, string Description);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
+internal sealed record WorkspaceBrowseRequest(IReadOnlyList<string> Bases);
+internal sealed record WorkspaceBrowseResponse(IReadOnlyList<WorkspaceEntry> Directories);
+internal sealed record WorkspaceEntry(string Path, string Name, string Base);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
 internal sealed record VendorModeInfo(string Agent, string Label);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, string? Vendor = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);

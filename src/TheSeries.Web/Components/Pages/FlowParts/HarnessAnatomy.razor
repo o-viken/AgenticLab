@@ -74,7 +74,7 @@
             <ul class="tool-checks">
                 @foreach (var tool in View.SelectedAgentToolNames)
                 {
-                    <li class="@View.ToolRiskClass(tool)" title="@View.ToolRiskTitle(tool)">
+                    <li class="@View.ToolRiskClass(tool)" title="@ChipTitle(tool)">
                         <span class="risk-dot" aria-hidden="true"></span>
                         @(View.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool
                     </li>
@@ -111,4 +111,12 @@
 
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
+
+    // The tool's risk explanation, plus (for a workspace agent) the declared token it was mapped from.
+    private string ChipTitle(string tool)
+    {
+        var title = View.ToolRiskTitle(tool);
+        var mappedFrom = View.ToolMappedFrom(tool);
+        return mappedFrom is null ? title : $"{title} · mapped from {mappedFrom}";
+    }
 }
