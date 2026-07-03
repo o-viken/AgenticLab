@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TheSeries.AiService\TheSeries.AiService.csproj" />
+    <ProjectReference Include="..\TheSeries.A2AServer\TheSeries.A2AServer.csproj" />
     <ProjectReference Include="..\TheSeries.Console\TheSeries.Console.csproj" />
     <ProjectReference Include="..\TheSeries.McpServer\TheSeries.McpServer.csproj" />
     <ProjectReference Include="..\TheSeries.Web\TheSeries.Web.csproj" />

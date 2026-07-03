@@ -88,6 +88,7 @@ internal static class VendorCatalog
         new("skills", "📚", "Skills", "Local · workspace SKILL.md", new[] { "ReadSkill" }),
         new("microsoft365", "🗂️", "Microsoft 365", "Microsoft Graph · sample data", new[] { "SearchEmail", "SearchFiles", "SearchChats", "GetCalendar", "FindPeople", "SummarizeDocument", "SendMail" }),
         new("mcp", "🧩", "MCP server", "MCP · HTTP · mcpserver", new[] { "GetCurrentTime" }),
+        new("a2a", "🤝", "Sub-agent (A2A)", "A2A · JSON-RPC · a2aserver", new[] { "DelegateToAgent" }),
     };
 
     /// <summary>

@@ -16,6 +16,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private readonly HashSet<string> _loadedSkills = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<InstructionChip> _knownInstructions = new();
     private readonly List<McpChip> _knownMcp = new();
+    private readonly List<A2AChip> _knownA2A = new();
 
     // The message/agent of the run currently shown in the live panels, archived into _turns on next send.
     private string _runMessage = string.Empty;
@@ -168,6 +169,9 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     public IReadOnlyList<ConversationTurn> Turns => _turns;
     public IReadOnlyList<SkillChip> KnownSkills => _knownSkills;
     public IReadOnlyList<McpChip> KnownMcp => _knownMcp;
+
+    /// <summary>The agents the selected agent can delegate to over A2A, shown in the harness A2A box.</summary>
+    public IReadOnlyList<A2AChip> KnownA2A => _knownA2A;
     public bool IsSkillLoaded(string name) => _loadedSkills.Contains(name);
 
     /// <summary>The workspace's custom instructions, always injected into the agent's context when present.</summary>
@@ -768,6 +772,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         await RefreshKnownSkillsAsync();
         await RefreshKnownInstructionsAsync();
         await RefreshKnownMcpAsync();
+        await RefreshKnownA2AAsync();
         await RefreshHarnessPromptAsync();
     }
 
@@ -795,6 +800,36 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         catch
         {
             // Best-effort: the MCP catalogue is informational.
+        }
+
+        await NotifyAsync();
+    }
+
+    /// <summary>
+    /// Refreshes the A2A box: the agents the AI service can reach over the A2A protocol, which the selected
+    /// agent can delegate to. The connection is global (not workspace-scoped), so this just reflects what
+    /// the agent supports.
+    /// </summary>
+    public async Task RefreshKnownA2AAsync()
+    {
+        _knownA2A.Clear();
+        if (!view.SelectedAgentSupportsA2A)
+        {
+            await NotifyAsync();
+            return;
+        }
+
+        try
+        {
+            var response = await ai.GetA2AAsync();
+            if (response is not null)
+            {
+                _knownA2A.AddRange(response.Agents.Select(a => new A2AChip(a.Name, a.Description)));
+            }
+        }
+        catch
+        {
+            // Best-effort: the A2A catalogue is informational.
         }
 
         await NotifyAsync();

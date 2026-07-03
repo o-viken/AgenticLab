@@ -56,6 +56,10 @@ builder.Services.AddSingleton<WorkspaceAgentResolver>();
 // Connects to the remote MCP server (Aspire resource 'mcpserver') and exposes its discovered tools.
 builder.Services.AddSingleton<McpToolProvider>();
 
+// Connects to the remote A2A agent server (Aspire resource 'a2aserver') and exposes a delegation tool the
+// orchestrator agent uses to call that agent over the Agent2Agent protocol.
+builder.Services.AddSingleton<A2AAgentProvider>();
+
 // Maps a brand/vendor key (sent when a brand theme is selected in the web flow) to a vendor-flavoured
 // harness system prompt that replaces the shared harness for a single run. The catalog is infrastructure
 // (Application); the representative prompt content for each vendor lives in Demo/Vendors and is injected.
@@ -80,6 +84,7 @@ builder.Services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
 builder.Services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
 builder.Services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
 builder.Services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
+builder.Services.AddSingleton<IAgentDefinition, OrchestratorAgent>();
 
 // Builds (and caches) one chat client per Azure OpenAI deployment so agents can run on different models.
 builder.Services.AddSingleton<ChatClientProvider>();
@@ -100,6 +105,9 @@ var app = builder.Build();
 
 // Discover the MCP server's tools at startup so MCP-using agents pick them up. Degrades gracefully.
 await app.Services.GetRequiredService<McpToolProvider>().ConnectAsync();
+
+// Connect to the A2A agent server at startup so the orchestrator's delegation tool is available. Degrades gracefully.
+await app.Services.GetRequiredService<A2AAgentProvider>().ConnectAsync();
 
 app.MapDefaultEndpoints();
 
@@ -157,6 +165,12 @@ app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgent
 app.MapGet("/mcp", (McpToolProvider mcp) =>
     Results.Ok(new McpResponse([new McpServerInfo(mcp.ServerName, mcp.ToolInfos
         .Select(t => new McpToolDescriptor(t.Name, t.Description)).ToList())])));
+
+// Lists the agents reachable over the Agent2Agent (A2A) protocol, so a client can show which sub-agents
+// the orchestrator can delegate to. Backed by the A2A client connection established at startup.
+app.MapGet("/a2a", (A2AAgentProvider a2a) =>
+    Results.Ok(new A2AResponse(a2a.AgentInfos
+        .Select(a => new A2AAgentDescriptor(a.Name, a.Description)).ToList())));
 
 // Returns the effective harness (system) prompt for a given agent + vendor so a client can show the
 // active system prompt before a run. A selected vendor's harness replaces the agent's own; otherwise the
@@ -361,6 +375,8 @@ internal sealed record WorkspaceAgentsRequest(string? Workspace);
 internal sealed record McpResponse(IReadOnlyList<McpServerInfo> Servers);
 internal sealed record McpServerInfo(string Name, IReadOnlyList<McpToolDescriptor> Tools);
 internal sealed record McpToolDescriptor(string Name, string Description);
+internal sealed record A2AResponse(IReadOnlyList<A2AAgentDescriptor> Agents);
+internal sealed record A2AAgentDescriptor(string Name, string Description);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);

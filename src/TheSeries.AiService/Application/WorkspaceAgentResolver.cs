@@ -59,6 +59,7 @@ public sealed class WorkspaceAgentResolver
                     RequiresWorkspace: true,
                     d.SupportsSkills,
                     SupportsMcp: false,
+                    SupportsA2A: false,
                     d.RiskLevel.ToString(),
                     d.Guardrails,
                     _clients.ResolveDeployment(new WorkspaceDefinedAgent(d, tools)));

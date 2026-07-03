@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/TheSeries.A2AServer/TheSeries.A2AServer.csproj" />
     <Project Path="src/TheSeries.AiService/TheSeries.AiService.csproj" />
     <Project Path="src/TheSeries.AppHost/TheSeries.AppHost.csproj" />
     <Project Path="src/TheSeries.Console/TheSeries.Console.csproj" />
@@ -7,5 +8,4 @@
     <Project Path="src/TheSeries.ServiceDefaults/TheSeries.ServiceDefaults.csproj" />
     <Project Path="src/TheSeries.Web/TheSeries.Web.csproj" />
   </Folder>
-  <Project Path="../../../Users/OYVVIK/AppData/Local/Temp/sigtest2/sigtest2.csproj" />
 </Solution>

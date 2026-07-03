@@ -87,6 +87,26 @@
                 }
             </div>
         }
+        @if (View.SelectedAgentSupportsA2A)
+        {
+            <div class="a2a node-inner">
+                <ConceptInfoButton Id="a2a" Title="Learn about A2A" />
+                <span class="title">A2A agents</span>
+                @if (Run.KnownA2A.Count == 0)
+                {
+                    <span class="subtitle">no A2A agent connected</span>
+                }
+                else
+                {
+                    <div class="skill-chips">
+                        @foreach (var agent in Run.KnownA2A)
+                        {
+                            <span class="skill-chip" title="@agent.Description">@agent.Name</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
     }
 </div>
 

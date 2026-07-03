@@ -83,6 +83,12 @@ public interface IAgentDefinition
     bool SupportsMcp { get; }
 
     /// <summary>
+    /// Whether this agent can delegate to another agent over the Agent2Agent (A2A) protocol.
+    /// Surfaced to clients so they can show the A2A sub-agents this agent can reach.
+    /// </summary>
+    bool SupportsA2A { get; }
+
+    /// <summary>
     /// How much real-world impact this agent can have. Surfaced to clients so a user can understand
     /// the risk of letting the agent run before they do.
     /// </summary>

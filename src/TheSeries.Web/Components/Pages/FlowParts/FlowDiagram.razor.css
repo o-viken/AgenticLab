@@ -768,6 +768,15 @@
     border: 1px solid var(--skills-border);
 }
 
+/* A2A sub-agents box, mirrors the skills/MCP catalogue styling. */
+.diagram ::deep .node-inner.a2a {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: var(--skills-bg);
+    border: 1px solid var(--skills-border);
+}
+
 .diagram ::deep .skill-chips {
     display: flex;
     flex-wrap: wrap;

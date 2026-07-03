@@ -654,6 +654,9 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     public bool SelectedAgentSupportsSkills => Selected?.SupportsSkills ?? false;
     public bool SelectedAgentSupportsMcp => Selected?.SupportsMcp ?? false;
 
+    /// <summary>Whether the currently selected agent can delegate to another agent over A2A, so the harness A2A box is shown.</summary>
+    public bool SelectedAgentSupportsA2A => Selected?.SupportsA2A ?? false;
+
     /// <summary>
     /// Whether the currently selected agent picks up the workspace's custom instructions. These apply to
     /// any agent that runs with a workspace, so the harness anatomy's Custom Instructions box can show

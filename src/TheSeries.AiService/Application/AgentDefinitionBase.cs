@@ -54,6 +54,10 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     public virtual bool SupportsMcp => false;
 
     /// <inheritdoc />
+    /// <remarks>Defaults to <c>false</c>; agents that delegate to another agent over A2A override this to return <c>true</c>.</remarks>
+    public virtual bool SupportsA2A => false;
+
+    /// <inheritdoc />
     /// <remarks>Defaults to <see cref="AgentRiskLevel.None"/>; agents with tools that have side effects override this.</remarks>
     public virtual AgentRiskLevel RiskLevel => AgentRiskLevel.None;
 

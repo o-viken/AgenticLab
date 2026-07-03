@@ -83,6 +83,9 @@ internal sealed record InstructionChip(string Name, string Description);
 
 internal sealed record McpChip(string Name, string Description);
 
+/// <summary>An agent reachable over the A2A protocol that the selected agent can delegate to: its name and description.</summary>
+internal sealed record A2AChip(string Name, string Description);
+
 /// <summary>
 /// One chip in the anatomy Context stack: a piece of content carried into the model's context.
 /// History entries come from earlier conversation turns (rendered dimmed); the rest come from the

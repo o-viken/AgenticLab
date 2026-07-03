@@ -4,11 +4,22 @@ var builder = DistributedApplication.CreateBuilder(args);
 var timeMcp = builder.AddProject<Projects.TheSeries_McpServer>("mcpserver")
     .WithHttpHealthCheck("/health");
 
+// An Agent2Agent (A2A) server hosting a research sub-agent, called by the AI service's Orchestrator agent
+// over the A2A protocol. It hosts an LLM agent, so it needs the same Azure OpenAI settings as the AI
+// service (injected from the AppHost user-secrets).
+var a2aServer = builder.AddProject<Projects.TheSeries_A2AServer>("a2aserver")
+    .WithHttpHealthCheck("/health")
+    .WithEnvironment("AzureOpenAI__Endpoint", builder.Configuration["AzureOpenAI:Endpoint"])
+    .WithEnvironment("AzureOpenAI__Deployment", builder.Configuration["AzureOpenAI:Deployment"])
+    .WithEnvironment("AzureOpenAI__ApiKey", builder.Configuration["AzureOpenAI:ApiKey"]);
+
 // Azure OpenAI settings live in the AppHost user-secrets and are injected into the AI service.
 var aiService = builder.AddProject<Projects.TheSeries_AiService>("aiservice")
     .WithHttpHealthCheck("/health")
     .WithReference(timeMcp)
     .WaitFor(timeMcp)
+    .WithReference(a2aServer)
+    .WaitFor(a2aServer)
     .WithEnvironment("AzureOpenAI__Endpoint", builder.Configuration["AzureOpenAI:Endpoint"])
     .WithEnvironment("AzureOpenAI__Deployment", builder.Configuration["AzureOpenAI:Deployment"])
     .WithEnvironment("AzureOpenAI__ApiKey", builder.Configuration["AzureOpenAI:ApiKey"]);

@@ -6,13 +6,9 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
-    <PackageReference Include="Microsoft.Agents.AI" Version="1.10.0" />
-    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.10.0" />
-    <PackageReference Include="Microsoft.Extensions.AI" Version="10.7.0" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting" Version="1.12.0-preview.260629.1" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.12.0-preview.260629.1" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
-    <PackageReference Include="ModelContextProtocol" Version="2.0.0-preview.1" />
-    <PackageReference Include="A2A" Version="1.0.0-preview2" />
-    <PackageReference Include="YamlDotNet" Version="18.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
