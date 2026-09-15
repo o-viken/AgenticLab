@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 
 namespace TheSeries.AiService.Application;
 
@@ -13,6 +14,80 @@ public sealed class FlowSession : IDisposable
 {
     private readonly SemaphoreSlim _advance = new(0);
     private readonly CancellationTokenSource _stop = new();
+    private readonly object _breakpointLock = new();
+    private HashSet<string> _breakpoints = new(StringComparer.Ordinal);
+    private TaskCompletionSource? _breakpointRelease;
+    private BreakpointNotice? _breakpoint;
+
+    internal Channel<BreakpointNotice> BreakpointEvents { get; } = Channel.CreateUnbounded<BreakpointNotice>();
+
+    /// <summary>The supported execution breakpoint names accepted by the chat API.</summary>
+    public static IReadOnlySet<string> BreakpointKinds { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "before-model", "after-model", "before-tool", "after-tool",
+    };
+
+    /// <summary>Replaces the enabled breakpoints for future execution boundaries.</summary>
+    public void SetBreakpoints(IEnumerable<string> breakpoints)
+    {
+        var selected = new HashSet<string>(breakpoints, StringComparer.Ordinal);
+        if (selected.Any(kind => !BreakpointKinds.Contains(kind)))
+        {
+            throw new ArgumentException("Unknown breakpoint kind.", nameof(breakpoints));
+        }
+
+        lock (_breakpointLock)
+        {
+            _breakpoints = selected;
+        }
+    }
+
+    /// <summary>Pauses at an enabled execution boundary until explicitly released or cancelled.</summary>
+    public async Task WaitForBreakpointAsync(string kind, string? tool, CancellationToken cancellationToken)
+    {
+        Task release;
+        lock (_breakpointLock)
+        {
+            if (!_breakpoints.Contains(kind))
+            {
+                return;
+            }
+
+            _breakpoint = new BreakpointNotice(Guid.NewGuid().ToString("n"), kind, tool, true, Manual);
+            _breakpointRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            release = _breakpointRelease.Task;
+            while (_advance.Wait(0)) { }
+            BreakpointEvents.Writer.TryWrite(_breakpoint);
+        }
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, StopToken);
+        await release.WaitAsync(linked.Token);
+    }
+
+    /// <summary>Releases the identified breakpoint into auto or manual mode; stale controls are rejected.</summary>
+    public bool ReleaseBreakpoint(string id, bool manual)
+    {
+        lock (_breakpointLock)
+        {
+            if (_breakpoint?.Id != id || _breakpointRelease is null)
+            {
+                return false;
+            }
+
+            Manual = manual;
+            Paused = false;
+            BreakpointEvents.Writer.TryWrite(_breakpoint with { Paused = false, Manual = manual });
+            var release = _breakpointRelease;
+            _breakpointRelease = null;
+            _breakpoint = null;
+            if (manual)
+            {
+                _advance.Release();
+            }
+            release.TrySetResult();
+            return true;
+        }
+    }
 
     /// <param name="id">The unique id shared by the stream and the control calls.</param>
     /// <param name="manual">When <c>true</c>, each step waits for an explicit <see cref="Advance"/>.</param>
@@ -47,7 +122,16 @@ public sealed class FlowSession : IDisposable
     public CancellationToken StopToken => _stop.Token;
 
     /// <summary>Releases one manual step.</summary>
-    public void Advance() => _advance.Release();
+    public void Advance()
+    {
+        lock (_breakpointLock)
+        {
+            if (_breakpoint is null && _advance.CurrentCount == 0)
+            {
+                _advance.Release();
+            }
+        }
+    }
 
     /// <summary>Stops the run, cancelling any pending wait and the agent execution.</summary>
     public void Stop()
@@ -99,10 +183,15 @@ public sealed class FlowSession : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        Stop();
+        BreakpointEvents.Writer.TryComplete();
         _advance.Dispose();
         _stop.Dispose();
     }
 }
+
+/// <summary>An execution-boundary pause or release, identified uniquely within a flow run.</summary>
+public sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool Paused, bool Manual);
 
 /// <summary>
 /// Tracks the active <see cref="FlowSession"/>s by id so the <c>POST /chat/control</c> endpoint can drive

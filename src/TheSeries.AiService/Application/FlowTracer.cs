@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
@@ -12,7 +13,7 @@ namespace TheSeries.AiService.Application;
 /// <param name="Sequence">A monotonically increasing index, starting at 1.</param>
 /// <param name="Kind">
 /// The step category: <c>received</c>, <c>llm-request</c>, <c>tool-call</c>, <c>tool-result</c>,
-/// <c>llm-response</c>, <c>final</c> or <c>error</c>.
+/// <c>llm-response</c>, <c>final</c>, <c>error</c> or <c>breakpoint</c> (out-of-band pause state).
 /// </param>
 /// <param name="Label">A short, human-readable description of the step.</param>
 /// <param name="Detail">Optional extra context, e.g. tool arguments or the reply text.</param>
@@ -20,7 +21,8 @@ namespace TheSeries.AiService.Application;
 /// <param name="Data">
 /// Optional full, untruncated payload revealed on demand in the UI: the data sent to the LLM for an
 /// <c>llm-request</c>, the model's response for an <c>llm-response</c>/<c>final</c>, or the raw tool
-/// arguments/result for a <c>tool-call</c>/<c>tool-result</c>.
+/// arguments/result for a <c>tool-call</c>/<c>tool-result</c>, or a serialized
+/// <see cref="BreakpointNotice"/> for a <c>breakpoint</c> control event.
 /// </param>
 public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null);
 
@@ -126,6 +128,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
             // Capture the real LLM round-trips (request payloads and responses) for this run only.
             using var capture = FlowCaptureScope.Begin();
+            using var execution = new FlowExecutionScope(session);
 
             // Hide any tools the caller disabled for this run so the model is only offered the remaining subset.
             using var toolScope = disabledTools is { Count: > 0 }
@@ -172,7 +175,15 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                 instructionScope.Activate();
                 skillScope?.Activate();
                 userInput.Activate();
-                if (!await updates.MoveNextAsync())
+                execution.Activate();
+                await foreach (var notice in execution.AdvanceAsync(updates, token))
+                {
+                    currentTurn = capture.Turns.Count;
+                    yield return Step("breakpoint", notice.Paused ? "Paused at breakpoint" : "Breakpoint released",
+                        notice.Kind, JsonSerializer.Serialize(notice));
+                }
+
+                if (!execution.HasUpdate)
                 {
                     break;
                 }

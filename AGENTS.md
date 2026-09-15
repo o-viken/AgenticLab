@@ -72,6 +72,35 @@ Concepts/tools/body.md     (markdown, rendered to HTML with Markdig)
 
 The learning content renders in the right **Learn** [SidePanel](src/TheSeries.Web/Components/Shared/SidePanel.razor) (shown whenever **Show concept info** is on), filled by [Components/Pages/FlowParts/ConceptPanel.razor](src/TheSeries.Web/Components/Pages/FlowParts/ConceptPanel.razor) (+ scoped css). When a concept is selected it shows the eyebrow/title, summary, rendered body (`MarkupString`) and external links (`target=_blank rel=noopener`) plus a **← All topics** button; when none is selected it shows a hint and a **topic index** — every concept (from `ConceptCatalog.All`, grouped by category) as a clickable entry point. It docks as a real column (no overlay/backdrop), can be collapsed to a rail and drag-resized like any `SidePanel`, and its colours come from the themed `.flow-app` CSS variables (custom properties inherit), so it automatically matches the active **Vendor**. Opening a concept (`FlowViewState.OpenConcept(id)`) also turns **Show concept info** on and expands the Learn panel. [Components/Pages/Flow.razor](src/TheSeries.Web/Components/Pages/Flow.razor) injects the catalog, holds the `_activeConcept` state (on `FlowViewState`), and exposes `OpenConcept(id)`/`CloseConcept()`. Concepts are surfaced two ways: the right **Learn** panel's topic index (always reachable when concept info is on, covers every concept including those without a unique node), and contextual **ⓘ info buttons** on the relevant elements — the Harness node → `harness`, the Tools box → `tools`, the Skills box → `skills`, the LLM node → `llm` (plus a *What is MCP?* pill → `mcp`). In the Expert **Expand harness** anatomy view, each layer box also carries an ⓘ → its own concept: the System Prompt box → `system-prompt`, the Client box → `client`, the Agent Persona box → `persona`, the Tools / MCP box → `tools`, the Settings box → `settings`, the User prompt box → `user-prompt`, and the Context box → `context`. A product ⓘ button sits in each vendor rail item's hover tooltip and opens the **product** concept for that vendor (GitHub Copilot, Claude Code, Claude, ChatGPT, Gemini, Microsoft 365 Copilot) — resolved via `VendorCatalog.ProductConceptId`, hidden for the non-product Default vendor and (like every ⓘ) only when **Show concept info** is on. Concepts come in two categories (the `category` field): **core** (`tools`, `skills`, `custom-instructions`, `agent`, `llm`, `reasoning`, `mcp`, `a2a`, `harness`, `system-prompt`, `client`, `persona`, `settings`, `user-prompt`, `context`, `prompt-signature`, `tokenization`, `embeddings`, `neural-network`, `where-agents-run`, `environment`, `agent-risk`, `guardrails`, `sandbox`, `securing-agents`) and **product** (`github-copilot`, `chatgpt`, `gemini`, `claude-code`, `claude`, `cursor`, `microsoft-365-copilot`, and a `agentic-coding-harness` overview). The `where-agents-run`, `environment`, `agent-risk`, `guardrails`, `sandbox` and `securing-agents` concepts back the **Environment & risk view** (the ⓘ buttons on the risk meter / guardrails box and its four learn pills — *Where it runs*, *Environment*, *Sandbox* and *Protect*). To add a concept, drop a new `Concepts/<id>/{meta.json, body.md}` folder and (optionally) wire a click target to `OpenConcept("<id>")`. **Authoring rule (see [Concepts/AUTHORING.md](src/TheSeries.Web/Concepts/AUTHORING.md)): a concept's `meta.json` summary and the general sections of `body.md` must be product-agnostic — explain the idea itself, not how *this* repo implements it. Put every the-series-specific detail (agent names, UI/diagram behaviour, this app's wiring) under a single trailing `## In this application (the-series)` section.** Product concepts are the only exception (they describe a specific product by nature).
 
+### Chat execution breakpoints
+
+The Settings tab offers four independent execution breakpoints (`before-model`, `after-model`,
+`before-tool`, `after-tool`), all off initially. They pause in Auto as well as Manual mode and remain
+selected for the page lifetime only. See [README.md](README.md#post-chatcontrol) for the API contract
+and user-facing Continue/Next/Stop behavior.
+
+[FlowSession](src/TheSeries.AiService/Application/FlowSession.cs) owns a separate cancellable latch,
+an occurrence ID and a notification channel. Selection changes affect future boundaries without
+releasing the current latch. Releases require the current occurrence ID; stale releases are rejected.
+[FlowExecutionScope](src/TheSeries.AiService/Application/FlowExecutionScope.cs) is an ambient per-run
+scope, reactivated alongside the existing scopes before each agent advance. Model gates sit in
+`CapturingChatClient` immediately before the inner request and after the complete response is captured.
+`ChatClientProvider` configures the SDK's `FunctionInvoker` delegate to gate each actual function
+invocation (serial, the SDK default), including MCP and local A2A delegation tools. No cached agent or
+tool definitions are mutated. The non-streaming and discovery paths remain breakpoint-free.
+
+`FlowExecutionScope.AdvanceAsync` multiplexes one pending agent `MoveNextAsync` with breakpoint
+notifications. It does not prefetch further updates, preserving normal manual/auto event pacing.
+The tracer sends `breakpoint` control events immediately, outside display-event gates, and cancellation
+stops and awaits the pending advance before scopes and the session are disposed. The browser consumes
+these notices separately from conversation events, preserving prompt/context totals, and renders the
+shared `FlowBreakpointControls` in both Chat and Settings. `UserInputScope` preserves an answer submitted
+before a breakpoint-delayed `AskQuestion` starts waiting, then re-arms after consumption.
+
+The focused [test project](tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj) uses fake
+model responses and counted tools to test real execution boundaries without credentials. Run it with
+`dotnet test tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj`.
+
 ### Agents
 
 | Agent | Persona | Tools |

@@ -289,9 +289,15 @@ app.MapPost("/chat", async (ChatRequest request, AgentCatalog catalog, Workspace
 
 // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
 // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-app.MapPost("/chat/stream", (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, CancellationToken cancellationToken) =>
+app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, CancellationToken cancellationToken) =>
 {
+    if (request.Breakpoints?.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)) == true)
+    {
+        return Results.BadRequest("Unknown breakpoint kind.");
+    }
+
     var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
+    session.SetBreakpoints(request.Breakpoints ?? []);
     return TypedResults.ServerSentEvents(
         tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, request.Vendor, session, cancellationToken),
         eventType: "flow");
@@ -304,6 +310,27 @@ app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry re
     if (!registry.TryGet(request.SessionId, out var session))
     {
         return Results.NotFound();
+    }
+
+    if (request.Breakpoints is { } breakpoints)
+    {
+        if (breakpoints.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)))
+        {
+            return Results.BadRequest("Unknown breakpoint kind.");
+        }
+        session.SetBreakpoints(breakpoints);
+    }
+
+    if (request.BreakpointId is { } breakpointId)
+    {
+        var action = request.Action?.ToLowerInvariant();
+        if (action is not ("next" or "resume"))
+        {
+            return Results.BadRequest("A breakpoint requires next or resume.");
+        }
+        return session.ReleaseBreakpoint(breakpointId, manual: action == "next")
+            ? Results.NoContent()
+            : Results.Conflict("This breakpoint is no longer paused.");
     }
 
     if (request.Manual is { } manual)
@@ -512,7 +539,7 @@ internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
 internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
 internal sealed record VendorModeInfo(string Agent, string Label);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
-internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
+internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record ConversationResetRequest(string ConversationId);
 internal sealed record DiscoveryStreamRequest(string SessionId, string? Source = null, bool Manual = false, int StepDelayMs = 0);

@@ -45,21 +45,30 @@ public sealed class UserInputScope : IDisposable
 
     /// <summary>
     /// Suspends until the user answers the current question (or the run is cancelled). A fresh wait is
-    /// armed on each call, so an agent may ask several questions within a single run.
+    /// armed after each answer is consumed, preserving answers submitted while execution is at a breakpoint.
     /// </summary>
     /// <param name="cancellationToken">A token that abandons the wait (e.g. when the run is stopped).</param>
     /// <returns>The answer the user supplied.</returns>
-    public Task<string> WaitForAnswerAsync(CancellationToken cancellationToken)
+    public async Task<string> WaitForAnswerAsync(CancellationToken cancellationToken)
     {
         TaskCompletionSource<string> tcs;
         lock (_gate)
         {
-            _answer = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             tcs = _answer;
         }
 
-        cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
-        return tcs.Task;
+        using var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+        try
+        {
+            return await tcs.Task;
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _answer = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
     }
 
     /// <summary>Supplies the user's answer, releasing the tool waiting in <see cref="WaitForAnswerAsync"/>.</summary>

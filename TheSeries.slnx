@@ -8,4 +8,7 @@
     <Project Path="src/TheSeries.ServiceDefaults/TheSeries.ServiceDefaults.csproj" />
     <Project Path="src/TheSeries.Web/TheSeries.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj" />
+  </Folder>
 </Solution>

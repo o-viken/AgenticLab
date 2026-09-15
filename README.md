@@ -131,6 +131,17 @@ a client-side replay. Two modes control the pacing:
 The UI sends `next`, `pause`, `resume` and `stop` actions to `/chat/control`. The final answer appears
 once the run completes.
 
+**Breakpoints** in Settings pause actual execution even in Auto mode: **Before model request**,
+**After model response**, **Before tool execution**, and **After tool result**. Model breakpoints
+apply to every complete round-trip, including responses that request tools, not individual tokens.
+Tool breakpoints apply to each local or MCP function call, including the local A2A delegation call
+(not the remote agent's internal steps). The paused reason and tool name appear in both Settings
+and Chat. **Continue** runs in Auto until the next selected breakpoint; **Next** switches to Manual
+and releases the current boundary; **Stop** cancels. Breakpoints start off, remain selected across
+conversations, and clear on page refresh. Changing selections during a run affects future boundaries
+but does not release an existing pause. After-tool breakpoints follow successful tool returns;
+thrown errors retain the existing error behavior. Completed side effects cannot be undone.
+
 ### `GET /agents`
 
 Lists the available agents and the default name:
@@ -166,15 +177,22 @@ Returns `400 Bad Request` when `message` is empty or `agent` is an unknown name.
 ### `POST /chat/stream`
 
 Same request shape as `/chat` plus a `sessionId` (correlates control calls), a `manual` flag, and an
-optional `stepDelayMs` (server-side delay between steps in Auto mode). Returns a
+optional `stepDelayMs` (server-side delay between steps in Auto mode). An optional `breakpoints` array
+accepts `before-model`, `after-model`, `before-tool`, and `after-tool`; omitted or empty means none.
+Unknown breakpoint names return `400 Bad Request`. Returns a
 `text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
-`kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`),
+`kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`, `breakpoint`),
 `label`, an optional `detail`, the `turn` (1-based LLM round-trip it belongs to), and an optional
 `data` payload with the full, untruncated request/response for that step. The stream is gated on the
 backend: each real step waits for the session to be allowed to advance, so it stays in sync with the
 agent's execution and telemetry. The Blazor web UI consumes this to animate the data flow — with
 separate send/receive arrows, a loop/turn counter, and expandable steps that reveal the real data
 sent to and returned by the model.
+
+`breakpoint` events bypass normal pacing so the browser learns about a pause while execution is
+blocked inside a model or tool call. Their `data` is JSON containing `Id`, `Kind`, `Tool`, `Paused`
+and `Manual`. They are control notifications, not conversation content, and are excluded from the
+steps list, prompt signature and context totals.
 
 ### `POST /chat/control`
 
@@ -187,6 +205,23 @@ Drives an in-progress `/chat/stream` run, keyed by its `sessionId`:
 `action` is one of `next` (advance one step in Manual mode), `pause`, `resume`, or `stop`. `manual` and
 `delayMs` are optional live adjustments. Returns `204 No Content`, or `404 Not Found` when the session is
 unknown (e.g. already finished).
+
+Send `breakpoints` to replace the enabled selection live (`[]` clears it; omission leaves it unchanged).
+To release a breakpoint, include its current notification's `Id` as `breakpointId`:
+
+```json
+{ "sessionId": "abc123", "action": "resume", "breakpointId": "pause-occurrence-id" }
+```
+
+`resume` selects Auto; `next` selects Manual. A stale or already-released ID returns `409 Conflict`.
+Ordinary pacing controls cannot bypass the breakpoint latch. Discovery and non-streaming `/chat`
+do not use execution breakpoints.
+
+### Breakpoint Tests
+
+`dotnet test tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj` runs deterministic
+model/tool pipeline tests without Azure credentials. The tests check execution ordering, successive
+tool calls, cancellation, stale controls, live selection changes, manual/auto pacing and early user answers.
 
 ## Conventions
 

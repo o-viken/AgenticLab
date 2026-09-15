@@ -1,0 +1,30 @@
+.breakpoint-status {
+    border-top: 1px solid var(--panel-border);
+    padding-top: .65rem;
+    margin-top: .65rem;
+    min-width: 0;
+}
+
+.breakpoint-status p,
+.breakpoint-error {
+    font-size: .85rem;
+    line-height: 1.4;
+    margin: 0 0 .6rem;
+    overflow-wrap: anywhere;
+}
+
+.breakpoint-status p {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.breakpoint-status .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.breakpoint-error {
+    color: var(--contrib-app);
+    margin-top: .6rem;
+}

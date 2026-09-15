@@ -116,6 +116,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="enabledInstructions">The names of the workspace custom instructions to inject this run; null/empty to inject none (they default off).</param>
     /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
+    /// <param name="breakpoints">Execution boundaries that pause even in auto mode.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
         string message,
         string? agent,
@@ -128,11 +129,12 @@ internal sealed class AiServiceClient(HttpClient http)
         IReadOnlyList<string>? disabledSkills,
         IReadOnlyList<string>? enabledInstructions,
         string? vendor,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default,
+        IReadOnlyList<string>? breakpoints = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, disabledSkills, enabledInstructions, vendor)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, disabledSkills, enabledInstructions, vendor, breakpoints)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -161,6 +163,8 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="manual">Optionally switch the stepping mode.</param>
     /// <param name="delayMs">Optionally change the auto-mode step delay.</param>
     /// <param name="answer">The user's reply for an <c>answer</c> action (to a tool's question).</param>
+    /// <param name="breakpoints">A replacement selection for future boundaries; null leaves it unchanged.</param>
+    /// <param name="breakpointId">The exact pause occurrence to release with next or resume.</param>
     /// <param name="cancellationToken">A token to cancel the request.</param>
     public async Task SendControlAsync(
         string sessionId,
@@ -168,13 +172,16 @@ internal sealed class AiServiceClient(HttpClient http)
         bool? manual = null,
         int? delayMs = null,
         string? answer = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<string>? breakpoints = null,
+        string? breakpointId = null)
     {
         using var response = await http.PostAsJsonAsync(
             "/chat/control",
-            new FlowControlRequest(sessionId, action, manual, delayMs, answer),
+            new FlowControlRequest(sessionId, action, manual, delayMs, answer, breakpoints, breakpointId),
             JsonOptions,
             cancellationToken);
+        response.EnsureSuccessStatusCode();
     }
 
     /// <summary>
@@ -294,8 +301,9 @@ internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
 internal sealed record VendorModeInfo(string Agent, string Label);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
-internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
+internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
+internal sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool Paused, bool Manual);
 internal sealed record ConversationResetRequest(string ConversationId);
 public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null);
 

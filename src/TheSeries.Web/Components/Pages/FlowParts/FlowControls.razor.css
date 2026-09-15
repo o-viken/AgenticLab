@@ -5,9 +5,54 @@
 /* Tool toggles -------------------------------------------------------- */
 /* Tools and Workspace each span their own full-width row so they never reflow the
    primary controls (Message/Send/Agent/Delay/Stepping) when the agent changes. */
+.control.breakpoints-control,
 .control.tools-control,
 .control.message.workspace-control {
     flex: 1 1 100%;
+}
+
+.breakpoints-control {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-inline-size: 0;
+}
+
+.breakpoints-control legend {
+    color: var(--text-dim);
+    font-size: .8rem;
+    margin-bottom: .6rem;
+}
+
+.breakpoint-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: .8rem .65rem;
+}
+
+.control .breakpoint-grid label.check {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: .45rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text);
+    font-weight: 400;
+    font-size: .8rem;
+    line-height: 1.4;
+}
+
+.control .breakpoint-grid label.check span {
+    color: inherit;
+    font-weight: inherit;
+}
+
+.breakpoint-grid input {
+    flex: 0 0 1rem;
+    width: 1rem;
+    height: 1rem;
+    margin: .05rem 0 0;
 }
 
 .tool-toggles {

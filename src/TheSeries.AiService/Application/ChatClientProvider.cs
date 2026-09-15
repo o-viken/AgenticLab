@@ -91,7 +91,7 @@ public sealed class ChatClientProvider
             // the model ever see them. The agent framework only unions per-run tools, so restricting to a
             // subset of an agent's tools must happen here rather than through run options.
             .Use(inner => new ToolFilteringChatClient(inner))
-            .UseFunctionInvocation()
+            .UseFunctionInvocation(configure: client => client.FunctionInvoker = FlowExecutionScope.InvokeFunctionAsync)
             .Use(inner => new CapturingChatClient(inner))
             .UseOpenTelemetry()
             .Build();

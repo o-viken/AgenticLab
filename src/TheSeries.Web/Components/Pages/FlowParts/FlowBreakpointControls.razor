@@ -1,0 +1,22 @@
+@if (Run.BreakpointPaused)
+{
+    <div class="breakpoint-status">
+        <p role="status">Paused: @Run.BreakpointReason</p>
+        <div class="control actions">
+            <button type="button" class="send" @onclick="Run.ContinueAsync" disabled="@Run.BreakpointControlPending"
+                    title="Continue in Auto until the next breakpoint">Continue</button>
+            <button type="button" class="send" @onclick="Run.NextAsync" disabled="@Run.BreakpointControlPending"
+                    title="Advance and switch to Manual stepping">Next</button>
+            <button type="button" class="stop" @onclick="Run.StopAsync">Stop</button>
+        </div>
+    </div>
+}
+@if (Run.BreakpointError is { } error)
+{
+    <p class="breakpoint-error" role="alert">@error</p>
+}
+
+@code {
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+}

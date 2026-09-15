@@ -295,6 +295,29 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         set { _mode = value; Notify(); }
     }
 
+    private readonly HashSet<string> _breakpoints = new(StringComparer.Ordinal);
+
+    /// <summary>The selectable execution boundaries and their labels.</summary>
+    public static IReadOnlyList<(string Kind, string Label)> BreakpointOptions { get; } =
+    [
+        ("before-model", "Before model request"), ("after-model", "After model response"),
+        ("before-tool", "Before tool execution"), ("after-tool", "After tool result"),
+    ];
+
+    /// <summary>The breakpoints selected for this page lifetime; not persisted across refreshes.</summary>
+    public IReadOnlyList<string> Breakpoints => _breakpoints.ToArray();
+
+    /// <summary>Whether an execution boundary is enabled.</summary>
+    public bool IsBreakpointEnabled(string kind) => _breakpoints.Contains(kind);
+
+    /// <summary>Changes one selected execution boundary.</summary>
+    public void SetBreakpoint(string kind, bool enabled)
+    {
+        if (enabled) _breakpoints.Add(kind);
+        else _breakpoints.Remove(kind);
+        Notify();
+    }
+
     /// <summary>Which tab is active in the left Controls panel (Chat, Settings, History, Workspace or Telemetry).</summary>
     public ControlsTab ActiveControlsTab
     {

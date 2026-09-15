@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace TheSeries.Web.Flow;
 
 /// <summary>
@@ -33,6 +35,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     private bool _running;
     private bool _paused;
+    private BreakpointNotice? _breakpoint;
+    private bool _breakpointControlPending;
+    private bool _breakpointSettingsPending;
+    private string? _breakpointError;
     private bool _awaitingStep;
     private bool _awaitingAnswer;
     private string? _pendingQuestion;
@@ -188,6 +194,18 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     public bool Running => _running;
     public bool Paused => _paused;
+    /// <summary>Whether execution is currently held at a server-reported breakpoint.</summary>
+    public bool BreakpointPaused => _breakpoint is not null;
+    /// <summary>Whether a breakpoint release request is in progress.</summary>
+    public bool BreakpointControlPending => _breakpointControlPending;
+    /// <summary>Whether the active run is accepting a new breakpoint selection.</summary>
+    public bool BreakpointSettingsPending => _breakpointSettingsPending;
+    /// <summary>A failed breakpoint control request, shown without discarding the paused state.</summary>
+    public string? BreakpointError => _breakpointError;
+    /// <summary>The human-readable execution boundary currently holding the run.</summary>
+    public string? BreakpointReason => _breakpoint is { } notice
+        ? $"{FlowViewState.BreakpointOptions.FirstOrDefault(option => option.Kind == notice.Kind).Label ?? notice.Kind}{(notice.Tool is null ? "" : $": {notice.Tool}")}"
+        : null;
     public bool AwaitingStep => _awaitingStep;
     public bool AwaitingAnswer => _awaitingAnswer;
     public string? PendingQuestion => _pendingQuestion;
@@ -495,8 +513,30 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             await foreach (var flowEvent in ai.StreamFlowAsync(
                 _runMessage, view.SelectedAgent, _sessionId, _conversationId,
                 view.Mode == FlowMode.Manual, view.StepDelayMs, view.Workspace,
-                view.DisabledToolsOrNull, view.DisabledSkillsOrNull, view.EnabledInstructionsOrNull, view.VendorKey, token))
+                view.DisabledToolsOrNull, view.DisabledSkillsOrNull, view.EnabledInstructionsOrNull, view.VendorKey, token, view.Breakpoints))
             {
+                if (flowEvent.Kind == "breakpoint")
+                {
+                    var notice = JsonSerializer.Deserialize<BreakpointNotice>(flowEvent.Data!);
+                    if (notice is not null)
+                    {
+                        view.Mode = notice.Manual ? FlowMode.Manual : FlowMode.Auto;
+                        if (notice.Paused)
+                        {
+                            _breakpoint = notice;
+                            _paused = true;
+                            _awaitingStep = false;
+                        }
+                        else if (_breakpoint?.Id == notice.Id)
+                        {
+                            _breakpoint = null;
+                            _paused = false;
+                        }
+                        await NotifyAsync();
+                    }
+                    continue;
+                }
+
                 _events.Add(flowEvent);
                 BumpState();
                 (_activeNode, _activeArrow) = FlowEventMapping.MapTarget(flowEvent.Kind);
@@ -554,6 +594,12 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// <summary>Advances one step in manual mode.</summary>
     public async Task NextAsync()
     {
+        if (BreakpointPaused)
+        {
+            await ReleaseBreakpointAsync(manual: true);
+            return;
+        }
+
         if (!_running || view.Mode != FlowMode.Manual || _awaitingStep)
         {
             return;
@@ -567,6 +613,12 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// <summary>Pauses or resumes an auto-mode run.</summary>
     public async Task TogglePauseAsync()
     {
+        if (BreakpointPaused)
+        {
+            await ContinueAsync();
+            return;
+        }
+
         if (!_running)
         {
             return;
@@ -609,6 +661,60 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         await SafeControlAsync("answer", answer: answer);
     }
 
+    /// <summary>Continues automatically until another enabled breakpoint is reached.</summary>
+    public Task ContinueAsync() => ReleaseBreakpointAsync(manual: false);
+
+    private async Task ReleaseBreakpointAsync(bool manual)
+    {
+        if (!_running || _breakpoint is not { } notice || _breakpointControlPending)
+        {
+            return;
+        }
+
+        _breakpointControlPending = true;
+        _breakpointError = null;
+        await NotifyAsync();
+        try
+        {
+            await ai.SendControlAsync(_sessionId, manual ? "next" : "resume", breakpointId: notice.Id);
+        }
+        catch (Exception ex)
+        {
+            _breakpointError = $"Could not release breakpoint: {ex.Message}";
+        }
+        finally
+        {
+            _breakpointControlPending = false;
+            await NotifyAsync();
+        }
+    }
+
+    /// <summary>Updates a breakpoint locally and on the active run, reverting if the server rejects it.</summary>
+    public async Task SetBreakpointAsync(string kind, bool enabled)
+    {
+        if (_breakpointSettingsPending) return;
+        var previous = view.IsBreakpointEnabled(kind);
+        view.SetBreakpoint(kind, enabled);
+        _breakpointError = null;
+        if (!_running) return;
+        _breakpointSettingsPending = true;
+        await NotifyAsync();
+        try
+        {
+            await ai.SendControlAsync(_sessionId, breakpoints: view.Breakpoints);
+        }
+        catch (Exception ex)
+        {
+            view.SetBreakpoint(kind, previous);
+            _breakpointError = $"Could not update breakpoints: {ex.Message}";
+        }
+        finally
+        {
+            _breakpointSettingsPending = false;
+            await NotifyAsync();
+        }
+    }
+
     private async Task SafeControlAsync(string? action, int? delayMs = null, string? answer = null)
     {
         if (string.IsNullOrEmpty(_sessionId))
@@ -630,6 +736,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     {
         _running = false;
         _paused = false;
+        _breakpoint = null;
+        _breakpointControlPending = false;
+        _breakpointSettingsPending = false;
+        _breakpointError = null;
         _awaitingStep = false;
         _awaitingAnswer = false;
         _pendingQuestion = null;

@@ -104,6 +104,10 @@
                       disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
         </div>
 
+        <FlowBreakpointControls />
+
+        @if (!Run.BreakpointPaused)
+        {
         <div class="control actions">
             @if (!Run.Running)
             {
@@ -121,6 +125,7 @@
                 <button class="stop" @onclick="Run.StopAsync">Stop</button>
             }
         </div>
+        }
     </div>
 </section>
 

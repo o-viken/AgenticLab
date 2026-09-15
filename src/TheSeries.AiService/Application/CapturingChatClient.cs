@@ -33,6 +33,12 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         var text = new System.Text.StringBuilder();
         var toolCalls = new List<object>();
 
+        var execution = FlowExecutionScope.Current;
+        if (execution is not null)
+        {
+            await execution.WaitAsync("before-model", null, cancellationToken);
+        }
+
         await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
         {
             if (turn is not null)
@@ -57,6 +63,11 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         if (turn is not null)
         {
             turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
+        }
+
+        if (execution is not null)
+        {
+            await execution.WaitAsync("after-model", null, cancellationToken);
         }
     }
 

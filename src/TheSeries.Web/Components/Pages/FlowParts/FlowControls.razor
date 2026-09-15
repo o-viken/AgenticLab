@@ -21,6 +21,22 @@
         </div>
     </div>
 
+    <fieldset class="control breakpoints-control">
+        <legend>Breakpoints</legend>
+        <div class="breakpoint-grid">
+            @foreach (var option in FlowViewState.BreakpointOptions)
+            {
+                <label class="check">
+                    <input type="checkbox" checked="@View.IsBreakpointEnabled(option.Kind)"
+                           disabled="@Run.BreakpointSettingsPending"
+                           @onchange="@(args => Run.SetBreakpointAsync(option.Kind, args.Value is true))" />
+                    <span>@option.Label</span>
+                </label>
+            }
+        </div>
+        <FlowBreakpointControls />
+    </fieldset>
+
     @* Tools always occupies its own full-width row (with a placeholder when the agent
        has none) so switching agents never reflows the primary controls above. *@
     <div class="control tools-control">
