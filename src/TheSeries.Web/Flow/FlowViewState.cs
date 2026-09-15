@@ -48,8 +48,8 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private bool _outputCollapsed = true;
     private bool _leftPanelCollapsed;
     private bool _rightPanelCollapsed;
-    private int _leftPanelWidth = 360;
-    private int _rightPanelWidth = 380;
+    private int _leftPanelWidth = 276;
+    private int _rightPanelWidth = 260;
     private bool _bottomPanelCollapsed;
     private int _bottomPanelHeight = 240;
     private bool _showHarnessBoundary;

@@ -17,8 +17,8 @@
     flex-direction: column;
     overflow: hidden;
     background: var(--surface, #11152400);
-    border: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
-    border-radius: 12px;
+    border: 0;
+    border-radius: 0;
     box-shadow: var(--shadow, none);
 }
 
@@ -29,16 +29,16 @@
     align-items: center;
     justify-content: space-between;
     gap: .5rem;
-    padding: .5rem .45rem .5rem .8rem;
+    min-height: 52px;
+    padding: 8px 12px 8px 18px;
     border-bottom: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
 }
 
 .panel-title {
-    font-size: .72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--node-subtitle, #9fb0d6);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--heading, #9fb0d6);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -58,8 +58,10 @@
     cursor: pointer;
     font-size: 1.05rem;
     line-height: 1;
-    border-radius: 6px;
-    padding: .15rem .45rem;
+    border-radius: 4px;
+    padding: 0;
+    width: 36px;
+    height: 36px;
 }
 
 .panel-collapse:hover {
@@ -72,7 +74,8 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: .9rem;
+    padding: 18px;
+    scrollbar-gutter: stable;
 }
 
 /* ---- Splitter (drag-to-resize handle on the inner edge) ---- */
@@ -82,6 +85,7 @@
     cursor: col-resize;
     position: relative;
     touch-action: none;
+    background: var(--surface);
 }
 
 .panel-splitter::after {
@@ -90,10 +94,10 @@
     top: 0;
     bottom: 0;
     left: 50%;
-    width: 2px;
+    width: 1px;
     transform: translateX(-50%);
     border-radius: 2px;
-    background: transparent;
+    background: var(--panel-border);
     transition: background .15s ease;
 }
 
@@ -116,7 +120,7 @@
     padding: .8rem .15rem;
     background: var(--surface, transparent);
     border: 1px solid var(--panel-border, rgba(120, 140, 190, .25));
-    border-radius: 12px;
+    border-radius: 0;
     color: var(--node-subtitle, #9fb0d6);
     cursor: pointer;
 }
@@ -136,8 +140,7 @@
     text-orientation: mixed;
     font-size: .72rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .1em;
+    letter-spacing: 0;
     white-space: nowrap;
 }
 

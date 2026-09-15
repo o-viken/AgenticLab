@@ -72,7 +72,7 @@
     }
 
     <div class="node user @Run.NodeClass("user")">
-        <span class="icon">🧑</span>
+        <span class="icon diagram-icon icon-user" aria-hidden="true"></span>
         <span class="title">User</span>
         <span class="subtitle">Human</span>
         @if (View.ShowEnvironment)
@@ -150,7 +150,7 @@
         <div class="column right">
             <div class="node llm @Run.NodeClass("llm")">
                 <ConceptInfoButton Id="llm" Title="Learn about LLMs" />
-                <span class="icon">🤖</span>
+                <span class="icon diagram-icon icon-model" aria-hidden="true"></span>
                 <span class="title">LLM</span>
                 <span class="subtitle">@View.LlmModelLabel</span>
                 @if (View.ShowEnvironment)

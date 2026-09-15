@@ -11,13 +11,13 @@
             <div class="flow-shell">
                 <header class="flow-header">
                     <div class="flow-header-text">
-                        <h1>Agent Application Flow — @_view.VendorName</h1>
-                        <p>Watch data travel live from the user, through the client and harness, to the tools and the LLM — and back. Stepping pauses the <em>real</em> backend execution, so it stays in sync with the telemetry.</p>
+                        <h1>TheSeries</h1>
+                        <p>Agent workbench</p>
                     </div>
                     <div class="flow-header-actions">
                         <a class="discovery-link" href="/discovery" title="View MCP and A2A discovery">Discovery →</a>
                         <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
-                            <input type="checkbox" @bind="_view.ShowConcepts" /> Show concept info
+                            <input type="checkbox" @bind="_view.ShowConcepts" /> Learn
                         </label>
                     </div>
                 </header>
@@ -32,7 +32,7 @@
 
                     <section class="flow-main-col" aria-label="Main">
                         <header class="main-panel-head">
-                            <span class="main-panel-title">Main · @_view.VendorName</span>
+                            <span class="main-panel-title">Agent flow · @_view.VendorName</span>
                         </header>
                         <div class="main-panel-body">
                             <div class="flow-main-panel">

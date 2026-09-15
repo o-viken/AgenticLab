@@ -1,20 +1,22 @@
 .discovery-app {
-    --page-bg: #fbfbfc;
+    --page-bg: #f7f8f6;
     --surface: #ffffff;
-    --text: #14161d;
-    --text-muted: #6a7180;
-    --text-faint: #9aa0ad;
-    --accent: #4f46e5;
-    --border: #e2e3e9;
-    --border-soft: #f1f2f5;
-    --code-bg: #f4f5f8;
+    --text: #1b211d;
+    --text-muted: #56635b;
+    --text-faint: #66736b;
+    --accent: #167052;
+    --border: #d9ded9;
+    --border-soft: #e8ece8;
+    --code-bg: #f0f3f0;
 
     min-height: 100vh;
     box-sizing: border-box;
     padding: 1.75rem clamp(1rem, 4vw, 3rem);
     background: var(--page-bg);
     color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: Bahnschrift, "Segoe UI Variable", sans-serif;
+    font-size: 14px;
+    letter-spacing: 0;
 }
 
 .discovery-header {
@@ -27,8 +29,10 @@
 
 .discovery-header h1 {
     margin: 0 0 .35rem;
-    font-size: 1.55rem;
-    letter-spacing: -.01em;
+    font-family: Cambria, Georgia, serif;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: 0;
 }
 
 .discovery-header-text p {
@@ -69,7 +73,7 @@
 .mode-toggle {
     display: inline-flex;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--surface);
 }
@@ -85,8 +89,9 @@
 }
 
 .mode-toggle button.selected {
-    background: var(--accent);
-    color: #fff;
+    background: #edf6f0;
+    color: var(--accent);
+    box-shadow: inset 0 -2px var(--accent);
 }
 
 .delay {
@@ -114,7 +119,7 @@
     font-weight: 600;
     font-size: .82rem;
     padding: .38rem .8rem;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
 }
 
@@ -139,7 +144,7 @@
     font-weight: 600;
     font-size: .92rem;
     padding: .55rem 1.1rem;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
     transition: opacity .15s ease, transform .1s ease;
 }
@@ -198,13 +203,13 @@
 
 .discovery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
     gap: 1.25rem;
 }
 
 .source-card {
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
     background: var(--surface);
     overflow: hidden;
     display: flex;
@@ -283,9 +288,20 @@
 }
 
 .state-connecting {
-    background: #eef0fe;
-    color: #3730a3;
-    border-color: #c9cdf6;
+    background: #eef3f9;
+    color: #315f9e;
+    border-color: #cad7e7;
+}
+
+.discovery-app button,
+.discovery-app input {
+    font-family: inherit;
+    min-height: 36px;
+}
+
+.discovery-app :focus-visible {
+    outline: 2px solid #315f9e;
+    outline-offset: 3px;
 }
 
 .state-none {

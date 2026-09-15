@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TheSeries | Corporate Workbench Preview</title>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --page:#f7f8f6; --surface:#fff; --ink:#1b211d; --muted:#56635b;
+  --border:#d9ded9; --accent:#167052; --soft:#edf6f0; --blue:#315f9e;
+  --app:#a5473d; --agent:#805411; --user:#167052;
+  font-family:Bahnschrift,"Segoe UI Variable",sans-serif; color:var(--ink); background:var(--page);
+  font-size:14px; line-height:1.5; letter-spacing:0;
+}
+* { box-sizing:border-box; }
+body { margin:0; }
+button,input,select,textarea { font:inherit; color:inherit; }
+button,a,input,select,textarea { -webkit-tap-highlight-color:transparent; }
+button { cursor:pointer; }
+button,select,textarea { background:var(--surface); border:1px solid var(--border); border-radius:4px; }
+button { min-height:36px; padding:6px 12px; display:inline-flex; gap:8px; align-items:center; justify-content:center; }
+button:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+button:disabled { opacity:.45; cursor:not-allowed; }
+:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }
+input[type=checkbox],input[type=range] { accent-color:var(--accent); }
+svg { width:18px; height:18px; flex:none; }
+.icon { width:36px; height:36px; padding:0; flex:none; }
+.primary { background:var(--accent); border-color:var(--accent); color:white; }
+.primary:hover:not(:disabled) { background:#115a42; color:white; }
+.quiet { border-color:transparent; background:transparent; }
+.muted,small { color:var(--muted); }
+small { font-size:12px; }
+h1,h2,h3,p { margin:0; }
+h1 { font-family:Cambria,Georgia,serif; font-size:30px; font-weight:500; line-height:1.1; }
+h2 { font-size:14px; font-weight:600; }
+h3 { font-size:13px; font-weight:600; }
+a { color:var(--accent); }
+[hidden] { display:none !important; }
+.app { display:grid; grid-template-columns:56px minmax(0,1fr); height:100dvh; overflow:hidden; }
+.rail { border-right:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px 0; background:var(--surface); }
+.rail .mark { color:var(--accent); margin-bottom:14px; }
+.rail .vendor { width:36px; height:36px; display:grid; place-items:center; border-radius:4px; color:var(--muted); }
+.rail .selected { color:var(--accent); background:var(--soft); border-left:3px solid var(--accent); }
+.rail .bottom { margin-top:auto; }
+.shell { display:flex; flex-direction:column; min-width:0; min-height:0; }
+.masthead { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:18px 24px; border-bottom:1px solid var(--border); }
+.identity { display:flex; align-items:center; gap:18px; }
+.identity small { border-left:1px solid var(--border); padding-left:18px; }
+.header-actions,.row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.sample { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.sample::before { content:""; width:6px; height:6px; background:var(--muted); border-radius:50%; }
+.workspace { display:grid; grid-template-columns:276px minmax(0,1fr) 260px; flex:1; min-height:0; }
+.workspace.no-learn { grid-template-columns:276px minmax(0,1fr); }
+.side { min-width:0; min-height:0; display:flex; flex-direction:column; background:var(--surface); }
+.controls { border-right:1px solid var(--border); }
+.learn { border-left:1px solid var(--border); }
+.section-head { min-height:52px; padding:8px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.side-content { overflow:auto; padding:20px 18px; }
+.tabs { display:flex; gap:16px; border-bottom:1px solid var(--border); padding:0 18px; }
+.tabs button { background:transparent; border:0; border-radius:0; padding:12px 0; border-bottom:2px solid transparent; color:var(--muted); }
+.tabs button[aria-pressed=true] { border-bottom-color:var(--accent); color:var(--ink); }
+.field { display:flex; flex-direction:column; gap:7px; margin-bottom:20px; }
+.field>span { font-size:12px; font-weight:600; }
+select,textarea { width:100%; padding:10px; min-height:40px; }
+textarea { resize:vertical; min-height:128px; line-height:1.6; }
+.divider { border-top:1px solid var(--border); margin-top:24px; padding-top:20px; }
+.metadata { margin:14px 0 0; }
+.metadata div { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:12px; }
+dt { color:var(--muted); } dd { margin:0; text-align:right; }
+.check { display:flex; align-items:center; gap:7px; font-size:12px; min-height:32px; }
+.main { display:flex; flex-direction:column; min-width:0; min-height:0; }
+.main-head { background:var(--surface); }
+.main-scroll { padding:20px 24px; overflow:auto; flex:1; min-height:0; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.seg { display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.seg button { min-height:32px; font-size:12px; padding:5px 10px; border:0; border-radius:0; }
+.seg button[aria-pressed=true] { background:var(--soft); color:var(--accent); box-shadow:inset 0 -2px var(--accent); }
+.diagram { display:grid; grid-template-columns:minmax(80px,1fr) 40px minmax(130px,1.5fr) 40px minmax(90px,1fr); align-items:center; padding:36px 0; min-height:240px; background-image:radial-gradient(#d9ded980 .7px,transparent .7px); background-size:20px 20px; margin:18px 0 0; }
+.node { border:1px solid var(--border); border-radius:4px; background:var(--surface); padding:18px 10px; text-align:center; min-height:124px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; overflow-wrap:anywhere; }
+.node>svg { color:var(--muted); width:24px; height:24px; }
+.node.active { border-color:var(--accent); background:var(--soft); }
+.node.active>svg { color:var(--accent); }
+.node small { font-size:11px; }
+.connector { display:flex; align-items:center; flex-direction:column; color:#86948b; gap:8px; }
+.connector svg { width:28px; }
+.connector.active { color:var(--accent); }
+.anatomy { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding:20px 0; border-top:1px solid var(--border); }
+.layer { padding-left:12px; border-left:3px solid var(--app); }
+.layer.agent { border-color:var(--agent); }.layer.user { border-color:var(--user); }
+.layer p { font-size:12px; margin-top:7px; color:var(--muted); overflow-wrap:anywhere; }
+.trace { border-top:1px solid var(--border); margin-top:8px; }
+.trace-head { display:flex; justify-content:space-between; align-items:center; padding:14px 0; }
+.trace details { border-bottom:1px solid var(--border); font-size:12px; }
+.trace summary { cursor:pointer; padding:11px 0; }
+.trace time { float:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+.trace details p { padding:0 16px 14px; color:var(--muted); }
+.trace details.current summary { color:var(--accent); font-weight:600; }
+.transcript { flex:0 0 auto; background:var(--surface); border-top:1px solid var(--border); }
+.transcript-body { padding:16px 24px; max-height:220px; overflow:auto; }
+.turn { display:grid; grid-template-columns:88px minmax(0,1fr); gap:12px; font-size:13px; padding:10px 0; }
+.turn+.turn { border-top:1px solid var(--border); }
+.turn strong { font-size:12px; }.turn p { overflow-wrap:anywhere; }
+.learn h3 { font-size:20px; font-family:Cambria,Georgia,serif; font-weight:500; margin:12px 0; }
+.learn p { font-size:13px; line-height:1.75; margin-bottom:16px; }
+.learn .eyebrow { color:var(--accent); font-size:12px; }
+.learn ul { padding-left:18px; font-size:13px; color:var(--muted); }
+.learn li { margin:10px 0; }
+.note { border-left:3px solid var(--blue); padding:10px 12px; background:#eef3f9; font-size:12px; margin-top:20px; }
+.statusbar { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; border-top:1px solid var(--border); padding:7px 20px; font-size:11px; color:var(--muted); background:var(--surface); }
+@media(min-width:1600px) { .workspace { grid-template-columns:300px minmax(0,1fr) 300px; }.workspace.no-learn { grid-template-columns:300px minmax(0,1fr); }.main-scroll { padding:24px 40px; }.diagram { min-height:280px; } }
+@media(max-width:1199px) { .workspace { grid-template-columns:248px minmax(0,1fr); overflow:auto; }.workspace.no-learn { grid-template-columns:248px minmax(0,1fr); }.learn { grid-column:1/-1; border-left:0; border-top:1px solid var(--border); }.main-scroll { overflow:visible; padding:18px; }.main { min-height:680px; }.side-content { overflow:visible; }.controls { grid-row:1; }.workspace .learn .side-content { columns:2; column-gap:32px; }.main { overflow:visible; } }
+@media(max-width:760px) { .app { display:block; height:auto; overflow:visible; }.rail { flex-direction:row; padding:8px 16px; border-right:0; border-bottom:1px solid var(--border); gap:8px; }.rail .mark { margin:0 8px 0 0; }.rail .bottom { margin-left:auto; margin-top:0; }.rail .vendor { width:32px; height:32px; }.masthead { padding:16px; }.identity { gap:12px; }.identity small { padding-left:12px; }.workspace,.workspace.no-learn { display:block; overflow:visible; }.controls { border-right:0; border-bottom:1px solid var(--border); }.side-content { padding:16px; }.main { min-height:0; }.main-scroll { padding:16px; }.diagram { grid-template-columns:1fr; padding:24px 16px; gap:12px; }.node { width:100%; min-height:104px; }.connector { flex-direction:row; }.connector svg { transform:rotate(90deg); }.anatomy { gap:12px; }.layer { padding-left:8px; }.seg { flex-wrap:wrap; }.seg button { flex:1; }.transcript-body { padding:12px 16px; max-height:300px; }.turn { grid-template-columns:70px minmax(0,1fr); }.workspace .learn .side-content { columns:auto; }.header-actions { width:100%; justify-content:space-between; } }
+@media(prefers-reduced-motion:no-preference) { .node.active { animation:arrive .25s ease-out; } @keyframes arrive { from { opacity:.5; } to { opacity:1; } } }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Vendor reference rail">
+    <span class="mark" title="TheSeries"><i data-lucide="layers-3"></i></span>
+    <span class="vendor selected" title="Default" aria-label="Default vendor"><i data-lucide="app-window"></i></span>
+    <span class="vendor" title="GitHub Copilot"><i data-lucide="github"></i></span>
+    <span class="vendor" title="Claude Code"><i data-lucide="terminal"></i></span>
+    <span class="vendor" title="ChatGPT"><i data-lucide="message-circle"></i></span>
+    <span class="vendor" title="Gemini"><i data-lucide="sparkles"></i></span>
+    <a class="bottom" href="index.html" title="Design previews" aria-label="Design previews"><i data-lucide="layout-grid"></i></a>
+  </nav>
+  <div class="shell">
+    <header class="masthead">
+      <div class="identity"><h1>TheSeries</h1><small>Agent workbench</small></div>
+      <div class="header-actions"><span class="sample">Design preview</span><button id="learn-toggle" aria-pressed="true"><i data-lucide="book-open"></i>Learn</button></div>
+    </header>
+    <div class="workspace" id="workspace">
+      <aside class="side controls" aria-label="Controls">
+        <div class="section-head"><h2>Controls</h2><span class="muted"><i data-lucide="sliders-horizontal"></i></span></div>
+        <div class="tabs" aria-label="Control views"><button data-tab="chat" aria-pressed="true">Chat</button><button data-tab="settings" aria-pressed="false">Settings</button></div>
+        <div class="side-content" id="chat">
+          <label class="field"><span>Agent</span><select aria-label="Agent"><option>WikiAssistant</option></select></label>
+          <label class="field"><span>Message</span><textarea readonly>How tall is the Eiffel Tower?</textarea></label>
+          <div class="row"><button class="primary" id="replay"><i data-lucide="play"></i>Replay sample</button><button class="icon" id="stop" title="Stop replay" aria-label="Stop replay" disabled><i data-lucide="square"></i></button></div>
+          <div class="divider"><h3>Session</h3><dl class="metadata"><div><dt>Source</dt><dd>Sample data</dd></div><div><dt>Agent</dt><dd>WikiAssistant</dd></div><div><dt>Tools</dt><dd>2 available</dd></div><div><dt>Conversation</dt><dd>1 exchange</dd></div></dl></div>
+        </div>
+        <div class="side-content" id="settings" hidden>
+          <label class="field"><span>Replay pace <output id="pace-value">700 ms</output></span><input id="pace" type="range" min="200" max="1600" step="100" value="700"></label>
+          <h3>Tools</h3><dl class="metadata"><div><dt>SearchWiki</dt><dd>Read-only</dd></div><div><dt>GetWikiPage</dt><dd>Read-only</dd></div></dl>
+          <div class="divider"><h3>Environment</h3><p class="muted">Server process</p><small>No local file access</small></div>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="section-head main-head"><h2>Agent flow</h2><span class="sample" id="run-status" role="status">Sample complete</span></div>
+        <div class="main-scroll">
+          <div class="toolbar"><div class="seg" aria-label="Detail level"><button data-detail="basic" aria-pressed="false">Basic</button><button data-detail="nontechnical" aria-pressed="false">Non-technical</button><button data-detail="technical" aria-pressed="false">Technical</button><button data-detail="expert" aria-pressed="true">Expert</button></div><label class="check"><input id="anatomy-toggle" type="checkbox" checked>Expand harness</label></div>
+          <div class="diagram" aria-label="User to harness to language model">
+            <div class="node" id="user-node"><i data-lucide="user-round"></i><h3>User</h3><small>Your browser</small></div>
+            <div class="connector" id="user-link"><i data-lucide="arrow-right"></i><i data-lucide="arrow-left"></i></div>
+            <div class="node" id="harness-node"><i data-lucide="workflow"></i><h3 id="harness-title">Harness</h3><small>AiService / WikiAssistant</small></div>
+            <div class="connector" id="model-link"><i data-lucide="arrow-right"></i><i data-lucide="arrow-left"></i></div>
+            <div class="node" id="model-node"><i data-lucide="cpu"></i><h3>Language model</h3><small>Azure OpenAI</small></div>
+          </div>
+          <section class="anatomy" id="anatomy" aria-label="Harness anatomy">
+            <div class="layer"><h3>System prompt</h3><small>Application</small><p>Ground answers in tool results. Be concise and transparent.</p></div>
+            <div class="layer agent"><h3>Agent persona</h3><small>WikiAssistant</small><p>Research with Wikipedia.</p><p>SearchWiki<br>GetWikiPage</p></div>
+            <div class="layer user"><h3>User prompt</h3><small>Current exchange</small><p>How tall is the Eiffel Tower?</p></div>
+          </section>
+          <section class="trace" aria-label="Execution steps">
+            <div class="trace-head"><h2>Steps</h2><small id="step-count">6 events</small></div>
+            <details data-step="0"><summary>Message received <time>00.00</time></summary><p>How tall is the Eiffel Tower?</p></details>
+            <details data-step="1"><summary>Model request <time>00.18</time></summary><p>System prompt, agent persona, user message and Wikipedia tools.</p></details>
+            <details data-step="2"><summary>SearchWiki <time>00.62</time></summary><p>Query: Eiffel Tower height</p></details>
+            <details data-step="3"><summary>Tool result <time>01.04</time></summary><p>Eiffel Tower: 330 metres tall, including its antenna.</p></details>
+            <details data-step="4"><summary>Model response <time>01.32</time></summary><p>The Eiffel Tower is 330 metres (1,083 feet) tall, including its antenna.</p></details>
+            <details data-step="5"><summary>Answer delivered <time>01.86</time></summary><p>Sample exchange complete. No external service was called.</p></details>
+          </section>
+        </div>
+        <section class="transcript" aria-label="Conversation">
+          <div class="section-head"><h2>Conversation</h2><button class="icon quiet" id="transcript-toggle" title="Toggle conversation" aria-label="Toggle conversation" aria-expanded="true"><i data-lucide="chevrons-up-down"></i></button></div>
+          <div class="transcript-body" id="transcript-body"><div class="turn"><strong>You</strong><p>How tall is the Eiffel Tower?</p></div><div class="turn" id="answer"><strong>WikiAssistant</strong><p>The Eiffel Tower is <b>330 metres (1,083 feet)</b> tall, including its antenna.</p></div></div>
+        </section>
+      </main>
+      <aside class="side learn" id="learn" aria-label="Learn">
+        <div class="section-head"><h2>Learn</h2><button class="icon quiet" id="learn-close" title="Close Learn" aria-label="Close Learn"><i data-lucide="x"></i></button></div>
+        <div class="side-content"><span class="eyebrow">Core concepts</span><h3>The agent harness</h3><p>The harness is the application around a model. It supplies context, exposes tools and controls the execution loop.</p><p>A model proposes the next action. The harness executes that action and sends the result back.</p><div class="divider"><h2>In this exchange</h2><ul><li>The user asks a factual question.</li><li>The agent searches Wikipedia.</li><li>The tool result grounds the final answer.</li></ul></div><div class="note">Agent = model + harness</div><div class="divider"><a href="https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" target="_blank" rel="noopener">Agent harnesses in VS Code</a></div></div>
+      </aside>
+    </div>
+    <footer class="statusbar"><span>Default / WikiAssistant</span><span>Sample data only / No service connection</span></footer>
+  </div>
+</div>
+<script>
+if (window.lucide) window.lucide.createIcons();
+const byId = id => document.getElementById(id);
+let timer;
+let currentStep = 5;
+const steps = [...document.querySelectorAll('[data-step]')];
+function setLearn(visible) {
+  byId('learn').hidden = !visible;
+  byId('workspace').classList.toggle('no-learn', !visible);
+  byId('learn-toggle').setAttribute('aria-pressed', String(visible));
+}
+byId('learn-toggle').onclick = () => setLearn(byId('learn').hidden);
+byId('learn-close').onclick = () => { setLearn(false); byId('learn-toggle').focus(); };
+document.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(tab => {
+    const active = tab === button;
+    tab.setAttribute('aria-pressed', String(active));
+    byId(tab.dataset.tab).hidden = !active;
+  });
+});
+function updateDetail() {
+  const detail = document.querySelector('[data-detail][aria-pressed="true"]').dataset.detail;
+  byId('anatomy').hidden = detail !== 'expert' || !byId('anatomy-toggle').checked;
+  byId('anatomy-toggle').parentElement.hidden = detail !== 'expert';
+  byId('model-node').hidden = detail === 'basic';
+  byId('model-link').hidden = detail === 'basic';
+  byId('harness-title').textContent = detail === 'expert' ? 'Harness' : detail === 'basic' ? 'Service' : 'Application';
+  let count = 0;
+  steps.forEach((step, index) => {
+    const visibleAtLevel = detail === 'expert' || index === 0 || index === 5 || (detail === 'technical' && (index === 1 || index === 4));
+    step.hidden = index > currentStep || !visibleAtLevel;
+    if (!step.hidden) count++;
+  });
+  byId('step-count').textContent = `${count} events`;
+}
+document.querySelectorAll('[data-detail]').forEach(button => button.onclick = () => {
+  document.querySelectorAll('[data-detail]').forEach(segment => segment.setAttribute('aria-pressed', String(segment === button)));
+  updateDetail();
+});
+byId('anatomy-toggle').onchange = updateDetail;
+byId('pace').oninput = () => byId('pace-value').value = `${byId('pace').value} ms`;
+byId('transcript-toggle').onclick = () => {
+  byId('transcript-body').hidden = !byId('transcript-body').hidden;
+  byId('transcript-toggle').setAttribute('aria-expanded', String(!byId('transcript-body').hidden));
+};
+function clearHighlights() { document.querySelectorAll('.active,.current').forEach(element => element.classList.remove('active','current')); }
+function finish(status) {
+  clearTimeout(timer);
+  clearHighlights();
+  byId('run-status').textContent = status;
+  byId('replay').disabled = false;
+  byId('stop').disabled = true;
+}
+function advance() {
+  currentStep++;
+  clearHighlights();
+  updateDetail();
+  steps[currentStep].classList.add('current');
+  const targets = [['user-node','user-link'],['harness-node','model-link'],['harness-node'],['harness-node'],['model-node','model-link'],['user-node','user-link']];
+  targets[currentStep].forEach(id => byId(id).classList.add('active'));
+  byId('run-status').textContent = `Replaying sample / ${currentStep + 1} of 6`;
+  if (currentStep === 5) {
+    byId('answer').hidden = false;
+    timer = setTimeout(() => finish('Sample complete'), Number(byId('pace').value));
+  } else timer = setTimeout(advance, Number(byId('pace').value));
+}
+byId('replay').onclick = () => {
+  clearTimeout(timer);
+  currentStep = -1;
+  byId('answer').hidden = true;
+  byId('replay').disabled = true;
+  byId('stop').disabled = false;
+  steps.forEach(step => step.open = false);
+  advance();
+};
+byId('stop').onclick = () => finish('Sample stopped');
+</script>
+</body>
+</html>

@@ -27,6 +27,20 @@ hosts an `AgentCatalog` of stateless `ChatClientAgent`s (Azure OpenAI), each com
 agents. The Blazor web UI calls `POST /chat/stream`, which streams the real execution steps (LLM
 round-trips and tool calls) as Server-Sent Events so the data flow can be animated live.
 
+### Corporate workbench
+
+The Web app's **Default** vendor uses the [Corporate Workbench design](design/mockups/v8-corporate-workbench.html):
+off-white surfaces, forest-green actions, a serif product heading and flat, divider-led panels.
+Flow and Discovery share this visual treatment. Brand vendors retain their own palettes and agent behavior;
+select **Default** in the vendor rail to see the green theme. Existing vendor preferences are preserved.
+
+The Controls and Learn panels start at 276 and 260 pixels wide; saved panel sizes still take precedence.
+Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane
+is 620 pixels wide or narrower, including after panel resizing. Contributor colors retain their meanings,
+and reduced-motion preferences disable visual animations without changing execution pacing.
+The main diagram uses locally bundled [Lucide icons and license](src/TheSeries.Web/wwwroot/icons/lucide/LICENSE),
+with no runtime CDN dependency.
+
 ### Agents
 
 | Agent | Persona | Tools |

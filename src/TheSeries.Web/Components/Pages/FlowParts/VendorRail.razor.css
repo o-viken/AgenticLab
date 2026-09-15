@@ -2,6 +2,7 @@
    so it re-colours automatically with the active vendor. */
 
 .vendor-rail {
+    box-sizing: border-box;
     flex: 0 0 54px;
     width: 54px;
     align-self: stretch;
@@ -9,7 +10,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.6rem 0;
+    padding: 18px 0;
     background: var(--surface);
     border-right: 1px solid var(--panel-border);
     overflow: visible;
@@ -29,7 +30,7 @@
    rail is hovered. */
 .rail-item:not(.active),
 .rail-divider {
-    display: none;
+    display: flex;
 }
 
 .vendor-rail:hover .rail-item:not(.active),
@@ -65,7 +66,7 @@
     justify-content: center;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: 4px;
     background: transparent;
     color: var(--text-muted);
     opacity: 0.75;
@@ -110,9 +111,9 @@
     min-width: 150px;
     padding: 0.5rem 0.7rem;
     border: 1px solid var(--panel-border);
-    border-radius: 10px;
+    border-radius: 4px;
     background: var(--surface);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     white-space: nowrap;
     opacity: 0;
     visibility: hidden;
@@ -121,7 +122,8 @@
     z-index: 30;
 }
 
-.rail-item:hover .rail-tooltip {
+.rail-item:hover .rail-tooltip,
+.rail-item:focus-within .rail-tooltip {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -144,7 +146,7 @@
 }
 
 /* On narrow viewports the page stacks, so the rail becomes a horizontal strip on top. */
-@media (max-width: 999px) {
+@media (max-width: 1199px) {
     .vendor-rail {
         flex: 0 0 auto;
         width: 100%;

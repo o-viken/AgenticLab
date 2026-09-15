@@ -6,6 +6,7 @@
     flex-direction: column;
     gap: .9rem;
     color: var(--text, #e9edf5);
+    overflow-wrap: anywhere;
 }
 
 .concept-eyebrow-row {
@@ -42,14 +43,16 @@
 
 .concept-h2 {
     margin: 0;
-    font-size: 1.35rem;
+    font-family: Cambria, Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
     line-height: 1.15;
     color: var(--heading, #ffe7c2);
 }
 
 .concept-summary {
     margin: 0;
-    font-size: .98rem;
+    font-size: 13px;
     line-height: 1.5;
     color: var(--text, #e9edf5);
     padding-bottom: .9rem;
@@ -57,8 +60,8 @@
 }
 
 .concept-body {
-    font-size: .9rem;
-    line-height: 1.6;
+    font-size: 13px;
+    line-height: 1.75;
     color: var(--text-muted, #9aa6c0);
 }
 
@@ -195,7 +198,7 @@
     width: 100%;
     padding: .5rem .7rem;
     padding-right: 2rem;
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid var(--border, #2b3450);
     background: var(--input-bg, var(--surface-2, #1b2236));
     color: var(--text, #e6ebf5);

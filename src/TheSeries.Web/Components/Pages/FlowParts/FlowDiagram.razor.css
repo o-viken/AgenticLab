@@ -3,13 +3,14 @@
    ::deep. Shared @keyframes (pulse, dash-*, ctx-in) live in Flow.razor.css so they stay global. */
 .diagram {
     display: grid;
-    grid-template-columns: max-content minmax(120px, 1fr) max-content minmax(120px, 1fr) max-content;
+    grid-template-columns: minmax(0, 1fr) 80px minmax(0, 2fr) 80px minmax(0, 1fr);
     grid-auto-rows: minmax(0, auto);
     align-items: center;
     gap: .5rem;
-    padding: 1.5rem .25rem 1.75rem;
+    padding: 0 .25rem 24px;
     margin-bottom: 1.75rem;
-    background: transparent;
+    background-image: radial-gradient(color-mix(in srgb, var(--panel-border) 60%, transparent) .7px, transparent .7px);
+    background-size: 20px 20px;
     border: none;
     border-radius: 0;
     overflow-x: auto;
@@ -67,8 +68,7 @@
 .diagram ::deep .diagram-control > label {
     font-size: .72rem;
     font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
+    letter-spacing: 0;
     color: var(--node-subtitle);
 }
 
@@ -84,7 +84,7 @@
 }
 
 .diagram ::deep .detail-hint {
-    display: flex;
+    display: none;
     align-items: center;
     gap: .4rem;
     font-size: .62rem;
@@ -103,23 +103,25 @@
 }
 
 .diagram ::deep .perspective-toggle.ladder {
-    background: linear-gradient(to right,
-        color-mix(in srgb, var(--link-accent) 8%, transparent),
-        color-mix(in srgb, var(--link-accent) 22%, transparent));
-    border-radius: 9px;
-    padding: 2px;
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 0;
+    flex-wrap: wrap;
 }
 
 .diagram ::deep .perspective-toggle.ladder button {
     background: transparent;
     border: none;
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 10px;
     transition: background .18s ease, color .18s ease;
 }
 
 .diagram ::deep .perspective-toggle.ladder button.selected {
-    background: var(--link-accent);
-    color: var(--on-accent, #fff);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+    background: var(--surface-2);
+    color: var(--accent-soft);
+    box-shadow: inset 0 -2px var(--accent);
 }
 
 /* The Expert-only Boundaries block animates in when the ladder reaches Expert. */
@@ -145,7 +147,7 @@
     display: inline-flex;
     align-items: center;
     gap: .35rem;
-    font-size: .9rem;
+    font-size: 12px;
     color: var(--check-text);
     cursor: pointer;
 }
@@ -166,7 +168,7 @@
    keeps its centre position — the right two tracks simply stay empty rather than collapsing the
    diagram, so the Service sits in the same place across every detail level. */
 .diagram.p-simple {
-    grid-template-columns: max-content minmax(120px, 1fr) max-content minmax(120px, 1fr) max-content;
+    grid-template-columns: minmax(0, 1fr) 80px minmax(0, 2fr) 80px minmax(0, 1fr);
 }
 
 .diagram > .node,
@@ -370,7 +372,7 @@
     flex-direction: column;
     justify-content: center;
     gap: .5rem;
-    min-width: 150px;
+    min-width: 0;
 }
 
 .diagram ::deep .node {
@@ -379,8 +381,11 @@
     flex-direction: column;
     align-items: center;
     gap: .15rem;
-    padding: 1.1rem 1.25rem;
-    border-radius: 10px;
+    padding: 18px 10px;
+    border-radius: 4px;
+    min-width: 0;
+    min-height: 124px;
+    overflow-wrap: anywhere;
     background: var(--surface);
     border: 1px solid var(--panel-border);
     text-align: center;
@@ -398,9 +403,22 @@
     display: block;
 }
 
+.diagram ::deep .diagram-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: var(--text-muted);
+    mask: var(--icon) center / contain no-repeat;
+}
+
+.diagram ::deep .icon-user { --icon: url('/icons/lucide/user-round.svg'); }
+.diagram ::deep .icon-model { --icon: url('/icons/lucide/cpu.svg'); }
+.diagram ::deep .icon-harness { --icon: url('/icons/lucide/workflow.svg'); }
+.diagram ::deep .node.active .diagram-icon { background: var(--accent); }
+
 .diagram ::deep .node .title {
-    font-weight: 700;
-    letter-spacing: .3px;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
 .diagram ::deep .node .subtitle {
@@ -450,14 +468,14 @@
     text-align: left;
     gap: .45rem;
     padding: 1rem;
-    min-width: 250px;
-    max-width: 300px;
+    min-width: 0;
+    max-width: none;
     background: var(--node-anatomy-bg);
 }
 
 .diagram ::deep .anatomy-heading {
     font-weight: 700;
-    letter-spacing: .3px;
+    letter-spacing: 0;
     color: var(--anatomy-heading);
     text-align: center;
     margin-bottom: .15rem;
@@ -469,20 +487,20 @@
     flex-direction: column;
     gap: .25rem;
     padding: .55rem .65rem;
-    border-radius: 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    border: 0;
     color: var(--text);
 }
 
 .diagram ::deep .anatomy .layer-title {
-    font-weight: 800;
-    font-size: .92rem;
+    font-weight: 600;
+    font-size: 13px;
 }
 
 .diagram ::deep .anatomy .layer-body {
     font-size: .72rem;
-    line-height: 1.25;
+    line-height: 1.5;
     color: var(--text-muted);
 }
 
@@ -504,7 +522,7 @@
     height: 1.15rem;
     padding: 0;
     margin-top: .05rem;
-    color: rgba(0, 0, 0, .55);
+    color: var(--text-muted);
     background: transparent;
     border: none;
     border-radius: 4px;
@@ -522,15 +540,15 @@
 }
 
 .diagram ::deep .anatomy .prompt-toggle:hover {
-    color: #1a1a1a;
-    background: rgba(0, 0, 0, .08);
+    color: var(--text);
+    background: var(--surface-2);
 }
 
 /* Colour-coded by who sets the layer (matches the anatomy concept): a coloured top accent on a
    light card (v4 look), rather than a fully saturated fill. */
-.diagram ::deep .anatomy .layer.app { border-top: 3px solid var(--contrib-app); }
-.diagram ::deep .anatomy .layer.agent { border-top: 3px solid var(--contrib-agent); }
-.diagram ::deep .anatomy .layer.user { border-top: 3px solid var(--contrib-user); }
+.diagram ::deep .anatomy .layer.app { border-left: 3px solid var(--contrib-app); }
+.diagram ::deep .anatomy .layer.agent { border-left: 3px solid var(--contrib-agent); }
+.diagram ::deep .anatomy .layer.user { border-left: 3px solid var(--contrib-user); }
 
 .diagram ::deep .anatomy .set-by {
     align-self: flex-start;
@@ -972,7 +990,7 @@
 /* Directional connectors (send / receive) ----------------------------- */
 .diagram ::deep .connector-group {
     flex: 1 1 120px;
-    min-width: 120px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1032,7 +1050,7 @@
     background: var(--response-hint-bg);
     border: 1px solid var(--accent-soft);
     border-radius: 999px;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .diagram ::deep .connector.send.active::after { border-left-color: var(--accent-bright); }
@@ -1056,8 +1074,8 @@
     color: var(--purple-text);
     background: var(--loop-bg);
     border: 1px solid var(--node-llm-border);
-    border-radius: 999px;
-    white-space: nowrap;
+    border-radius: 4px;
+    white-space: normal;
 }
 
 .diagram ::deep .loop-badge .loop-icon { font-size: .9rem; line-height: 1; }
@@ -1093,4 +1111,36 @@
 .diagram ::deep .node-inner.tools,
 .diagram ::deep .node-inner.skills {
     position: relative;
+}
+
+.diagram ::deep .node-inner,
+.diagram ::deep .anatomy .context-stack {
+    border-radius: 4px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@container (max-width: 620px) {
+    .diagram,
+    .diagram.p-simple {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px;
+        padding: 0 8px 24px;
+    }
+
+    .diagram > .node.user { grid-column: 1; grid-row: 2; }
+    .diagram > .connector-group.user-node { grid-column: 1; grid-row: 3; }
+    .diagram > .column.center { grid-column: 1; grid-row: 4; }
+    .diagram > .connector-group.loop { grid-column: 1; grid-row: 5; }
+    .diagram > .column.right { grid-column: 1; grid-row: 6; }
+
+    .diagram ::deep .connector-group { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+    .diagram ::deep .connector-group .connector.horizontal { flex: 1 1 80px; }
+    .diagram ::deep .connector.horizontal::before { transform: translateY(-50%) rotate(90deg); left: 50%; right: auto; width: 26px; }
+    .diagram ::deep .connector.horizontal.send::after { right: 0; transform: rotate(90deg); }
+    .diagram ::deep .connector.horizontal.recv::after { left: 0; transform: rotate(90deg); }
+    .diagram ::deep .flow-label { margin: 0 12px; }
+    .diagram ::deep .boundary.harness-b { grid-column: 1; grid-row: 4 / 6; }
+    .diagram ::deep .boundary.agent-b { grid-column: 1; grid-row: 4 / 7; }
+    .diagram ::deep .boundary.env-b { grid-column: 1; grid-row: 2 / 5; }
 }
