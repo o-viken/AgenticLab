@@ -11,6 +11,29 @@ namespace TheSeries.AiService.Tests;
 /// </summary>
 public sealed class FlowCaptureTests
 {
+    /// <summary>Structured call metadata survives serialization and snapshots mutable arguments.</summary>
+    [Theory]
+    [InlineData("research")]
+    [InlineData("poet")]
+    public void StructuredCall_PreservesTargetAndQuestion(string agentName)
+    {
+        var arguments = new Dictionary<string, object?>
+        {
+            ["agentName"] = agentName,
+            ["question"] = "First line\nSecond line: \"quoted\"",
+        };
+        var snapshot = FlowToolCall.Capture(new FunctionCallContent("call-1", "DelegateToAgent", arguments));
+        arguments["agentName"] = "changed";
+        var captured = new FlowEvent(1, "tool-call", "unchanged", CallId: "call-1", ToolCall: snapshot);
+        var restored = System.Text.Json.JsonSerializer.Deserialize<FlowEvent>(
+            System.Text.Json.JsonSerializer.Serialize(captured))!;
+
+        Assert.Equal("call-1", restored.CallId);
+        Assert.Equal("DelegateToAgent", restored.ToolCall!.Name);
+        Assert.Equal(agentName, restored.ToolCall.Arguments.GetProperty("agentName").GetString());
+        Assert.Equal("First line\nSecond line: \"quoted\"", restored.ToolCall.Arguments.GetProperty("question").GetString());
+    }
+
     [Fact]
     public async Task EveryRoundTripKeepsItsOwnResponse()
     {

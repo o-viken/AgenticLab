@@ -63,6 +63,25 @@ and reduced-motion preferences disable visual animations without changing execut
 The main diagram uses locally bundled [Lucide icons and license](src/TheSeries.Web/wwwroot/icons/lucide/LICENSE),
 with no runtime CDN dependency.
 
+### Remote A2A agents
+
+Select **Orchestrator** and **Expert** to see each discovered remote agent (Research and Poet by
+default) as its own **Harness + LLM** composition below the main flow. Both harnesses run in the same
+separate **A2A service** process; the cloud-model nodes show each agent's model role, not separate
+deployments. **Agent** outlines each composition, while **Environment & risk** distinguishes the
+shared server process from the cloud models. Narrow panes stack each harness above its model.
+The remote area has a grid-free background, with alternating blue/green bands grouping each agent's
+harness and model. This visual separation remains visible when boundary overlays are off.
+
+Request/result arrows highlight the targeted agent. The display distinguishes **Delegation requested**
+from **Result returned**: the former is a captured tool request, not confirmation of a network send,
+and a result can contain an error. Remote model calls, prompts and token counts are **not captured**;
+internal model links stay static. Generic model labels do not borrow the Orchestrator's deployment.
+
+Execution playback uses the roster saved with that exchange and pairs calls/results by call ID.
+Selecting a request never reveals its future reply. Missing structured metadata or unknown targets
+fall back to the generic resource display. Replay and held/stopped runs do not animate remote links.
+
 ### Agent guide
 
 Open **Agent guide** from Flow or Discovery for the standalone `/learn` page. The link opens a new

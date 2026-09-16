@@ -10,6 +10,83 @@ namespace TheSeries.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    /// <summary>Each result answers its own call, including repeated and interleaved targets.</summary>
+    [Fact]
+    public void A2A_PairsCallsAndDoesNotRevealFutureResults()
+    {
+        A2AChip[] roster = [new("research", "Research"), new("poet", "Poetry")];
+        var first = Delegation(3, "first", " RESEARCH ", "First\nquestion");
+        var second = Delegation(5, "second", "poet", "Write a poem");
+        var repeated = Delegation(6, "third", "research", "Another question");
+        var result = Event(7, "tool-result", 1, "first") with { Data = "First answer" };
+        var exchange = ExecutionReplayBuilder.Build([new ConversationTurn("a", "hello", "Orchestrator", "done", null,
+            [Event(2, "llm-request", 1), first, Event(4, "llm-response", 1), second, repeated, result], A2AAgents: roster)], -1)[0];
+
+        var atCall = A2AFlowBuilder.Build(exchange.A2AAgents!, ExecutionReplayBuilder.PrefixThrough(exchange, 3), false);
+        Assert.Equal("research", atCall.ActiveAgent);
+        Assert.Equal("send", atCall.Direction);
+        Assert.Equal("First\nquestion", atCall.Agents[0].Question);
+        Assert.Null(atCall.Agents[0].Result);
+        Assert.Equal("Available", atCall.Agents[1].Status);
+        var atResult = A2AFlowBuilder.Build(exchange.A2AAgents!, ExecutionReplayBuilder.PrefixThrough(exchange, 7), false);
+        Assert.Equal("research", atResult.ActiveAgent);
+        Assert.Equal("recv", atResult.Direction);
+        Assert.Equal("First\nquestion", atResult.Agents[0].Question);
+        Assert.Equal("First answer", atResult.Agents[0].Result);
+        Assert.Null(atResult.Agents[1].Result);
+        Assert.Equal("poet", exchange.A2AAgents![1].Name);
+    }
+
+    /// <summary>Unknown or legacy targets do not activate a discovered agent; stopped calls stay incomplete.</summary>
+    [Fact]
+    public void A2A_DegradesWithoutInventingActivity()
+    {
+        A2AChip[] roster = [new("research", "Research")];
+        var unknown = A2AFlowBuilder.Build(roster, [Delegation(1, "a", "unknown", "question")], false);
+        Assert.Null(unknown.ActiveAgent);
+        Assert.Equal("Available", unknown.Agents[0].Status);
+        Assert.Null(A2AFlowBuilder.Build(roster, [Event(1, "tool-call", 1)], false).ActiveAgent);
+        var malformed = Delegation(1, "a", "research", "question") with
+        { ToolCall = new("DelegateToAgent", System.Text.Json.JsonSerializer.SerializeToElement("invalid")) };
+        Assert.Null(A2AFlowBuilder.Build(roster, [malformed], false).ActiveAgent);
+        var stopped = A2AFlowBuilder.Build(roster, [Delegation(1, "a", "research", "question")], true);
+        Assert.Equal("No result captured", stopped.Agents[0].Status);
+    }
+
+    private static FlowEvent Delegation(int sequence, string callId, string agentName, string question) =>
+        new(sequence, "tool-call", "LLM → Tool: DelegateToAgent", null, 1, CallId: callId,
+            ToolCall: new("DelegateToAgent", System.Text.Json.JsonSerializer.SerializeToElement(new { agentName, question })));
+
+    /// <summary>Unrelated functions and unmatched results never borrow a known agent's identity.</summary>
+    [Fact]
+    public void A2A_RequiresADelegationCallAndMatchingId()
+    {
+        A2AChip[] roster = [new("research", "Research")];
+        var call = Delegation(1, "a", "research", "question");
+        var unrelated = call with { ToolCall = call.ToolCall! with { Name = "Calculate" } };
+        Assert.Null(A2AFlowBuilder.Build(roster, [unrelated], false).ActiveAgent);
+        var mismatch = Event(2, "tool-result", 1, "other") with { Data = "Unrelated result" };
+        var display = A2AFlowBuilder.Build(roster, [call, mismatch], false);
+        Assert.Null(display.ActiveAgent);
+        Assert.Null(display.Agents[0].Result);
+        Assert.Equal("Delegation requested", display.Agents[0].Status);
+    }
+
+    /// <summary>Old payloads remain readable and metadata does not change prompt/context accounting.</summary>
+    [Fact]
+    public void A2A_MetadataIsOptionalAndExcludedFromPromptSize()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<FlowEvent>(
+            """{"Sequence":1,"Kind":"tool-call","Label":"Tool call","Detail":null}""")!;
+        Assert.Null(legacy.ToolCall);
+        var call = Delegation(3, "a", "research", "question");
+        var request = Event(2, "llm-request", 1) with
+        { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" };
+        var before = PromptSignatureBuilder.Build([("test", (IReadOnlyList<FlowEvent>)[request, call with { ToolCall = null }])]);
+        var after = PromptSignatureBuilder.Build([("test", (IReadOnlyList<FlowEvent>)[request, call])]);
+        Assert.Equal(before.CurrentChars, after.CurrentChars);
+    }
+
     /// <summary>A round-trip reads request → response → the calls it asked for → their results.</summary>
     [Fact]
     public void Turn_OrdersStagesCausally()

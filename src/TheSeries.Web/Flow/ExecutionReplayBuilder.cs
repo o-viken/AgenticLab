@@ -78,7 +78,7 @@ internal static class ExecutionReplayBuilder
         return PromptSignatureBuilder.Build(visible);
     }
 
-    private static IReadOnlyList<FlowEvent> PrefixThrough(ExecutionExchange exchange, int? sequence)
+    internal static IReadOnlyList<FlowEvent> PrefixThrough(ExecutionExchange exchange, int? sequence)
     {
         var stageIndex = exchange.Stages.ToList().FindIndex(stage => stage.Sequence == sequence);
         return exchange.Stages.Take(stageIndex + 1).ToArray();
@@ -158,7 +158,8 @@ internal static class ExecutionReplayBuilder
             intake,
             turns,
             outcome,
-            flattened);
+            flattened,
+            exchange.A2AAgents);
     }
 
     // A round-trip reads request → response → the tool calls that response asked for → their results.

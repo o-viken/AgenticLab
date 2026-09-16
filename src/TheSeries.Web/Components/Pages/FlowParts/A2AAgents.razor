@@ -1,0 +1,73 @@
+@{
+    var display = Run.DisplayA2A;
+    var sectionClass = "a2a-flow" + (View.ShowAgentBoundary ? " show-agent-boundaries" : "")
+        + (Run.AnimateA2A ? " animate" : "");
+}
+<section class="@sectionClass" aria-label="Remote A2A agents">
+    <div class="a2a-entry">
+        <span>@Run.A2ACaller harness <span class="a2a-protocol">A2A</span></span>
+    </div>
+    <header class="a2a-heading">
+        <h3>Remote agents</h3>
+        <span>Internal execution not captured</span>
+        <ConceptInfoButton Id="a2a" Title="Learn about agent-to-agent communication" />
+    </header>
+    <div class="a2a-grid">
+        @if (View.ShowEnvironment)
+        {
+            <div class="a2a-host-boundary" style="grid-row: 1 / span @(display.Agents.Count + 1)"></div>
+        }
+        <div class="a2a-host-head">A2A service <span>Shared server process</span></div>
+        <div class="a2a-cloud-head">Cloud model service</div>
+        @for (var index = 0; index < display.Agents.Count; index++)
+        {
+            var item = display.Agents[index];
+            var selected = string.Equals(item.Agent.Name, display.ActiveAgent, StringComparison.OrdinalIgnoreCase);
+            var rowClass = "a2a-agent" + (selected ? " selected" : "");
+            var sendClass = "a2a-wire send" + (selected && display.Direction == "send" ? " observed" : "");
+            var recvClass = "a2a-wire recv" + (selected && display.Direction == "recv" ? " observed" : "");
+            <article class="@rowClass" style="grid-row: @(index + 2)" data-agent="@item.Agent.Name" @key="item.Agent.Name">
+                <div class="a2a-branch" aria-label="A2A request and result">
+                    <span class="@sendClass" title="Delegation requested"></span>
+                    <span class="@recvClass" title="Result returned"></span>
+                </div>
+                <div class="a2a-agent-outline" aria-hidden="true"></div>
+                <div class="a2a-harness">
+                    <div class="a2a-agent-title"><span class="diagram-icon icon-harness" aria-hidden="true"></span><h4>@item.Agent.Name</h4></div>
+                    <span class="a2a-role">Harness</span>
+                    @if (View.ShowEnvironment)
+                    {
+                        <span class="a2a-location">A2A service · shared process</span>
+                    }
+                    <p class="a2a-description">@item.Agent.Description</p>
+                    <span class="a2a-status">@item.Status</span>
+                    @if (item.Question is { Length: > 0 } question)
+                    {
+                        <div class="a2a-preview"><b>Request</b><span>@FlowEventMapping.TruncatePreview(question)</span></div>
+                    }
+                    @if (item.Result is { Length: > 0 } result)
+                    {
+                        <div class="a2a-preview"><b>Result</b><span>@FlowEventMapping.TruncatePreview(result)</span></div>
+                    }
+                </div>
+                <div class="a2a-internal" title="Agent composition; internal model requests and responses are not captured">
+                    <span class="a2a-wire send"></span>
+                    <span class="a2a-wire recv"></span>
+                </div>
+                <div class="a2a-model">
+                    <span class="diagram-icon icon-model" aria-hidden="true"></span>
+                    <strong>LLM</strong>
+                    <span>Cloud model</span>
+                </div>
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+}

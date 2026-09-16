@@ -27,6 +27,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // values the controls happen to hold later.
     private string? _runVendor;
     private string? _runWorkspace;
+    private IReadOnlyList<A2AChip> _runA2A = [];
     // Identifies the exchange in the live panels; kept when it is archived so a selection survives.
     private string _runExchangeId = string.Empty;
 
@@ -73,6 +74,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private ContextSnapshot _liveContext = ContextSnapshot.Empty;
     private ContextSnapshot _replayContext = ContextSnapshot.Empty;
     private PromptSignatureView _replaySignature = PromptSignatureView.Empty;
+    private A2AFlowView _liveA2A = A2AFlowView.Empty;
+    private A2AFlowView _replayA2A = A2AFlowView.Empty;
     private int _replayContextVersion = -1;
     private string? _replayContextExchange;
     private int? _replayContextSequence;
@@ -201,11 +204,12 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         }
 
         _exchanges = ExecutionReplayBuilder.Build(all, liveIndex);
+        _liveA2A = A2AFlowBuilder.Build(_runA2A, _events, !_running);
     }
 
     // The run in the live panels, shaped like an archived exchange so both read the same way.
     private ConversationTurn CurrentExchange() =>
-        new(_runExchangeId, _runMessage, _runAgent, _reply, _error, _events, _runVendor, _runWorkspace);
+        new(_runExchangeId, _runMessage, _runAgent, _reply, _error, _events, _runVendor, _runWorkspace, _runA2A);
 
     // --- Exposed state ----------------------------------------------------
 
@@ -216,6 +220,29 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>The agents the selected agent can delegate to over A2A, shown in the harness A2A box.</summary>
     public IReadOnlyList<A2AChip> KnownA2A => _knownA2A;
+
+    /// <summary>The remote-agent topology and delegation state belonging to the displayed exchange.</summary>
+    public A2AFlowView DisplayA2A
+    {
+        get
+        {
+            EnsureComputed();
+            if (Replaying)
+            {
+                EnsureReplayComputed();
+                return _replayA2A;
+            }
+
+            return string.IsNullOrEmpty(_runExchangeId)
+                ? A2AFlowBuilder.Build(_knownA2A, [], false) : _liveA2A;
+        }
+    }
+
+    /// <summary>The caller recorded with the displayed exchange, not a later picker selection.</summary>
+    public string A2ACaller => (Replaying ? SelectedExchange?.Agent : _runAgent) ?? view.SelectedAgent ?? "Harness";
+
+    /// <summary>Only live, unheld boundary events may animate; remote internals never animate.</summary>
+    public bool AnimateA2A => !Replaying && Running && !Paused && _breakpoint is null && view.Mode == FlowMode.Auto;
     public bool IsSkillLoaded(string name) => _loadedSkills.Contains(name);
 
     /// <summary>The workspace's custom instructions, always injected into the agent's context when present.</summary>
@@ -599,6 +626,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _replaySignature = exchange is null
             ? PromptSignatureView.Empty
             : ExecutionReplayBuilder.SignatureAt(_exchanges, exchange.Id, sequence);
+        _replayA2A = exchange is null ? A2AFlowView.Empty
+            : A2AFlowBuilder.Build(exchange.A2AAgents ?? [], ExecutionReplayBuilder.PrefixThrough(exchange, sequence),
+                SelectedStage?.Kind is "final" or "error" ||
+                (SelectedStage == exchange.Stages.LastOrDefault() && exchange.Status != ExchangeStatus.Running));
         _replayContextVersion = _stateVersion;
         _replayContextExchange = exchange?.Id;
         _replayContextSequence = sequence;
@@ -744,6 +775,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _runAgent = view.SelectedAgent;
         _runVendor = view.VendorKey;
         _runWorkspace = view.Workspace;
+        _runA2A = view.SelectedAgentSupportsA2A ? _knownA2A.ToArray() : [];
         _runExchangeId = Guid.NewGuid().ToString("n");
         // A new message always takes the explorer back to the run that is happening now.
         view.FollowLive();
@@ -790,6 +822,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _runAgent = null;
         _runVendor = null;
         _runWorkspace = null;
+        _runA2A = [];
         _runExchangeId = string.Empty;
         view.FollowLive();
 

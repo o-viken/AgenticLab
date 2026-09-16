@@ -69,6 +69,7 @@ public partial class Flow : IDisposable
             }
 
             await _run.RefreshHarnessPromptAsync();
+            await _run.RefreshKnownA2AAsync();
         }
         catch (Exception ex)
         {
@@ -93,6 +94,7 @@ public partial class Flow : IDisposable
                 _view.Vendor = vendor;
                 _view.SelectedAgent = _view.VendorDefaultAgent ?? _view.SelectedAgent;
                 await _run.RefreshWorkspaceContextAsync();
+                await _run.RefreshKnownA2AAsync();
                 StateHasChanged();
             }
 
@@ -140,6 +142,7 @@ public partial class Flow : IDisposable
         }
 
         await _run.RefreshWorkspaceContextAsync();
+        await _run.RefreshKnownA2AAsync();
     }
 
     private Task ToggleLeftPanelAsync()

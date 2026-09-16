@@ -100,7 +100,8 @@
             <HarnessNode />
         }
 
-        @if (View.Perspective == Perspective.Expert && Run.ActiveResourceInfo is { } resource)
+        @if (View.Perspective == Perspective.Expert && Run.ActiveResourceInfo is { } resource
+            && !(resource.Key == "a2a" && Run.DisplayA2A.ActiveAgent is not null))
         {
             <div class="connector vertical active"></div>
             <div class="resources">
@@ -163,6 +164,13 @@
                             @onclick="@(() => View.OpenConcept("mcp"))" @onclick:stopPropagation="true">What is MCP?</button>
                 }
             </div>
+        </div>
+    }
+
+    @if (View.Perspective == Perspective.Expert && Run.DisplayA2A.Agents.Count > 0)
+    {
+        <div class="a2a-row">
+            <A2AAgents />
         </div>
     }
 

@@ -103,7 +103,8 @@ internal sealed record ConversationTurn(
     string? Error,
     IReadOnlyList<FlowEvent> Events,
     string? Vendor = null,
-    string? Workspace = null);
+    string? Workspace = null,
+    IReadOnlyList<A2AChip>? A2AAgents = null);
 
 /// <summary>A skill discovered in the workspace and offered to the agent: its name and one-line description.</summary>
 internal sealed record SkillChip(string Name, string Description);
@@ -129,6 +130,16 @@ internal sealed record McpChip(string Name, string Description);
 
 /// <summary>An agent reachable over the A2A protocol that the selected agent can delegate to: its name and description.</summary>
 internal sealed record A2AChip(string Name, string Description);
+
+/// <summary>A remote agent's captured delegation, without inferred internal execution.</summary>
+internal sealed record A2AAgentView(A2AChip Agent, string Status, string? Question, string? Result);
+
+/// <summary>Remote topology and the currently observed A2A boundary.</summary>
+internal sealed record A2AFlowView(IReadOnlyList<A2AAgentView> Agents, string? ActiveAgent, string? Direction)
+{
+    /// <summary>No discovered remote agents or captured boundary.</summary>
+    public static A2AFlowView Empty { get; } = new([], null, null);
+}
 
 /// <summary>
 /// One chip in the anatomy Context stack: a piece of content carried into the model's context.

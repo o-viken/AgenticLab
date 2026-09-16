@@ -20,6 +20,76 @@
     --diagram-grid-line: color-mix(in srgb, var(--panel-border) 35%, var(--surface));
 }
 
+.diagram > .a2a-row { grid-column: 1 / -1; min-width: 0; align-self: stretch; }
+.diagram ::deep .a2a-flow { position: relative; min-width: 0; }
+.diagram ::deep .a2a-entry { height: 44px; position: relative; margin-left: 18px; border-left: 1px solid var(--panel-border); }
+.diagram ::deep .a2a-entry::before { content: ""; position: absolute; top: -8px; left: 0; width: calc(50% - 9px); height: 28px; border-bottom: 1px solid var(--panel-border); border-right: 1px solid var(--panel-border); }
+.diagram ::deep .a2a-entry > span { display: block; margin-left: 50%; transform: translateX(-50%); width: fit-content; max-width: 95%; padding: .25rem .5rem; background: var(--surface); font-size: .75rem; overflow-wrap: anywhere; }
+.diagram ::deep .a2a-protocol { font-weight: 700; color: var(--accent); padding-left: .4rem; }
+.diagram ::deep .a2a-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem 1rem; position: relative; padding: .6rem 0 .6rem 36px; border-top: 1px solid var(--panel-border); }
+.diagram ::deep .a2a-heading h3 { margin: 0; font-size: .95rem; }
+.diagram ::deep .a2a-heading > span { font-size: .72rem; color: var(--text-muted); }
+.diagram ::deep .a2a-heading,
+.diagram ::deep .a2a-grid { background: #f2f4f2; }
+.diagram ::deep .a2a-grid { display: grid; grid-template-columns: 36px minmax(0, 1.2fr) 56px minmax(0, 1fr); gap: 12px 0; position: relative; padding-bottom: 12px; }
+.diagram ::deep .a2a-grid::before,
+.diagram ::deep .a2a-heading::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 0; border-left: 1px solid var(--panel-border); pointer-events: none; }
+.diagram ::deep .a2a-location { display: none; }
+.diagram ::deep .a2a-host-head { grid-column: 2; grid-row: 1; padding: .5rem .75rem; font-weight: 600; font-size: .78rem; z-index: 1; }
+.diagram ::deep .a2a-host-head span { display: block; font-weight: 400; font-size: .7rem; color: var(--text-muted); }
+.diagram ::deep .a2a-cloud-head { grid-column: 4; grid-row: 1; align-self: center; padding: .5rem .75rem; font-size: .75rem; color: var(--text-muted); }
+.diagram ::deep .a2a-host-boundary { grid-column: 2; border: 1px dashed var(--accent); pointer-events: none; z-index: 2; }
+.diagram ::deep .a2a-agent { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; position: relative; min-width: 0; --a2a-agent-surface: #e8eff7; }
+.diagram ::deep .a2a-agent:nth-of-type(even) { --a2a-agent-surface: #e7f0e9; }
+.diagram ::deep .a2a-agent-outline { grid-column: 2 / -1; grid-row: 1; align-self: stretch; pointer-events: none; border: 1px solid var(--panel-border); background: var(--a2a-agent-surface); }
+.diagram ::deep .show-agent-boundaries .a2a-agent-outline { border-color: var(--agent-boundary); border-style: dashed; }
+.diagram ::deep .a2a-harness { grid-column: 2; grid-row: 1; margin: 10px; padding: .7rem; background: var(--surface); border: 1px solid var(--panel-border); border-left: 3px solid var(--contrib-agent); min-width: 0; z-index: 1; }
+.diagram ::deep .a2a-agent-title { display: flex; gap: .5rem; align-items: center; }
+.diagram ::deep .a2a-agent-title h4 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.diagram ::deep .a2a-role { display: block; margin-top: .3rem; color: var(--text-muted); font-size: .72rem; }
+.diagram ::deep .a2a-description { margin: .5rem 0; font-size: .78rem; overflow-wrap: anywhere; }
+.diagram ::deep .a2a-status { display: block; font-size: .65rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+.diagram ::deep .a2a-agent.selected .a2a-harness { outline: 2px solid var(--accent); outline-offset: 2px; }
+.diagram ::deep .a2a-agent.selected .a2a-status { color: var(--accent); }
+.diagram ::deep .a2a-preview { border-top: 1px solid var(--panel-border); margin-top: .55rem; padding-top: .4rem; font-size: .72rem; overflow-wrap: anywhere; }
+.diagram ::deep .a2a-preview b { display: block; margin-bottom: .2rem; font-weight: 600; }
+.diagram ::deep .a2a-model { grid-column: 4; grid-row: 1; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: .3rem .5rem; min-width: 0; margin: 10px; padding: .75rem; border: 1px solid var(--panel-border); border-left: 3px solid var(--accent); background: var(--surface); }
+.diagram ::deep .a2a-model > span:last-child { grid-column: 2; font-size: .72rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.diagram ::deep .a2a-branch { grid-column: 1; grid-row: 1; align-self: stretch; display: flex; flex-direction: column; justify-content: center; gap: 12px; margin-left: 18px; margin-right: -10px; }
+.diagram ::deep .a2a-internal { grid-column: 3; grid-row: 1; display: flex; flex-direction: column; gap: 12px; margin: 0 -10px; }
+.diagram ::deep .a2a-wire { display: block; height: 2px; position: relative; color: var(--panel-border); background: currentColor; }
+.diagram ::deep .a2a-wire::after { content: ""; position: absolute; right: 0; top: -3px; width: 6px; height: 6px; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
+.diagram ::deep .a2a-wire.recv::after { left: 0; right: auto; transform: rotate(-135deg); }
+.diagram ::deep .a2a-wire.observed { color: var(--accent); }
+.diagram ::deep .a2a-flow.animate .a2a-wire.observed { background: repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 10px); background-size: 10px 2px; animation: a2a-request .6s linear infinite; }
+.diagram ::deep .a2a-flow.animate .a2a-wire.recv.observed { animation-direction: reverse; }
+@keyframes a2a-request { to { background-position: 10px 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .diagram ::deep .a2a-flow.animate .a2a-wire.observed { animation: none; }
+}
+@container (max-width: 620px) {
+    .diagram ::deep .a2a-grid { grid-template-columns: 24px minmax(0, 1fr); }
+    .diagram ::deep .a2a-cloud-head { display: none; }
+    .diagram ::deep .a2a-host-boundary { display: none; }
+    .diagram ::deep .a2a-agent { grid-template-rows: auto 40px auto; }
+    .diagram ::deep .a2a-agent-outline { grid-column: 2; grid-row: 1 / 4; }
+    .diagram ::deep .a2a-host-head { grid-column: 2; }
+    .diagram ::deep .a2a-branch { margin-left: 12px; }
+    .diagram ::deep .a2a-grid::before,
+    .diagram ::deep .a2a-heading::before { left: 12px; }
+    .diagram ::deep .a2a-location { display: block; font-size: .65rem; color: var(--text-muted); margin-top: .25rem; }
+    .diagram ::deep .a2a-harness { margin-bottom: 0; }
+    .diagram ::deep .a2a-internal { grid-column: 2; grid-row: 2; height: 40px; flex-direction: row; justify-content: center; gap: 16px; margin: 0; }
+    .diagram ::deep .a2a-internal .a2a-wire { width: 2px; height: 100%; }
+    .diagram ::deep .a2a-internal .a2a-wire::after { top: auto; bottom: 0; left: -3px; transform: rotate(135deg); }
+    .diagram ::deep .a2a-internal .a2a-wire.recv::after { top: 0; bottom: auto; transform: rotate(-45deg); }
+    .diagram ::deep .a2a-model { grid-column: 2; grid-row: 3; margin-top: 0; }
+    .diagram ::deep .a2a-heading { padding-left: 24px; }
+    .diagram ::deep .a2a-entry { margin-left: 12px; }
+    .diagram ::deep .a2a-entry::before { display: none; }
+    .diagram ::deep .a2a-entry > span { margin-left: 12px; transform: none; }
+}
+
 /* The prompt-signature panel spans the full grid width on its own row below the nodes. */
 .diagram ::deep .signature-row {
     grid-column: 1 / -1;

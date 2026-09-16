@@ -75,7 +75,8 @@ internal sealed record ExecutionExchange(
     IReadOnlyList<FlowEvent> Intake,
     IReadOnlyList<ExecutionTurn> Turns,
     IReadOnlyList<FlowEvent> Outcome,
-    IReadOnlyList<FlowEvent> Stages)
+    IReadOnlyList<FlowEvent> Stages,
+    IReadOnlyList<A2AChip>? A2AAgents = null)
 {
     /// <summary>A one-line summary of the size of the capture, shown on the exchange row.</summary>
     public string Meta =>

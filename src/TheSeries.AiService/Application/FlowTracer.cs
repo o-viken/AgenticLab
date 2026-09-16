@@ -29,7 +29,16 @@ namespace TheSeries.AiService.Application;
 /// <c>ask-question</c>) step belongs to, so a result can be paired with its call even when the same
 /// tool is called several times in one turn; null for every other kind.
 /// </param>
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null);
+/// <param name="ToolCall">Optional structured snapshot of a requested function call.</param>
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null);
+
+/// <summary>A function name and immutable JSON arguments, independent of the display-formatted payload.</summary>
+public sealed record FlowToolCall(string Name, JsonElement Arguments)
+{
+    /// <summary>Snapshots a model-requested call before its arguments can change.</summary>
+    public static FlowToolCall Capture(FunctionCallContent call) =>
+        new(call.Name, JsonSerializer.SerializeToElement(call.Arguments));
+}
 
 /// <summary>
 /// Runs an agent and projects its real execution (the LLM round-trips and tool invocations) into an
@@ -261,7 +270,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                                 $"LLM → Tool: {DescribeCall(call.Name, call.Arguments)}",
                                 DescribeArguments(call.Arguments) ?? "(no arguments)",
                                 FullCall(call.Name, call.Arguments),
-                                call.CallId);
+                                call.CallId) with { ToolCall = FlowToolCall.Capture(call) };
                             break;
 
                         case FunctionResultContent result:

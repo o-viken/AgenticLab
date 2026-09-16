@@ -305,7 +305,10 @@ internal sealed record FlowChatRequest(string Message, string? Agent, string Ses
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool Paused, bool Manual);
 internal sealed record ConversationResetRequest(string ConversationId);
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null);
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null);
+
+/// <summary>A captured function name and structured arguments, separate from readable display text.</summary>
+public sealed record FlowToolCall(string Name, System.Text.Json.JsonElement Arguments);
 
 /// <summary>A snapshot of every discovery source's status plus whether discovery runs at startup.</summary>
 public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnlyList<DiscoverySourceStatusDto> Sources);
