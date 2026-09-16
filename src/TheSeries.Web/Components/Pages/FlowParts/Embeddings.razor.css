@@ -1,6 +1,6 @@
 /* The embeddings & network panel: a full-width card under the diagram simulating token embeddings (a
    heatmap strip per token), a 2-D "meaning map" and a symbolic neural-network forward pass. Inherits the
-   themed CSS variables from .flow-app so it follows the active vendor palette; the heatmap is a fixed
+    shared CSS variables from .flow-app; the heatmap is a fixed
    red↔blue diverging scale (it encodes vector sign, not branding). */
 
 .embeddings {

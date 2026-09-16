@@ -780,9 +780,6 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         _ => "p-full",
     };
 
-    /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
-    public string VendorClass => VendorCatalog.CssClass(_vendor);
-
     /// <summary>The friendly display name of the selected vendor (shown in the page title and header).</summary>
     public string VendorName => CurrentVendorInfo?.DisplayName ?? _vendor.ToString();
 

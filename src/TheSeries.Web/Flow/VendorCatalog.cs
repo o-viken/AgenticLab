@@ -1,27 +1,15 @@
 namespace TheSeries.Web.Flow;
 
 /// <summary>
-/// Static catalogue of Web-side vendor/brand data: the CSS palette class for a vendor and its backend
-/// vendor key, the risk-meter fill for a level, and the external resources the tools can reach. All the
+/// Static catalogue of Web-side vendor/brand data: the backend vendor key, the risk-meter fill for a
+/// level, and the external resources the tools can reach. All the
 /// per-vendor metadata (display name, simulated model label and the modes each vendor offers — including
 /// the non-brand Default vendor) lives on the backend vendor definitions and is loaded at runtime via
-/// <c>GET /vendors</c>; only the CSS palette and the enum→key mapping are kept here. Pure lookups with no
+/// <c>GET /vendors</c>; all vendors share the default palette. Pure lookups with no
 /// UI dependency, shared by the page's view state and the diagram components.
 /// </summary>
 internal static class VendorCatalog
 {
-    /// <summary>The CSS class applied to the root so the vendor's brand palette overrides take effect.</summary>
-    public static string CssClass(Vendor vendor) => vendor switch
-    {
-        Vendor.Copilot => "theme-copilot",
-        Vendor.ClaudeCode => "theme-claude-code",
-        Vendor.Claude => "theme-claude",
-        Vendor.ChatGpt => "theme-chatgpt",
-        Vendor.Gemini => "theme-gemini",
-        Vendor.Microsoft365 => "theme-m365",
-        _ => string.Empty,
-    };
-
     /// <summary>
     /// The vendor key sent to the backend so it swaps in this vendor's harness system prompt for the run
     /// (replacing the shared harness while keeping the agent's persona), and the key used to look up the

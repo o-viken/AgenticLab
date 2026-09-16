@@ -611,7 +611,7 @@
 }
 
 /* Each tool in the anatomy list carries a coloured dot marking its risk tier (read-only vs.
-   side-effecting vs. writes/runs), reusing the themed risk palette so it follows the vendor. */
+    side-effecting vs. writes/runs), reusing the shared risk palette. */
 .diagram ::deep .anatomy .tool-checks li {
     display: flex;
     align-items: center;
@@ -848,7 +848,7 @@
 
 /* Tool chips in the compact harness Tools box, tinted by each tool's risk tier (read-only vs.
    side-effecting vs. writes/runs) so capabilities aren't shown as a flat count. Colours reuse the
-   themed risk palette so they follow the active vendor. */
+    shared risk palette across all vendors. */
 .diagram ::deep .tool-chips {
     display: flex;
     flex-wrap: wrap;

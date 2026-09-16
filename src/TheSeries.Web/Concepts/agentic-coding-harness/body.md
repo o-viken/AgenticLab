@@ -22,5 +22,5 @@ use, but they share the model + harness shape:
 - **Cursor** — an AI-first code editor.
 - **ChatGPT** — general assistant with coding and agentic modes.
 
-Click any of these in the **Vendor** switcher's info badges to learn more. The **Vendor**
-toggle in this app even restyles the diagram to match each brand's look.
+Click any of these in the **Vendor** switcher's info badges to learn more. Vendor logos
+distinguish the harnesses; all share the same workbench colors.

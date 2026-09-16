@@ -52,7 +52,7 @@ internal static class ToolRiskCatalog
     }
 
     /// <summary>The CSS class for a tool's risk tier (<c>risk-low</c>/<c>risk-medium</c>/<c>risk-high</c>),
-    /// reusing the themed risk palette so it follows the active vendor.</summary>
+    /// reusing the shared risk palette across all vendors.</summary>
     public static string CssClass(string tool) => Classify(tool) switch
     {
         ToolRisk.High => "risk-high",

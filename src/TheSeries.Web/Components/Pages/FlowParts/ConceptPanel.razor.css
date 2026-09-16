@@ -1,5 +1,5 @@
 /* ConceptPanel — the right "Learn" panel's content (selected concept or topic index).
-   Colours come from the themed .flow-app CSS variables (inherited), so it follows the vendor palette. */
+    Colours inherit the shared workbench palette from .flow-app CSS variables. */
 
 .concept-content {
     display: flex;

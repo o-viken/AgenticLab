@@ -1,6 +1,6 @@
 /* The prompt-signature panel: a full-width card under the diagram showing the latest request's
    composition by category, the previous request and a prefix-stability match bar. Inherits the themed
-   CSS variables from .flow-app, so it follows the active vendor palette. Category colours are a fixed
+    CSS variables from .flow-app, shared by all vendors. Category colours are a fixed
    five-hue scale (they encode message roles, not branding). */
 
 .prompt-signature {

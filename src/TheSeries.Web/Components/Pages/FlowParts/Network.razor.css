@@ -1,6 +1,6 @@
 /* The neural-network panel: a full-width card under the diagram simulating a symbolic forward pass
    (embedding → hidden layers → logits → softmax → next token). Inherits the themed CSS variables from
-   .flow-app so it follows the active vendor palette; the input nodes use a fixed red↔blue diverging scale
+    .flow-app shared by all vendors; the input nodes use a fixed red↔blue diverging scale
    (matching the Embeddings heatmap — it encodes vector sign, not branding). */
 
 .network {

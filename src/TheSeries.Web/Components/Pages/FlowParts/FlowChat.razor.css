@@ -172,9 +172,7 @@
     min-width: 0;
 }
 
-/* Subtle, label-less agent picker at the top of the composer (moved here from Settings). Styled as a
-   quiet ghost dropdown — no border or fill at rest, muted text — so it stays out of the way like the
-   small agent/mode picker in a chat composer footer. */
+/* Labelled agent picker below the message box, using the composer's quiet dropdown styling. */
 .chat-composer .control.agent-select {
     flex: 0 0 auto;
     flex-direction: row;
@@ -183,8 +181,9 @@
 }
 
 .chat-composer .control.agent-select select {
-    flex: 0 0 auto;
-    max-width: 60%;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 3.5rem);
     padding: .15rem 1.4rem .15rem .4rem;
     border: 1px solid transparent;
     border-radius: 7px;
@@ -208,6 +207,11 @@
    controls content-height so the textarea and buttons stack tightly. */
 .chat-composer .control.message {
     flex: 0 0 auto;
+}
+
+.chat-composer #message:focus-visible {
+    outline: none;
+    background: var(--surface-2);
 }
 
 /* Transport buttons on the left, the round send button pushed to the right. */

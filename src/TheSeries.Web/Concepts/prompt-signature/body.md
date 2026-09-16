@@ -38,4 +38,4 @@ stacked bar for the **Current** request — one segment per category, sized by i
 characters — plus a **Previous** bar once a second request has been sent. A **Match** bar shows
 the share of the current request that is identical to the previous one (its reused prefix). The
 five category colours are fixed (they encode message roles, not the vendor brand), so they stay
-the same as you switch vendor themes.
+the same as you switch vendors.

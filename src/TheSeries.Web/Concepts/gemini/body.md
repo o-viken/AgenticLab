@@ -12,12 +12,10 @@ The same models are available to developers through the **Gemini API** in **Goog
 Studio** and **Vertex AI**, where you supply your own tools and harness — exactly the
 request → tool-call → result → response loop drawn in the diagram.
 
-Pick the **Gemini** vendor to restyle the page in its light look on Google's blue-to-purple
-"spark" gradient.
-
 ## In this application (the-series)
 
-Selecting the **Gemini** vendor is presentation only: it restyles the page and labels the
+Selecting the **Gemini** logo chooses its representative harness while keeping the shared
+workbench colors. It labels the
 LLM node *Gemini 2.5 Pro (Google)* in the non-Expert perspectives to mimic that the product
 runs on its own model. The real backend is always **Azure OpenAI** — no Google model is
 called. The vendor offers a single **chat** mode backed by the `ChatAgent` agent (which answers

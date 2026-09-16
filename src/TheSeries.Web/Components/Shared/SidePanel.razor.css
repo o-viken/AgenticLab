@@ -1,5 +1,5 @@
 /* SidePanel — collapsible/resizable docked panel chrome. Colours come from the themed
-   .flow-app CSS variables (inherited), so panels follow the active vendor palette. */
+    .flow-app CSS variables (inherited), so panels share the workbench palette. */
 
 .side-panel {
     width: 100%;

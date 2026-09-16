@@ -29,10 +29,13 @@ round-trips and tool calls) as Server-Sent Events so the data flow can be animat
 
 ### Corporate workbench
 
-The Web app's **Default** vendor uses the [Corporate Workbench design](design/mockups/v8-corporate-workbench.html):
+Every harness in the Web app uses the [Corporate Workbench design](design/mockups/v8-corporate-workbench.html):
 off-white surfaces, forest-green actions, a serif product heading and flat, divider-led panels.
-Flow and Discovery share this visual treatment. Brand vendors retain their own palettes and agent behavior;
-select **Default** in the vendor rail to see the green theme. Existing vendor preferences are preserved.
+Flow and Discovery share this visual treatment. Vendor logos distinguish harnesses without changing colors.
+Harness prompts, agent choices and saved vendor preferences are preserved.
+
+The Conversation composer places the **Agent** selector below the message box, above the send controls.
+The message box, workspace path and repo base folders fields indicate focus with a subtle background tint, without an extra outline.
 
 Flow, Agent guide and Discovery use an **Agentic AI** heading with the subtitle underneath and
 plain navigation links. The Flow header stays neutral across vendor selections and spans the full
@@ -45,7 +48,7 @@ The live Flow diagram follows the Agent guide's visual language: a subtle 24-pix
 with compact left-aligned icons and colored edges, plain dashed boundaries, and divider-led tool
 sections. The Agent boundary explicitly labels **Agent = model + harness**. Active nodes pulse
 without moving or resizing; directional arrows retain their live animations and align vertically
-when the diagram stacks. Vendor palettes, perspectives, breakpoints and panel persistence are unchanged.
+when the diagram stacks. Perspectives, breakpoints and panel persistence are unchanged.
 
 The Controls and Learn panels start at 276 and 260 pixels wide; saved panel sizes still take precedence.
 Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane

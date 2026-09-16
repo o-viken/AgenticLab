@@ -1,6 +1,6 @@
 /* The inference panel: a full-width card under the diagram simulating what happens "inside" the LLM —
    the prompt tokenized and the answer generated token by token. Inherits the themed CSS variables from
-   .flow-app, so it follows the active vendor palette; the contributor colours (prompt = user green,
+    .flow-app, shared by all vendors; the contributor colours (prompt = user green,
    generated = agent yellow) reuse the shared --contrib-* tokens. */
 
 .inference {

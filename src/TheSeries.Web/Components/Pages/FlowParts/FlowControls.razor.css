@@ -11,6 +11,12 @@
     flex: 1 1 100%;
 }
 
+.workspace-control #workspace:focus-visible,
+.workspace-control #workspace-bases:focus-visible {
+    outline: none;
+    background: var(--surface-2);
+}
+
 .breakpoints-control {
     border: 0;
     padding: 0;

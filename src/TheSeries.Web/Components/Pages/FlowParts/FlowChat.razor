@@ -90,7 +90,15 @@
     }
 
     <div class="chat-composer">
+        <div class="control message">
+            <label for="message">Message <span class="message-hint">Shift+Enter for a new line</span></label>
+            <textarea id="message" rows="1" data-enter-submit @bind="View.Message" @bind:event="oninput"
+                      placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
+                      disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
+        </div>
+
         <div class="control agent-select">
+            <label for="agent">Agent</label>
             <select id="agent" aria-label="Agent" title="Agent" @bind="View.SelectedAgent" @bind:after="Run.OnAgentChangedAsync" disabled="@Run.Running">
                 @foreach (var agent in View.AvailableAgents)
                 {
@@ -105,13 +113,6 @@
                     }
                 }
             </select>
-        </div>
-
-        <div class="control message">
-            <label for="message">Message <span class="message-hint">Shift+Enter for a new line</span></label>
-            <textarea id="message" rows="1" data-enter-submit @bind="View.Message" @bind:event="oninput"
-                      placeholder="Ask something, e.g. How tall is the Eiffel Tower in metres?"
-                      disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
         </div>
 
         <div class="composer-actions">
