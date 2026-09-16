@@ -29,8 +29,9 @@
                 @foreach (var token in Inf.PromptTokens)
                 {
                     var ws = IsWhitespace(token.Text);
-                    <span class="inf-tok prompt @(ws ? "ws" : "clickable") @(View.IsTokenSelected(token.Text) ? "selected" : null)"
-                          @onclick="@(() => OnTokenClick(token.Text, ws))">@Display(token.Text)</span>
+                        <button type="button" disabled="@ws" aria-pressed="@(View.IsTokenSelected(token.Text) ? "true" : "false")"
+                            class="inf-tok prompt @(ws ? "ws" : "clickable") @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                            @onclick="@(() => OnTokenClick(token.Text, ws))">@Display(token.Text)</button>
                 }
             </div>
             @if (View.SelectedToken is not null)
@@ -67,7 +68,7 @@
                         var predicted = genIndex == 0;
                         genIndex++;
                         <span class="inf-tok generated @(IsWhitespace(token.Text) ? "ws" : null) @(token.HasCandidates ? "has-pop" : null) @(predicted ? "predicted" : null)"
-                              style="animation-delay:@(delay)s"
+                              style="animation-delay:@(delay)s" tabindex="@(token.HasCandidates ? "0" : null)"
                               title="@(predicted ? "this first token is what the network's forward pass predicts" : null)">
                             @Display(token.Text)
                             @if (token.HasCandidates)

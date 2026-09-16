@@ -160,7 +160,7 @@ internal static partial class FlowEventMapping
         "tool-call" => ("Assistant: tool call", "agent"),
         "tool-result" => ("Tool result", "app"),
         "llm-response" => ("Assistant message", "agent"),
-        "final" => ("Final answer", "user"),
+        "final" => ("Final answer", "agent"),
         "error" => ("Error", "app"),
         _ => (e.Kind, "app"),
     };

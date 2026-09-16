@@ -663,18 +663,21 @@
 .diagram ::deep .anatomy .context-stack {
     display: flex;
     flex-direction: column;
-    gap: .35rem;
-    padding: .55rem .65rem;
-    border-radius: 10px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
+    gap: .5rem;
+    min-width: 0;
+    padding: .75rem 0 0;
+    background: var(--surface);
+    border-top: 1px solid var(--panel-border);
 }
 
 .diagram ::deep .context-head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: baseline;
-    gap: .5rem;
+    gap: .35rem .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 /* Inline (not absolute) so it sits beside the title without covering the meta text. */
@@ -701,26 +704,40 @@
 .diagram ::deep .context-meta {
     font-size: .66rem;
     color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.diagram ::deep .context-position {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .35rem .75rem;
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.diagram ::deep .context-mode {
+    color: var(--accent-ink);
+    font-weight: 600;
 }
 
 .diagram ::deep .context-bar {
-    height: 6px;
-    border-radius: 4px;
-    background: var(--border);
+    height: 4px;
+    background: var(--surface-2);
     overflow: hidden;
 }
 
 .diagram ::deep .context-bar > span {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, #82e000, #f1ec18, #ff5252);
+    background: var(--accent);
     transition: width .4s ease;
 }
 
 .diagram ::deep .context-empty {
     font-size: .7rem;
     color: var(--text-dim);
-    font-style: italic;
+    font-style: normal;
 }
 
 .diagram ::deep .context-chips {
@@ -729,9 +746,11 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: .25rem;
-    max-height: 168px;
+    gap: 0;
+    max-height: 240px;
     overflow-y: auto;
+    min-width: 0;
+    scrollbar-gutter: stable;
 }
 
 .diagram ::deep .context-chips .ctx {
@@ -740,11 +759,13 @@
     align-items: stretch;
     gap: .15rem;
     font-size: .7rem;
-    padding: .25rem .45rem;
-    border-radius: 6px;
+    padding: .4rem .55rem;
+    min-width: 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-soft);
     border-left: 3px solid transparent;
-    background: var(--border-soft);
-    color: var(--check-text);
+    background: var(--surface);
+    color: var(--text);
     animation: ctx-in .3s ease;
 }
 
@@ -752,17 +773,17 @@
     display: flex;
     align-items: center;
     gap: .35rem;
+    flex-wrap: wrap;
+    font-weight: 600;
 }
 
 .diagram ::deep .context-chips .ctx-preview {
-    font-size: .64rem;
-    line-height: 1.3;
+    font-size: .7rem;
+    line-height: 1.45;
     color: var(--text-muted);
-    font-style: italic;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-left: .1rem;
+    font-style: normal;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .diagram ::deep .context-chips .ctx.app { border-left-color: var(--contrib-app); }
@@ -771,26 +792,47 @@
 
 /* Conversation-history chips re-sent into the model's context each turn — dimmed so the current
    run reads as the focus, while still showing that earlier turns are carried along. */
-.diagram ::deep .context-chips .ctx.history { opacity: .5; }
+.diagram ::deep .context-chips .ctx.history {
+    background: var(--surface-2);
+    color: var(--text-dim);
+}
 
 /* Small muted label separating the carried-over history from the current turn's content. */
 .diagram ::deep .context-chips .ctx-divider {
     list-style: none;
-    font-size: .58rem;
+    font-size: .62rem;
     font-weight: 700;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: var(--text-dim);
-    padding: .2rem .1rem 0;
+    padding: .5rem .1rem .25rem;
 }
 
 .diagram ::deep .context-chips .ctx-turn {
     font-size: .6rem;
     font-weight: 700;
     color: var(--node-subtitle);
-    background: var(--purple-soft);
+    background: var(--surface-2);
     border-radius: 4px;
     padding: 0 .3rem;
+}
+
+.diagram ::deep .context-stack.replay .ctx {
+    animation: none;
+}
+
+.diagram ::deep .context-stack.replay .context-bar > span {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .diagram ::deep .context-chips .ctx {
+        animation: none;
+    }
+
+    .diagram ::deep .context-bar > span {
+        transition: none;
+    }
 }
 
 /* Skills catalogue inside the harness box ----------------------------- */

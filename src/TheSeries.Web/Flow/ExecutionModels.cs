@@ -1,5 +1,24 @@
 namespace TheSeries.Web.Flow;
 
+/// <summary>The visible Context entries and captured prompt size at a live or replay position.</summary>
+/// <param name="History">Compact entries from exchanges before the displayed exchange.</param>
+/// <param name="Current">Content available through the displayed stage, in playback order.</param>
+/// <param name="Chars">Captured prompt size, or null before a request is available at this position.</param>
+internal sealed record ContextSnapshot(
+    IReadOnlyList<ContextEntry> History,
+    IReadOnlyList<ContextEntry> Current,
+    int? Chars)
+{
+    /// <summary>An empty position without captured context.</summary>
+    public static ContextSnapshot Empty { get; } = new([], [], null);
+
+    /// <summary>The number of visible content entries.</summary>
+    public int Count => History.Count + Current.Count;
+
+    /// <summary>The prompt-size bar width, using the same scale as live Context.</summary>
+    public int BarWidth => Math.Min(100, (Chars ?? 0) / 80);
+}
+
 /// <summary>How an exchange ended, so a partial run is never shown as a completed one.</summary>
 internal enum ExchangeStatus
 {

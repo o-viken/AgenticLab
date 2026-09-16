@@ -3,7 +3,7 @@
    stability "match" score. Mirrors the harness anatomy's contributor framing — it shows what the model
    actually received this round-trip and how much of it was reused from the last one. *@
 
-<div class="prompt-signature">
+<div class="prompt-signature @(Run.Replaying ? "replay" : null)">
     <div class="sig-head">
         <span class="sig-title-group">
             <ConceptInfoButton Id="prompt-signature" Title="Learn about the prompt signature" />
@@ -17,9 +17,20 @@
         </div>
     </div>
 
+    @if (Run.Replaying)
+    {
+        <div class="sig-position">
+            <span class="sig-replay-mode">Replay · exchange @(Run.SelectedExchange?.Number)</span>
+            @if (Run.SelectedStage is { } stage)
+            {
+                <span>@(stage.Turn > 0 ? $"T{stage.Turn} · " : null)@ExecutionReplayBuilder.StageTitle(stage)</span>
+            }
+        </div>
+    }
+
     @if (!Sig.HasCurrent)
     {
-        <span class="sig-empty">the signature appears once the agent sends its first request…</span>
+        <span class="sig-empty">@(Run.Replaying ? "No request captured at this stage." : "the signature appears once the agent sends its first request…")</span>
     }
     else if (View.PromptSignatureDelta)
     {
@@ -71,7 +82,7 @@
         }
         else
         {
-            <span class="sig-hint">send another message to compare against the previous conversation exchange…</span>
+            <span class="sig-hint">@(Run.Replaying ? "No earlier exchange with a captured request." : "send another message to compare against the previous conversation exchange…")</span>
         }
     }
 </div>
@@ -83,7 +94,7 @@
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
 
-    private PromptSignatureView Sig => Run.PromptSignature;
+    private PromptSignatureView Sig => Run.DisplayPromptSignature;
 
     // The user messages of the two conversation exchanges being compared (current = newest, previous = before).
     private string CurrentLabel => Sig.Requests.Count > 0 ? Sig.Requests[^1].Label : string.Empty;

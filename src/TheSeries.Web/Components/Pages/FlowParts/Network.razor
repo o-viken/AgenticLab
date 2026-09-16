@@ -107,12 +107,12 @@
                     <span class="net-stage-title">Sample the next token</span>
                     <span class="net-stage-meta">token @(step + 1) / @Gen.Count · softmax → a distribution over candidates, then one is picked</span>
                     <span class="net-steps" role="group" aria-label="decode controls">
-                        <button type="button" class="net-stepbtn" title="Previous token" aria-label="Previous token" @onclick="StepPrev">‹</button>
+                        <button type="button" class="net-stepbtn" title="Previous token" aria-label="Previous token" @onclick="StepPrev"><MiniIcon Name="prev" /></button>
                         <button type="button" class="net-stepbtn play @(_playing ? "on" : null)"
                                 title="@(_playing ? "Pause auto-decode" : "Play auto-decode")"
                                 aria-label="@(_playing ? "Pause auto-decode" : "Play auto-decode")"
-                                @onclick="TogglePlay">@(_playing ? "❚❚" : "▶")</button>
-                        <button type="button" class="net-stepbtn" title="Next token" aria-label="Next token" @onclick="StepNext">›</button>
+                                @onclick="TogglePlay"><MiniIcon Name='@(_playing ? "pause" : "play")' /></button>
+                            <button type="button" class="net-stepbtn" title="Next token" aria-label="Next token" @onclick="StepNext"><MiniIcon Name="next" /></button>
                     </span>
                 </div>
 

@@ -70,6 +70,12 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private InferenceView _inference = InferenceView.Empty;
     private EmbeddingsView _embeddings = EmbeddingsView.Empty;
     private IReadOnlyList<ExecutionExchange> _exchanges = Array.Empty<ExecutionExchange>();
+    private ContextSnapshot _liveContext = ContextSnapshot.Empty;
+    private ContextSnapshot _replayContext = ContextSnapshot.Empty;
+    private PromptSignatureView _replaySignature = PromptSignatureView.Empty;
+    private int _replayContextVersion = -1;
+    private string? _replayContextExchange;
+    private int? _replayContextSequence;
 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
@@ -103,7 +109,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             if (FlowEventMapping.IsContentEvent(e))
             {
                 var chip = FlowEventMapping.ContextChip(e);
-                current.Add(new ContextEntry(chip.Label, chip.Source, FlowEventMapping.ContextPreview(e), Turn: e.Turn > 0 ? e.Turn : null));
+                var preview = e.Kind == "received"
+                    ? FlowEventMapping.TruncatePreview(_runMessage)
+                    : FlowEventMapping.ContextPreview(e);
+                current.Add(new ContextEntry(chip.Label, chip.Source, preview, Turn: e.Turn > 0 ? e.Turn : null));
             }
         }
 
@@ -115,9 +124,9 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             {
                 history.Add(new ContextEntry("Error", "app", FlowEventMapping.TruncatePreview(turn.Error), History: true));
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(turn.Reply))
             {
-                history.Add(new ContextEntry("Final answer", "user", FlowEventMapping.TruncatePreview(turn.Reply), History: true));
+                history.Add(new ContextEntry("Final answer", "agent", FlowEventMapping.TruncatePreview(turn.Reply), History: true));
             }
         }
 
@@ -146,6 +155,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         // tool message re-sent in the latest llm-request, excluding the static tool catalogue and JSON
         // structure), so the two figures always agree.
         _contextSize = _promptSignature.CurrentChars;
+        _liveContext = new(_historyEntries, _currentEntries, _contextSize);
 
         // The harness anatomy shows the agent prompt (persona) and the tools-available catalogue as their
         // own numbers, split out of the latest captured request (the most recent exchange's last
@@ -525,8 +535,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// How much conversation content the model is carrying in its latest request — the system prompt plus
     /// every user/assistant/tool message re-sent in the current exchange's <c>llm-request</c> (the static
     /// tool catalogue and JSON structure excluded). Kept identical to the Prompt signature's current total
-    /// (<see cref="PromptSignatureView.CurrentChars"/>) so the two figures always agree. Drives the
-    /// growing "context" bar.
+    /// (<see cref="PromptSignatureView.CurrentChars"/>). Replay uses <see cref="DisplayContext"/> and
+    /// <see cref="DisplayPromptSignature"/> instead; this telemetry value stays live.
     /// </summary>
     public int ContextSize
     {
@@ -537,7 +547,64 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         }
     }
 
-    /// <summary>The width (0–100%) of the context growth bar, scaled so typical runs fill it gradually.</summary>
+    /// <summary>
+    /// Context shown in the anatomy: live content, or a cached prefix at the replay cursor. Cursor changes
+    /// invalidate the replay snapshots; live signature, inference and execution caches stay independent.
+    /// </summary>
+    public ContextSnapshot DisplayContext
+    {
+        get
+        {
+            EnsureComputed();
+            if (!Replaying)
+            {
+                return _liveContext;
+            }
+
+            EnsureReplayComputed();
+            return _replayContext;
+        }
+    }
+
+    /// <summary>Prompt signature at the replay cursor, or the live signature when following execution.</summary>
+    public PromptSignatureView DisplayPromptSignature
+    {
+        get
+        {
+            EnsureComputed();
+            if (!Replaying)
+            {
+                return _promptSignature;
+            }
+
+            EnsureReplayComputed();
+            return _replaySignature;
+        }
+    }
+
+    private void EnsureReplayComputed()
+    {
+        var exchange = SelectedExchange;
+        var sequence = SelectedStage?.Sequence;
+        if (_replayContextVersion == _stateVersion
+            && _replayContextExchange == exchange?.Id
+            && _replayContextSequence == sequence)
+        {
+            return;
+        }
+
+        _replayContext = exchange is null
+            ? ContextSnapshot.Empty
+            : ExecutionReplayBuilder.ContextAt(_exchanges, exchange.Id, sequence);
+        _replaySignature = exchange is null
+            ? PromptSignatureView.Empty
+            : ExecutionReplayBuilder.SignatureAt(_exchanges, exchange.Id, sequence);
+        _replayContextVersion = _stateVersion;
+        _replayContextExchange = exchange?.Id;
+        _replayContextSequence = sequence;
+    }
+
+    /// <summary>The width (0–100%) of the live context growth bar, scaled so typical runs fill it gradually.</summary>
     public int ContextBarWidth => Math.Min(100, ContextSize / 80);
 
     /// <summary>
@@ -608,7 +675,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>
     /// The latest LLM request broken down by message category, compared against the previous request
-    /// (with a prefix-stability match score). Drives the prompt-signature panel.
+    /// (with a prefix-stability match score). Always live; the panel uses DisplayPromptSignature.
     /// </summary>
     public PromptSignatureView PromptSignature
     {

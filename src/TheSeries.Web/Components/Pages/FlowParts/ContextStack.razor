@@ -1,36 +1,49 @@
 @* The growing "context" visualization inside the harness anatomy: a bar scaled to the captured
    step-data size plus one chip per content event, with the carried-over conversation history shown
-   first as dimmed chips. *@
+    first as dimmed chips. During replay only content through the cursor is shown. *@
 
-<div class="context-stack">
+@{
+     var context = Run.DisplayContext;
+}
+<div class="context-stack @(Run.Replaying ? "replay" : null)">
     <div class="context-head">
         <span class="context-title-group">
             <ConceptInfoButton Id="context" Title="Learn about the context" />
             <span class="context-title">Context</span>
         </span>
-        <span class="context-meta">@Run.TotalContextEntries content entr@(Run.TotalContextEntries == 1 ? "y" : "ies") · ~@(Run.ContextSize) chars</span>
+        <span class="context-meta">@context.Count content entr@(context.Count == 1 ? "y" : "ies") · @(context.Chars is int chars ? $"~{chars:N0} chars" : "size not captured")</span>
     </div>
-    <div class="context-bar"><span style="width:@(Run.ContextBarWidth)%"></span></div>
-    @if (Run.TotalContextEntries == 0)
+    @if (Run.Replaying)
     {
-        <span class="context-empty">content grows as the agent runs…</span>
+        <div class="context-position">
+            <span class="context-mode">Replay · exchange @(Run.SelectedExchange?.Number)</span>
+            @if (Run.SelectedStage is { } stage)
+            {
+                <span>@(stage.Turn > 0 ? $"T{stage.Turn} · " : null)@ExecutionReplayBuilder.StageTitle(stage)</span>
+            }
+        </div>
+    }
+    <div class="context-bar" aria-hidden="true"><span style="width:@(context.BarWidth)%"></span></div>
+    @if (context.Count == 0)
+    {
+        <span class="context-empty">@(Run.Replaying ? "No content captured at this stage." : "Content grows as the agent runs.")</span>
     }
     else
     {
         <ol class="context-chips">
-            @if (Run.HistoryEntries.Count > 0)
+            @if (context.History.Count > 0)
             {
                 <li class="ctx-divider">Earlier in this conversation</li>
-                @foreach (var entry in Run.HistoryEntries)
+                @foreach (var entry in context.History)
                 {
                     @ContextChip(entry)
                 }
-                @if (Run.CurrentEntries.Count > 0)
+                @if (context.Current.Count > 0)
                 {
-                    <li class="ctx-divider">This turn</li>
+                    <li class="ctx-divider">This exchange</li>
                 }
             }
-            @foreach (var entry in Run.CurrentEntries)
+            @foreach (var entry in context.Current)
             {
                 @ContextChip(entry)
             }

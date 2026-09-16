@@ -34,6 +34,12 @@ off-white surfaces, forest-green actions, a serif product heading and flat, divi
 Flow and Discovery share this visual treatment. Vendor logos distinguish harnesses without changing colors.
 Harness prompts, agent choices and saved vendor preferences are preserved.
 
+Prompt signature, Inference, Embeddings and Neural network use the same flat sections,
+compact headers and controls. Their role colors, signed red/blue vectors and token linking
+are preserved. Narrow panes reflow the signature bars; reduced motion reveals answer tokens
+without animation and suppresses the network's visual effects without changing playback controls.
+Inference, embeddings and the network remain simulations, not captured model internals.
+
 The Conversation composer places the **Agent** selector below the message box, above the send controls.
 The message box, workspace path and repo base folders fields indicate focus with a subtle background tint, without an extra outline.
 
@@ -268,6 +274,19 @@ from what was captured up to that point — standing on a tool call does not rev
 came back afterwards. Navigating history never re-runs anything: it makes no model or tool calls, and
 the live run keeps recording in the background. **Live** returns to the newest stage of the current
 run. Captures cover the current conversation and are cleared by **New conversation**.
+
+The expanded harness's **Context** follows playback too: its flat, contributor-colored list shows
+only earlier exchanges and content through the selected stage in the selected exchange. The header
+identifies the replay exchange and stage; later tool results and answers stay hidden until reached.
+The count and growth bar use the captured prompt available at that point (including its captured
+response, using the Prompt signature calculation); before the first request, size is **not captured**.
+**Prompt signature** follows the same cursor: Comparison uses the selected exchange's captured prefix
+and the preceding captured exchange, while Delta includes only earlier exchanges and that prefix.
+The current signature total matches Context at that stage. Before the selected exchange's first
+request, the signature shows **No request captured at this stage**, rather than treating an earlier
+exchange as current. Both panels identify the replay exchange and stage, and **Live** restores their
+latest data. Inference, Embeddings and Neural network continue to show the live run. Browsing playback
+never sends execution-control requests.
 
 `breakpoint` events bypass normal pacing so the browser learns about a pause while execution is
 blocked inside a model or tool call. Their `data` is JSON containing `Id`, `Kind`, `Tool`, `Paused`

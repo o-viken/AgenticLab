@@ -1,25 +1,29 @@
-/* The prompt-signature panel: a full-width card under the diagram showing the latest request's
+/* The prompt-signature panel: a full-width workbench section showing the latest request's
    composition by category, the previous request and a prefix-stability match bar. Inherits the themed
     CSS variables from .flow-app, shared by all vendors. Category colours are a fixed
-   five-hue scale (they encode message roles, not branding). */
+    role scale (they encode message roles, not branding). */
 
 .prompt-signature {
     display: flex;
     flex-direction: column;
-    gap: .6rem;
+    gap: .75rem;
     width: 100%;
     box-sizing: border-box;
-    padding: .75rem .85rem;
-    border-radius: 12px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
+    min-width: 0;
+    padding: 1rem 0;
+    background: var(--surface);
+    border-top: 1px solid var(--panel-border);
+    overflow-wrap: anywhere;
 }
 
 .sig-head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: baseline;
     gap: .5rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .sig-title-group {
@@ -45,6 +49,26 @@
 .sig-sub {
     font-size: .68rem;
     color: var(--text-dim);
+}
+
+.sig-position {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .35rem .75rem;
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.sig-replay-mode {
+    color: var(--accent-ink);
+    font-weight: 600;
+}
+
+.prompt-signature.replay .sig-seg,
+.prompt-signature.replay .sig-match-fill,
+.prompt-signature.replay .sig-delta-bar {
+    transition: none;
 }
 
 .sig-empty,
@@ -92,7 +116,7 @@
 /* Rows (Previous / Current / Match) */
 .sig-row {
     display: grid;
-    grid-template-columns: 4.5rem 1fr 5.5rem;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
     align-items: center;
     gap: .6rem;
 }
@@ -101,7 +125,7 @@
     font-size: .68rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     color: var(--text-dim);
 }
 
@@ -116,7 +140,7 @@
 .sig-bar {
     display: flex;
     height: 22px;
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--border);
 }
@@ -134,7 +158,7 @@
 .sig-seg-num {
     font-size: .6rem;
     font-weight: 600;
-    color: rgba(8, 12, 24, .8);
+    color: var(--text);
     white-space: nowrap;
 }
 
@@ -145,7 +169,7 @@
 /* Match bar */
 .sig-match {
     height: 22px;
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--border);
 }
@@ -153,7 +177,7 @@
 .sig-match-fill {
     display: block;
     height: 100%;
-    background: linear-gradient(90deg, #51cf66, #82e000);
+    background: var(--accent);
     transition: width .4s ease;
 }
 
@@ -172,7 +196,7 @@
     display: inline-flex;
     align-self: center;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    border-radius: 4px;
     overflow: hidden;
     background: var(--border);
     gap: 1px;
@@ -182,12 +206,13 @@
     appearance: none;
     border: 0;
     margin: 0;
-    padding: .2rem .55rem;
-    font-size: .66rem;
+    padding: .3rem .6rem;
+    font-family: inherit;
+    font-size: .75rem;
     font-weight: 600;
-    letter-spacing: .02em;
+    letter-spacing: 0;
     cursor: pointer;
-    background: var(--code-bg);
+    background: var(--surface-2);
     color: var(--text-dim);
     transition: background .15s ease, color .15s ease;
 }
@@ -197,8 +222,8 @@
 }
 
 .sig-mode-toggle button.is-active {
-    background: var(--accent, #f0883e);
-    color: #fff;
+    background: var(--accent);
+    color: var(--btn-primary-text);
 }
 
 /* Delta ("growth") view */
@@ -217,7 +242,7 @@
 }
 
 .sig-delta-row {
-    grid-template-columns: 9rem 1fr 5.5rem;
+    grid-template-columns: 9rem minmax(0, 1fr) 5.5rem;
 }
 
 /* The track holds the bar at a width scaled to the conversation's largest exchange, so earlier (smaller)
@@ -247,16 +272,46 @@
     color: var(--anatomy-heading);
 }
 
-/* Delta segments: reused prefix (muted) vs newly-added (accent) — not themed; encode reuse, not branding. */
+/* Delta segments distinguish reused context from added content. */
 .sig-reused {
-    background: repeating-linear-gradient(135deg, #c4cad8 0 6px, #d7dae3 6px 12px);
-    opacity: .8;
+    background: repeating-linear-gradient(135deg, var(--border) 0 6px, var(--surface-2) 6px 12px);
 }
 
 .sig-added {
-    background: linear-gradient(90deg, #f0883e, #ffb061);
+    background: var(--accent);
 }
 
 .sig-added .sig-seg-num {
-    color: rgba(8, 12, 24, .85);
+    color: var(--btn-primary-text);
+}
+
+.sig-mode-toggle button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -3px;
+}
+
+@container (max-width: 620px) {
+    .sig-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: .35rem .6rem;
+    }
+
+    .sig-row > :nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .sig-row-total {
+        grid-column: 2;
+        grid-row: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sig-seg,
+    .sig-match-fill,
+    .sig-delta-bar,
+    .sig-mode-toggle button {
+        transition: none;
+    }
 }

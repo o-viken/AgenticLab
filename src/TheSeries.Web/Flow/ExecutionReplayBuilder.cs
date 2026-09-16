@@ -9,6 +9,82 @@ namespace TheSeries.Web.Flow;
 internal static class ExecutionReplayBuilder
 {
     /// <summary>
+    /// Builds Context through the selected stage in playback order, excluding later stages and exchanges.
+    /// The size uses the existing prompt-signature calculation on that prefix only; before its first
+    /// captured request the size is unknown rather than borrowed from a later request.
+    /// </summary>
+    public static ContextSnapshot ContextAt(
+        IReadOnlyList<ExecutionExchange> exchanges, string exchangeId, int? sequence)
+    {
+        var selected = exchanges.FirstOrDefault(exchange => exchange.Id == exchangeId);
+        if (selected is null)
+        {
+            return ContextSnapshot.Empty;
+        }
+
+        var history = new List<ContextEntry>();
+        foreach (var earlier in exchanges.TakeWhile(exchange => exchange.Id != exchangeId))
+        {
+            history.Add(new("User message", "user", FlowEventMapping.TruncatePreview(earlier.Message), History: true));
+            if (!string.IsNullOrWhiteSpace(earlier.Error))
+            {
+                history.Add(new("Error", "app", FlowEventMapping.TruncatePreview(earlier.Error), History: true));
+            }
+            else if (!string.IsNullOrWhiteSpace(earlier.Reply))
+            {
+                history.Add(new("Final answer", "agent", FlowEventMapping.TruncatePreview(earlier.Reply), History: true));
+            }
+        }
+
+        var prefix = PrefixThrough(selected, sequence);
+        var current = new List<ContextEntry>();
+        foreach (var stage in prefix.Where(FlowEventMapping.IsContentEvent))
+        {
+            var chip = FlowEventMapping.ContextChip(stage);
+            var preview = stage.Kind == "received"
+                ? FlowEventMapping.TruncatePreview(selected.Message)
+                : FlowEventMapping.ContextPreview(stage);
+            current.Add(new(chip.Label, chip.Source, preview, Turn: stage.Turn > 0 ? stage.Turn : null));
+        }
+
+        var signature = PromptSignatureBuilder.Build([(selected.Message, prefix)]);
+        return new(history, current, signature.HasCurrent ? signature.CurrentChars : null);
+    }
+
+    /// <summary>
+    /// Builds Comparison and Delta from earlier exchanges and the selected exchange's causal prefix.
+    /// Returns an empty signature before the selected exchange has a captured request, so a prior
+    /// exchange cannot be mistaken for the current one.
+    /// </summary>
+    public static PromptSignatureView SignatureAt(
+        IReadOnlyList<ExecutionExchange> exchanges, string exchangeId, int? sequence)
+    {
+        var selected = exchanges.FirstOrDefault(exchange => exchange.Id == exchangeId);
+        if (selected is null)
+        {
+            return PromptSignatureView.Empty;
+        }
+
+        var prefix = PrefixThrough(selected, sequence);
+        if (!prefix.Any(stage => stage.Kind == "llm-request" && !string.IsNullOrWhiteSpace(stage.Data)))
+        {
+            return PromptSignatureView.Empty;
+        }
+
+        var visible = exchanges.TakeWhile(exchange => exchange.Id != exchangeId)
+            .Select(exchange => (Label: exchange.Message, Events: exchange.Stages))
+            .ToList();
+        visible.Add((selected.Message, prefix));
+        return PromptSignatureBuilder.Build(visible);
+    }
+
+    private static IReadOnlyList<FlowEvent> PrefixThrough(ExecutionExchange exchange, int? sequence)
+    {
+        var stageIndex = exchange.Stages.ToList().FindIndex(stage => stage.Sequence == sequence);
+        return exchange.Stages.Take(stageIndex + 1).ToArray();
+    }
+
+    /// <summary>
     /// Builds the exchange list for the conversation.
     /// </summary>
     /// <param name="exchanges">Every exchange, oldest first: the archived ones plus the current run.</param>

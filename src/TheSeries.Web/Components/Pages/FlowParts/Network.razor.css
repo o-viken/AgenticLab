@@ -1,4 +1,4 @@
-/* The neural-network panel: a full-width card under the diagram simulating a symbolic forward pass
+/* The neural-network panel: a full-width workbench section simulating a symbolic forward pass
    (embedding → hidden layers → logits → softmax → next token). Inherits the themed CSS variables from
     .flow-app shared by all vendors; the input nodes use a fixed red↔blue diverging scale
    (matching the Embeddings heatmap — it encodes vector sign, not branding). */
@@ -6,20 +6,24 @@
 .network {
     display: flex;
     flex-direction: column;
-    gap: .9rem;
+    gap: .75rem;
     width: 100%;
     box-sizing: border-box;
-    padding: .75rem .85rem;
-    border-radius: 12px;
-    background: var(--code-bg);
-    border: 1px solid var(--border);
+    min-width: 0;
+    padding: 1rem 0;
+    background: var(--surface);
+    border-top: 1px solid var(--panel-border);
+    overflow-wrap: anywhere;
 }
 
 .net-head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: .5rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .net-title-group {
@@ -45,11 +49,12 @@
 .net-tag {
     font-size: .62rem;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: 0;
     font-weight: 700;
     color: var(--text-dim);
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 4px;
+    background: var(--surface-2);
     padding: .1rem .45rem;
 }
 
@@ -62,7 +67,7 @@
 .net-stage {
     display: flex;
     flex-direction: column;
-    gap: .45rem;
+    gap: .5rem;
 }
 
 .net-stage-head {
@@ -94,9 +99,9 @@
     flex-direction: column;
     gap: .35rem;
     padding: .5rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--surface) 60%, transparent);
-    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--panel-border);
 }
 
 .net-nn-svg {
@@ -172,6 +177,8 @@
 
 .net-nn-labels {
     display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
     justify-content: space-between;
     font-size: .64rem;
     color: var(--text-dim);
@@ -238,28 +245,40 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.5rem;
-    height: 1.5rem;
-    padding: 0 .3rem;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    padding: 0;
+    font-family: inherit;
     font-size: .7rem;
     line-height: 1;
     color: var(--text-dim);
-    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: color .15s ease, border-color .15s ease, background .15s ease;
 }
 
 .net-stepbtn:hover {
     color: var(--text);
-    border-color: color-mix(in srgb, var(--contrib-agent) 50%, var(--border));
+    border-color: var(--accent);
 }
 
 .net-stepbtn.play.on {
-    color: var(--contrib-agent);
-    border-color: color-mix(in srgb, var(--contrib-agent) 55%, transparent);
-    background: color-mix(in srgb, var(--contrib-agent) 14%, transparent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+    background: var(--accent-weak);
+}
+
+.net-stepbtn ::deep .mini-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.net-stepbtn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 /* The answer-so-far strip (tokens emitted up to the current decode step). */
@@ -269,16 +288,16 @@
     align-items: center;
     gap: 1px;
     padding: .4rem .5rem;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--surface) 60%, transparent);
-    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-left: 3px solid var(--contrib-agent);
     min-height: 1.6rem;
 }
 
 .net-otok {
     font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
     font-size: .74rem;
-    white-space: pre;
+    white-space: pre-wrap;
+    max-width: 100%;
     color: var(--text);
 }
 
@@ -317,10 +336,8 @@
     display: flex;
     flex-direction: column;
     gap: .3rem;
-    padding: .5rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--surface) 60%, transparent);
-    border: 1px solid var(--border);
+    padding: .5rem 0;
+    border-top: 1px solid var(--border-soft);
 }
 
 /* Caption above the distribution: vocabulary note + sampling knobs. */
@@ -331,7 +348,7 @@
     gap: .4rem .6rem;
     margin-bottom: .15rem;
     padding-bottom: .35rem;
-    border-bottom: 1px dashed var(--border);
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .net-dist-note {
@@ -354,9 +371,8 @@
     font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
     font-size: .62rem;
     color: var(--text-dim);
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
-    border: 1px solid var(--border);
-    border-radius: 999px;
+    background: var(--surface-2);
+    border-radius: 4px;
     padding: .05rem .4rem;
     cursor: help;
 }
@@ -367,11 +383,11 @@
 
 .net-cand {
     display: grid;
-    grid-template-columns: 64px 1fr 38px auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 38px 40px;
     align-items: center;
     gap: .5rem;
     padding: .15rem .25rem;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 .net-cand.picked {
@@ -401,7 +417,7 @@
 .net-cand-bar {
     position: relative;
     height: 9px;
-    border-radius: 999px;
+    border-radius: 4px;
     background: color-mix(in srgb, var(--border) 70%, transparent);
     overflow: hidden;
 }
@@ -409,7 +425,7 @@
 .net-cand-fill {
     position: absolute;
     inset: 0 auto 0 0;
-    border-radius: 999px;
+    border-radius: 4px;
     background: color-mix(in srgb, var(--text-dim) 60%, var(--surface));
     transition: width .5s ease;
 }
@@ -428,6 +444,24 @@
 .net-cand-pick {
     font-size: .62rem;
     font-weight: 700;
-    color: var(--contrib-agent);
+    color: var(--text);
     white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .net-pulse,
+    .net-step-loop.spinning,
+    .net-otok.current,
+    .net-caret {
+        animation: none;
+    }
+
+    .net-pulse {
+        opacity: 0;
+    }
+
+    .net-stepbtn,
+    .net-cand-fill {
+        transition: none;
+    }
 }

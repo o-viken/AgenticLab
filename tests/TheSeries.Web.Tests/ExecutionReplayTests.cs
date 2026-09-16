@@ -136,6 +136,130 @@ public sealed class ExecutionReplayTests
         Assert.Null(FlowEventMapping.ResponseHintFor(response));
     }
 
+    /// <summary>Replay Context follows displayed order, not capture sequence, and never leaks later results.</summary>
+    [Fact]
+    public void Context_UsesCausalPrefixAndCapturedSize()
+    {
+        const string request = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"question"}]}]}""";
+        var exchanges = ExecutionReplayBuilder.Build(
+            [new ConversationTurn("x", "Actual question", "Agent", "Future answer", null,
+                [Event(1, "received", 0) with { Data = "Agent: Agent" },
+                 Event(2, "llm-request", 1) with { Data = request },
+                 Event(3, "tool-call", 1),
+                 Event(4, "llm-response", 1) with { Data = """{"text":"Looking up"}""" },
+                 Event(5, "tool-result", 1) with { Data = "Future result" },
+                 Event(6, "final", 1) with { Data = "Future answer" }])], -1);
+
+        var intake = ExecutionReplayBuilder.ContextAt(exchanges, "x", 1);
+        Assert.Equal("Actual question", Assert.Single(intake.Current).Preview);
+        Assert.Null(intake.Chars);
+        var sent = ExecutionReplayBuilder.ContextAt(exchanges, "x", 2);
+        Assert.Equal(13, sent.Chars);
+        Assert.Single(sent.Current);
+        var call = ExecutionReplayBuilder.ContextAt(exchanges, "x", 3);
+        Assert.Equal(["User message", "Assistant message"], call.Current.Select(entry => entry.Label).ToArray());
+        Assert.DoesNotContain(call.Current, entry => entry.Preview.Contains("Future"));
+        var response = ExecutionReplayBuilder.ContextAt(exchanges, "x", 4);
+        Assert.Equal(response.Current.ToArray(), call.Current.ToArray());
+        Assert.Equal(response.Chars, call.Chars);
+        var result = ExecutionReplayBuilder.ContextAt(exchanges, "x", 5);
+        Assert.Equal("Future result", result.Current[^1].Preview);
+        Assert.Equal(call.Chars, result.Chars);
+        var final = ExecutionReplayBuilder.ContextAt(exchanges, "x", 6);
+        Assert.Equal("Future answer", final.Current[^1].Preview);
+        Assert.Equal("agent", final.Current[^1].Source);
+    }
+
+    /// <summary>Only exchanges before the selected one contribute history, including empty and failed runs.</summary>
+    [Fact]
+    public void Context_ExcludesLaterExchangesAndHandlesMissingCapture()
+    {
+        var exchanges = ExecutionReplayBuilder.Build(
+            [new ConversationTurn("first", "First question", "Agent", "First answer", null, [Event(1, "final", 1)]),
+             new ConversationTurn("failed", "Failed question", "Agent", "", "Failure", [Event(1, "error", 0)]),
+             new ConversationTurn("empty", "Empty question", "Agent", "", null, []),
+             new ConversationTurn("later", "Later question", "Agent", "Later answer", null, [Event(1, "final", 1)])], -1);
+
+        var first = ExecutionReplayBuilder.ContextAt(exchanges, "first", 1);
+        Assert.Empty(first.History);
+        Assert.DoesNotContain(first.Current, entry => entry.Preview.Contains("Later"));
+        var failed = ExecutionReplayBuilder.ContextAt(exchanges, "failed", 1);
+        Assert.Equal(["First question", "First answer"], failed.History.Select(entry => entry.Preview).ToArray());
+        Assert.All(failed.History, entry => Assert.True(entry.History));
+        Assert.Equal("agent", failed.History[^1].Source);
+        var empty = ExecutionReplayBuilder.ContextAt(exchanges, "empty", null);
+        Assert.Empty(empty.Current);
+        Assert.Equal("Failure", empty.History[^1].Preview);
+        Assert.Null(empty.Chars);
+        Assert.Equal(0, empty.BarWidth);
+        Assert.Same(ContextSnapshot.Empty, ExecutionReplayBuilder.ContextAt(exchanges, "missing", 1));
+        Assert.Empty(ExecutionReplayBuilder.ContextAt(exchanges, "first", 999).Current);
+    }
+
+    /// <summary>Signature playback scopes both comparison and growth to the selected causal prefix.</summary>
+    [Fact]
+    public void Signature_ExcludesFutureRequestsResponsesAndExchanges()
+    {
+        const string request = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"question"}]}]}""";
+        const string laterRequest = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"question"}]},{"role":"tool","contents":[{"result":"LATER_RESULT"}]}]}""";
+        var earlierEvents = new[] { Event(1, "llm-request", 1) with { Data = request }, Event(2, "final", 1) with { Data = "Earlier answer" } };
+        var selectedEvents = new[] {
+            Event(1, "received", 0),
+            Event(2, "llm-request", 1) with { Data = request },
+            Event(3, "tool-call", 1),
+            Event(4, "llm-response", 1) with { Data = """{"text":"Looking up"}""" },
+            Event(5, "tool-result", 1) with { Data = "LATER_RESULT" },
+            Event(6, "llm-request", 2) with { Data = laterRequest },
+            Event(7, "final", 2) with { Data = "LATER_ANSWER" }
+        };
+        var exchanges = ExecutionReplayBuilder.Build(
+            [new("first", "Earlier question", "Agent", "Earlier answer", null, earlierEvents),
+             new("selected", "Selected question", "Agent", "LATER_ANSWER", null, selectedEvents),
+             new("future", "FUTURE_EXCHANGE", "Agent", "Future answer", null, earlierEvents)], -1);
+
+        var sent = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 2);
+        Assert.Equal(["Earlier question", "Selected question"], sent.Requests.Select(item => item.Label).ToArray());
+        Assert.True(sent.HasPrevious);
+        Assert.Equal(13, sent.CurrentChars);
+        Assert.Equal(0, sent.Current.Single(category => category.Key == "assistant").Chars);
+        Assert.Equal(0, sent.Current.Single(category => category.Key == "tool").Chars);
+        Assert.Equal(PromptSignatureBuilder.Build([("Earlier question", earlierEvents)]).CurrentChars, sent.PreviousChars);
+
+        var call = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 3);
+        var response = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 4);
+        Assert.Equal(response.Current.ToArray(), call.Current.ToArray());
+        Assert.True(call.CurrentChars > sent.CurrentChars);
+        Assert.Equal(0, call.Current.Single(category => category.Key == "tool").Chars);
+        var nextRequest = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 6);
+        Assert.Equal("LATER_RESULT".Length, nextRequest.Current.Single(category => category.Key == "tool").Chars);
+        foreach (var sequence in new[] { 2, 3, 4, 5, 6, 7 })
+        {
+            var signature = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", sequence);
+            Assert.Equal(ExecutionReplayBuilder.ContextAt(exchanges, "selected", sequence).Chars, signature.CurrentChars);
+            Assert.Equal(signature.CurrentChars, signature.Requests[^1].ReusedChars + signature.Requests[^1].AddedChars);
+            Assert.Equal(2, signature.Requests.Count);
+        }
+        var completed = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 7);
+        var expected = PromptSignatureBuilder.Build([("Earlier question", earlierEvents), ("Selected question", selectedEvents)]);
+        Assert.Equal(expected.Current.ToArray(), completed.Current.ToArray());
+        Assert.Equal(expected.MatchPercent, completed.MatchPercent);
+        Assert.False(ExecutionReplayBuilder.SignatureAt(exchanges, "first", 2).HasPrevious);
+    }
+
+    /// <summary>Intake, empty captures and invalid cursors cannot display an older exchange as current.</summary>
+    [Fact]
+    public void Signature_BeforeRequestIsEmptyEvenWithEarlierHistory()
+    {
+        var exchanges = ExecutionReplayBuilder.Build(
+            [new("first", "Earlier", "Agent", "Answer", null, [Event(1, "llm-request", 1)]),
+             new("selected", "Selected", "Agent", "", null, [Event(1, "received", 0)]),
+             new("empty", "Empty", "Agent", "", null, [])], -1);
+        Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 1));
+        Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "empty", null));
+        Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "first", 999));
+        Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "missing", 1));
+    }
+
     private static ExecutionExchange Build(params FlowEvent[] events) =>
         ExecutionReplayBuilder.Build([new ConversationTurn("x", "hi", "Agent", "done", null, events)], -1)[0];
 
