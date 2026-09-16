@@ -9,8 +9,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class TriviaMasterAgent(WikiTool wiki, CalculatorTool calculator) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "TriviaMaster";
+
     /// <inheritdoc />
-    public override string Name => "TriviaMaster";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Playful trivia host that researches facts and crunches numbers.";

@@ -1,4 +1,5 @@
 using TheSeries.AiService.Application;
+using TheSeries.AiService.Demo.Agents;
 
 namespace TheSeries.AiService.Demo.Vendors;
 
@@ -34,7 +35,7 @@ public sealed class ClaudeCodeHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("Plan", "plan"),
-        new VendorMode("Coder", "agent"),
+        new VendorMode(PlanAgent.AgentName, "plan"),
+        new VendorMode(CoderAgent.AgentName, "agent"),
     };
 }

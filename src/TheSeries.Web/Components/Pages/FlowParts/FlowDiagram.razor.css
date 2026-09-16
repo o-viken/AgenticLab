@@ -7,14 +7,17 @@
     grid-auto-rows: minmax(0, auto);
     align-items: center;
     gap: .5rem;
-    padding: 0 .25rem 24px;
+    padding: 1.25rem 1.25rem 2rem;
     margin-bottom: 1.75rem;
-    background-image: radial-gradient(color-mix(in srgb, var(--panel-border) 60%, transparent) .7px, transparent .7px);
-    background-size: 20px 20px;
-    border: none;
+    background-color: var(--surface);
+    background-image: linear-gradient(var(--diagram-grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--diagram-grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    border: 1px solid var(--panel-border);
     border-radius: 0;
     overflow-x: auto;
     position: relative;
+    --diagram-grid-line: color-mix(in srgb, var(--panel-border) 35%, var(--surface));
 }
 
 /* The prompt-signature panel spans the full grid width on its own row below the nodes. */
@@ -52,7 +55,10 @@
     justify-content: flex-start;
     align-items: flex-start;
     gap: .4rem .9rem;
-    margin-bottom: 1rem;
+    margin: -1.25rem -1.25rem 1.75rem;
+    padding: .8rem 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--panel-border);
 }
 
 .diagram ::deep .diagram-control {
@@ -182,8 +188,8 @@
 .diagram ::deep .boundary {
     z-index: 0;
     align-self: stretch;
-    border: 2px dashed;
-    border-radius: 16px;
+    border: 1px dashed;
+    border-radius: 0;
     background: transparent;
     pointer-events: none;
     position: relative;
@@ -192,39 +198,39 @@
 .diagram ::deep .boundary-label {
     position: absolute;
     top: -.7rem;
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0;
     text-transform: uppercase;
     padding: .1rem .5rem;
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--label-bg);
 }
 
 .diagram ::deep .boundary.harness-b {
     grid-column: 3 / 5;
     grid-row: 2;
-    margin: -.7rem 0;
+    margin: -.7rem -.35rem;
     border-color: var(--harness-boundary);
 }
 
 .diagram ::deep .boundary.harness-b .boundary-label {
     left: .9rem;
     color: var(--harness-boundary-text);
-    border: 1px solid var(--harness-boundary);
+    border: none;
 }
 
 .diagram ::deep .boundary.agent-b {
     grid-column: 3 / 6;
     grid-row: 2;
-    margin: -1.15rem 0;
+    margin: -1.15rem -.75rem;
     border-color: var(--agent-boundary);
 }
 
 .diagram ::deep .boundary.agent-b .boundary-label {
     right: .9rem;
     color: var(--agent-boundary-text);
-    border: 1px solid var(--agent-boundary);
+    border: none;
 }
 
 /* "Your environment" trust boundary — wraps the User and the merged node (everything that runs
@@ -232,16 +238,16 @@
 .diagram ::deep .boundary.env-b {
     grid-column: 1 / 4;
     grid-row: 2;
-    margin: -1.6rem 0;
+    margin: -1.6rem -.85rem;
     border-color: var(--env-boundary);
-    border-radius: 18px;
+    border-radius: 0;
 }
 
 .diagram ::deep .boundary.env-b .boundary-label {
     left: .9rem;
     top: -.8rem;
     color: var(--env-boundary-text);
-    border: 1px solid var(--env-boundary);
+    border: none;
 }
 
 /* Per-node "where it runs" badge. */
@@ -377,36 +383,45 @@
 
 .diagram ::deep .node {
     position: relative;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-content: center;
     align-items: center;
-    gap: .15rem;
-    padding: 18px 10px;
-    border-radius: 4px;
+    gap: .45rem .5rem;
+    padding: .8rem;
+    border-radius: 0;
     min-width: 0;
-    min-height: 124px;
+    min-height: 110px;
     overflow-wrap: anywhere;
     background: var(--surface);
     border: 1px solid var(--panel-border);
-    text-align: center;
-    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease;
+    border-left: 3px solid var(--node-accent, var(--connector-arrow));
+    text-align: left;
+    transition: box-shadow .25s ease, border-color .25s ease, background .25s ease;
 }
 
+.diagram ::deep .node > :not(.icon):not(.title) { grid-column: 1 / -1; }
+.diagram ::deep .node > .icon { grid-column: 1; grid-row: 1; }
+.diagram ::deep .node > .title { grid-column: 2; grid-row: 1; padding-right: .75rem; }
+.diagram ::deep .node.user { --node-accent: var(--link-accent); }
+.diagram ::deep .node.harness { --node-accent: #a5473d; }
+.diagram ::deep .node.llm { --node-accent: var(--purple-text); }
+
 .diagram ::deep .node .icon {
-    font-size: 1.6rem;
+    font-size: 20px;
     line-height: 1;
 }
 
 .diagram ::deep .node .icon svg {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 20px;
+    height: 20px;
     display: block;
 }
 
 .diagram ::deep .diagram-icon {
     display: inline-block;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: var(--text-muted);
     mask: var(--icon) center / contain no-repeat;
 }
@@ -417,40 +432,48 @@
 .diagram ::deep .node.active .diagram-icon { background: var(--accent); }
 
 .diagram ::deep .node .title {
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0;
+    line-height: 1.4;
 }
 
 .diagram ::deep .node .subtitle {
-    font-size: .72rem;
+    font-size: 12px;
+    line-height: 1.4;
     color: var(--node-subtitle);
 }
 
 .diagram ::deep .node.harness {
-    padding-bottom: 1.4rem;
+    padding-bottom: .8rem;
 }
 
 .diagram ::deep .node-inner.tools {
     margin-top: .75rem;
     padding: .5rem .8rem;
-    border-radius: 10px;
-    background: var(--tools-bg);
-    border: 1px solid var(--tools-border);
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--panel-border);
+    border-left: 3px solid var(--workspace-text);
 }
 
 .diagram ::deep .node.active {
     border-color: var(--accent-soft);
     background: var(--surface);
-    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .18);
-    transform: translateY(-2px);
-    animation: pulse 1s ease-in-out infinite;
+    border-left-color: var(--node-accent, var(--accent-soft));
+    animation: live-node-pulse 1s ease-in-out infinite;
+}
+
+@keyframes live-node-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .12); }
+    50% { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .28); }
 }
 
 .diagram ::deep .node-inner.tools.active {
     border-color: var(--accent-soft);
     background: var(--tools-active-bg);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .4), 0 0 18px 2px rgba(var(--accent-rgb), .5);
-    animation: pulse 1s ease-in-out infinite;
+    animation: live-node-pulse 1s ease-in-out infinite;
 }
 
 /* Workspace path shown inside the harness box ------------------------- */
@@ -464,6 +487,8 @@
 
 /* Harness anatomy (the expanded "what makes up the harness" view) ----- */
 .diagram ::deep .node.harness.anatomy {
+    display: flex;
+    flex-direction: column;
     align-items: stretch;
     text-align: left;
     gap: .45rem;
@@ -477,7 +502,7 @@
     font-weight: 700;
     letter-spacing: 0;
     color: var(--anatomy-heading);
-    text-align: center;
+    text-align: left;
     margin-bottom: .15rem;
 }
 
@@ -876,6 +901,7 @@
     padding: .6rem .9rem;
     background: var(--node-resource-bg);
     border: 1px dashed var(--node-resource-border);
+    border-left: 3px solid var(--tool-chip-text);
 }
 
 .diagram ::deep .node.resource .title { font-size: .85rem; }
@@ -905,9 +931,7 @@
     border-style: solid;
     border-color: var(--accent-soft);
     background: var(--tools-active-bg);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .35), 0 0 18px 2px rgba(var(--accent-rgb), .5);
-    transform: translateY(-2px) scale(1.02);
-    animation: pulse 1s ease-in-out infinite;
+    animation: live-node-pulse 1s ease-in-out infinite;
 }
 
 /* Connectors ---------------------------------------------------------- */
@@ -932,9 +956,9 @@
     left: 6%;
     right: 6%;
     top: 50%;
-    height: 2px;
+    height: 1px;
     transform: translateY(-50%);
-    background: repeating-linear-gradient(90deg, var(--connector) 0 7px, transparent 7px 14px);
+    background: var(--connector);
     background-size: 14px 100%;
 }
 
@@ -958,11 +982,13 @@
 .diagram ::deep .flow-label {
     position: relative;
     z-index: 1;
-    font-size: .68rem;
+    font-size: 10px;
     text-align: center;
-    padding: .1rem .4rem;
+    padding: .1rem .15rem;
+    max-width: 100%;
+    line-height: 1.3;
     background: var(--label-bg);
-    border-radius: 4px;
+    border-radius: 0;
 }
 
 .diagram ::deep .flow-label.back {
@@ -970,6 +996,7 @@
 }
 
 .diagram ::deep .connector.active::before {
+    height: 2px;
     background: repeating-linear-gradient(90deg, var(--accent) 0 7px, transparent 7px 14px);
     background-size: 14px 100%;
     filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .65));
@@ -977,6 +1004,7 @@
 }
 
 .diagram ::deep .connector.vertical.active::before {
+    height: auto;
     background: repeating-linear-gradient(180deg, var(--accent) 0 7px, transparent 7px 14px);
     background-size: 100% 14px;
     filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .65));
@@ -1008,15 +1036,25 @@
     height: 26px;
 }
 
+.diagram ::deep .connector.horizontal > .flow-label {
+    position: absolute;
+    bottom: calc(50% + 4px);
+}
+
+.diagram ::deep .connector.horizontal.recv > .flow-label {
+    top: calc(50% + 4px);
+    bottom: auto;
+}
+
 .diagram ::deep .connector.horizontal.send::after {
     content: "";
     position: absolute;
     right: 5%;
     top: 50%;
     transform: translateY(-50%);
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-    border-left: 9px solid var(--connector-arrow);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid var(--connector-arrow);
     z-index: 1;
 }
 
@@ -1026,9 +1064,9 @@
     left: 5%;
     top: 50%;
     transform: translateY(-50%);
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-    border-right: 9px solid var(--connector-arrow);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-right: 6px solid var(--connector-arrow);
     z-index: 1;
 }
 
@@ -1083,8 +1121,7 @@
 .diagram ::deep .loop-badge.active {
     color: var(--heading);
     border-color: var(--accent-soft);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .3), 0 0 16px 2px rgba(var(--accent-rgb), .45);
-    animation: pulse 1.2s ease-in-out infinite;
+    animation: live-node-pulse 1.2s ease-in-out infinite;
 }
 
 /* "What is MCP?" pill under the LLM node. */
@@ -1115,7 +1152,7 @@
 
 .diagram ::deep .node-inner,
 .diagram ::deep .anatomy .context-stack {
-    border-radius: 4px;
+    border-radius: 0;
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -1125,7 +1162,12 @@
     .diagram.p-simple {
         grid-template-columns: minmax(0, 1fr);
         gap: 24px;
-        padding: 0 8px 24px;
+        padding: 1rem;
+    }
+
+    .diagram ::deep .diagram-controls {
+        margin: -1rem -1rem 1rem;
+        padding: .8rem 1rem;
     }
 
     .diagram > .node.user { grid-column: 1; grid-row: 2; }
@@ -1135,11 +1177,56 @@
     .diagram > .column.right { grid-column: 1; grid-row: 6; }
 
     .diagram ::deep .connector-group { flex-direction: row; flex-wrap: wrap; gap: 12px; }
-    .diagram ::deep .connector-group .connector.horizontal { flex: 1 1 80px; }
-    .diagram ::deep .connector.horizontal::before { transform: translateY(-50%) rotate(90deg); left: 50%; right: auto; width: 26px; }
-    .diagram ::deep .connector.horizontal.send::after { right: 0; transform: rotate(90deg); }
-    .diagram ::deep .connector.horizontal.recv::after { left: 0; transform: rotate(90deg); }
-    .diagram ::deep .flow-label { margin: 0 12px; }
+    .diagram ::deep .connector-group.loop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .diagram ::deep .loop-badge { grid-column: 1 / -1; justify-self: center; }
+    .diagram ::deep .connector-group .connector.horizontal { flex: 1 1 80px; height: 56px; }
+    .diagram ::deep .connector.horizontal::before {
+        transform: translateX(-50%);
+        left: 50%;
+        right: auto;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        height: auto;
+    }
+    .diagram ::deep .connector.horizontal.send::after {
+        left: 50%;
+        right: auto;
+        top: auto;
+        bottom: -1px;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top: 6px solid var(--connector-arrow);
+        border-bottom: 0;
+    }
+    .diagram ::deep .connector.horizontal.recv::after {
+        left: 50%;
+        top: -1px;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-bottom: 6px solid var(--connector-arrow);
+        border-top: 0;
+    }
+    .diagram ::deep .connector.horizontal.active::before {
+        width: 2px;
+        background: repeating-linear-gradient(180deg, var(--accent) 0 7px, transparent 7px 14px);
+        background-size: 100% 14px;
+        animation: dash-down .5s linear infinite;
+    }
+    .diagram ::deep .connector.horizontal.recv.active::before { animation-direction: reverse; }
+    .diagram ::deep .connector.horizontal.send.active::after { border-top-color: var(--accent-bright); }
+    .diagram ::deep .connector.horizontal.recv.active::after { border-bottom-color: var(--accent-bright); }
+    .diagram ::deep .connector.horizontal > .flow-label,
+    .diagram ::deep .connector.horizontal.recv > .flow-label {
+        position: relative;
+        top: auto;
+        bottom: auto;
+        align-self: flex-start;
+        max-width: calc(50% - 8px);
+        text-align: right;
+        margin: 0;
+    }
+    .diagram ::deep .connector.horizontal.recv > .flow-label { align-self: flex-end; text-align: left; }
     .diagram ::deep .boundary.harness-b { grid-column: 1; grid-row: 4 / 6; }
     .diagram ::deep .boundary.agent-b { grid-column: 1; grid-row: 4 / 7; }
     .diagram ::deep .boundary.env-b { grid-column: 1; grid-row: 2 / 5; }

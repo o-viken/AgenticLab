@@ -1,26 +1,28 @@
 @page "/"
 @rendermode InteractiveServer
 
-<PageTitle>Agents — @_view.VendorName</PageTitle>
+<PageTitle>Agentic AI — @_view.VendorName</PageTitle>
 
 <div class="flow-app @_view.VendorClass">
     <CascadingValue Value="_view">
         <CascadingValue Value="_run">
-            <VendorRail OnSelectVendor="SetVendorAsync" />
+            <header class="flow-header">
+                <div class="flow-header-text">
+                    <h1>Agentic AI</h1>
+                    <p>Agent workbench</p>
+                </div>
+                <div class="flow-header-actions">
+                    <a class="discovery-link" href="/learn" target="_blank" rel="noopener noreferrer"
+                       title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
+                    <a class="discovery-link" href="/discovery" title="View MCP and A2A discovery">Discovery</a>
+                    <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
+                        <input type="checkbox" @bind="_view.ShowConcepts" /> Learn
+                    </label>
+                </div>
+            </header>
 
             <div class="flow-shell">
-                <header class="flow-header">
-                    <div class="flow-header-text">
-                        <h1>Agents</h1>
-                        <p>Agent workbench</p>
-                    </div>
-                    <div class="flow-header-actions">
-                        <a class="discovery-link" href="/discovery" title="View MCP and A2A discovery">Discovery →</a>
-                        <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
-                            <input type="checkbox" @bind="_view.ShowConcepts" /> Learn
-                        </label>
-                    </div>
-                </header>
+                <VendorRail OnSelectVendor="SetVendorAsync" />
 
                 <div class="flow-body" style="@_view.BodyStyle">
                     <SidePanel Side="PanelSide.Left" Title="Controls"

@@ -34,6 +34,19 @@ off-white surfaces, forest-green actions, a serif product heading and flat, divi
 Flow and Discovery share this visual treatment. Brand vendors retain their own palettes and agent behavior;
 select **Default** in the vendor rail to see the green theme. Existing vendor preferences are preserved.
 
+Flow, Agent guide and Discovery use an **Agentic AI** heading with the subtitle underneath and
+plain navigation links. The Flow header stays neutral across vendor selections and spans the full
+window. All three headers use 12-pixel vertical padding, with 24-pixel horizontal gutters on desktop
+and 16-pixel gutters below 1200 pixels. The harness/vendor rail begins below the Flow header,
+beside the workspace on desktop and as a horizontal
+strip above the panels below 1200 pixels.
+
+The live Flow diagram follows the Agent guide's visual language: a subtle 24-pixel grid, square nodes
+with compact left-aligned icons and colored edges, plain dashed boundaries, and divider-led tool
+sections. The Agent boundary explicitly labels **Agent = model + harness**. Active nodes pulse
+without moving or resizing; directional arrows retain their live animations and align vertically
+when the diagram stacks. Vendor palettes, perspectives, breakpoints and panel persistence are unchanged.
+
 The Controls and Learn panels start at 276 and 260 pixels wide; saved panel sizes still take precedence.
 Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane
 is 620 pixels wide or narrower, including after panel resizing. Contributor colors retain their meanings,
@@ -41,11 +54,49 @@ and reduced-motion preferences disable visual animations without changing execut
 The main diagram uses locally bundled [Lucide icons and license](src/TheSeries.Web/wwwroot/icons/lucide/LICENSE),
 with no runtime CDN dependency.
 
+### Agent guide
+
+Open **Agent guide** from Flow or Discovery for the standalone `/learn` page. The link opens a new
+tab so a live or paused run remains in its original page. The existing **Learn** checkbox still
+controls the contextual topic panel; it is independent of the guide.
+
+Five stages connect the ideas: **Agent**, **Inside the harness**, **The agent loop**,
+**The wider ecosystem**, and **Run and improve**. Each stage has a
+concept diagram and related topics from the same concept catalog as the contextual panel.
+**Agent** introduces only the harness-plus-model composition, with the harness first.
+Its original `/learn?stage=model-to-agent` permalink is preserved.
+**Inside the harness** focuses on instructions, context, tools and execution controls, without
+repeating the model-plus-harness overview. **The agent loop** shows the model's decision, the
+tool execution and observation cycle, and a separate final-answer exit that can bypass tools.
+**The wider ecosystem** contrasts MCP tool calls with A2A delegation, without exposing agent internals.
+**Run and improve** follows Run, Observe, Evaluate and Improve back to the next tested version;
+this operating cycle is separate from the agent's per-turn execution loop.
+Stage URLs such as `/learn?stage=agent-loop` support bookmarks, reload and browser Back/Forward.
+The product-specific **Map to Microsoft Foundry** stage is retained in code but hidden from the guide.
+Previous/Next skip it, and **Run and improve** is stage 05. Hidden or unknown stage IDs fall back
+to the first stage. Live-flow and discovery links navigate only; they
+never send a prompt or start discovery automatically.
+
+The diagrams are explanations, not live telemetry. The first four stages describe existing
+capabilities. The final stage distinguishes today's execution traces from future
+Foundry hosting and managed-evaluation integration. The guide works without AiService or Azure
+credentials; run only the Web project and visit `/learn`:
+
+```sh
+dotnet run --project src/TheSeries.Web
+```
+
+Focused tests validate stable stage URLs, navigation, per-stage node selection and references to the shipped concept content:
+
+```sh
+dotnet test tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj
+```
+
 ### Agents
 
 | Agent | Persona | Tools |
 |-------|---------|-------|
-| **ChatBot** (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
+| **ChatAgent** (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
 | **WikiAssistant** | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
 | **MathTutor** | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | **TriviaMaster** | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
@@ -149,18 +200,18 @@ Lists the available agents and the default name:
 ```json
 {
   "agents": [
-    { "name": "ChatBot", "description": "Friendly conversational chatbot that chats from its own knowledge, with no tools." },
+    { "name": "ChatAgent", "description": "Friendly conversational agent that chats from its own knowledge, with no tools." },
     { "name": "WikiAssistant", "description": "Concise research helper that answers factual questions using Wikipedia." },
     { "name": "MathTutor", "description": "Patient tutor that solves and explains arithmetic step by step." },
     { "name": "TriviaMaster", "description": "Playful trivia host that researches facts and crunches numbers." }
   ],
-  "default": "ChatBot"
+  "default": "ChatAgent"
 }
 ```
 
 ### `POST /chat`
 
-Request (`agent` is optional; defaults to `ChatBot`):
+Request (`agent` is optional; defaults to `ChatAgent`):
 
 ```json
 { "message": "Who was Alan Turing?", "agent": "WikiAssistant" }

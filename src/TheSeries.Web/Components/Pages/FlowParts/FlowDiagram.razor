@@ -61,7 +61,7 @@
     @if (View.Perspective == Perspective.Expert && View.ShowAgentBoundary)
     {
         <div class="boundary agent-b">
-            <span class="boundary-label">Agent</span>
+            <span class="boundary-label">Agent = model + harness</span>
         </div>
     }
     @if (View.ShowEnvironment)
@@ -83,10 +83,10 @@
 
     <div class="connector-group user-node">
         <div class="connector horizontal send @Run.ArrowClass("user-node-send")">
-            <span class="flow-label">Input ▶</span>
+            <span class="flow-label">Input</span>
         </div>
         <div class="connector horizontal recv @Run.ArrowClass("user-node-recv")">
-            <span class="flow-label">◀ Reply</span>
+            <span class="flow-label">Reply</span>
         </div>
     </div>
 
@@ -130,16 +130,16 @@
         <div class="connector-group loop">
             @if (View.Perspective != Perspective.NonTechnical)
             {
-                <div class="loop-badge @(Run.LoopActive ? "active" : "")">
-                    <span class="loop-icon">🔁</span>
+                <div class="loop-badge @(Run.LoopActive ? "active" : "")" title="Model round trips">
+                    <span class="loop-icon" aria-hidden="true">&#8635;</span>
                     <span class="loop-count">@Run.LoopLabel</span>
                 </div>
             }
             <div class="connector horizontal send @Run.ArrowClass("node-llm-send")">
-                <span class="flow-label">Prompt + Tools ▶</span>
+                <span class="flow-label">Prompt + tools</span>
             </div>
             <div class="connector horizontal recv @Run.ArrowClass("node-llm-recv")">
-                <span class="flow-label">◀ Response</span>
+                <span class="flow-label">Response</span>
                 @if (Run.ActiveArrow == "node-llm-recv" && !string.IsNullOrEmpty(Run.ResponseHint))
                 {
                     <span class="response-hint">@Run.ResponseHint</span>

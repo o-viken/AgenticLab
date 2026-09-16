@@ -9,8 +9,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class TimeKeeperAgent(McpToolProvider mcp) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "TimeKeeper";
+
     /// <inheritdoc />
-    public override string Name => "TimeKeeper";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Tells the current time using a tool discovered from an MCP server.";

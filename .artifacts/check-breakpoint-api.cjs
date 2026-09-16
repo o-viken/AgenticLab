@@ -13,7 +13,7 @@ async function* events(response) {
 async function heldRun(sessionId) {
     const abort = new AbortController();
     const response = await post('/chat/stream', {
-        message: 'API verification', agent: 'ChatBot', sessionId, conversationId: sessionId,
+        message: 'API verification', agent: 'ChatAgent', sessionId, conversationId: sessionId,
         breakpoints: ['before-model'],
     }, abort.signal);
     assert.equal(response.status, 200);

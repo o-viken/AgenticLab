@@ -1,4 +1,5 @@
 using TheSeries.AiService.Application;
+using TheSeries.AiService.Demo.Agents;
 
 namespace TheSeries.AiService.Demo.Vendors;
 
@@ -33,8 +34,8 @@ public sealed class Microsoft365Harness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("M365Copilot", "chat"),
-        new VendorMode("M365Researcher", "researcher"),
-        new VendorMode("M365Analyst", "analyst"),
+        new VendorMode(Microsoft365Agent.AgentName, "chat"),
+        new VendorMode(M365ResearcherAgent.AgentName, "researcher"),
+        new VendorMode(M365AnalystAgent.AgentName, "analyst"),
     };
 }

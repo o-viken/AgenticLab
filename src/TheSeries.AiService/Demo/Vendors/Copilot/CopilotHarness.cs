@@ -1,4 +1,5 @@
 using TheSeries.AiService.Application;
+using TheSeries.AiService.Demo.Agents;
 
 namespace TheSeries.AiService.Demo.Vendors;
 
@@ -34,8 +35,8 @@ public sealed class CopilotHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("Ask", "ask"),
-        new VendorMode("Plan", "plan"),
-        new VendorMode("Coder", "agent"),
+        new VendorMode(AskAgent.AgentName, "ask"),
+        new VendorMode(PlanAgent.AgentName, "plan"),
+        new VendorMode(CoderAgent.AgentName, "agent"),
     };
 }

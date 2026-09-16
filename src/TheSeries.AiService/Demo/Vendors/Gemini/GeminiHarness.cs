@@ -1,4 +1,5 @@
 using TheSeries.AiService.Application;
+using TheSeries.AiService.Demo.Agents;
 
 namespace TheSeries.AiService.Demo.Vendors;
 
@@ -32,6 +33,6 @@ public sealed class GeminiHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("ChatBot", "chat"),
+        new VendorMode(ChatAgent.AgentName, "chat"),
     };
 }

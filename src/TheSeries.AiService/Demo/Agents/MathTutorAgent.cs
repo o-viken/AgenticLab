@@ -9,8 +9,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class MathTutorAgent(CalculatorTool calculator) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "MathTutor";
+
     /// <inheritdoc />
-    public override string Name => "MathTutor";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Patient tutor that solves and explains arithmetic step by step.";

@@ -12,8 +12,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class AskAgent(FileSystemTool files) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "Ask";
+
     /// <inheritdoc />
-    public override string Name => "Ask";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Read-only assistant that answers questions and explains code in the workspace without changing anything.";

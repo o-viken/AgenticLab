@@ -25,7 +25,7 @@ human in the loop for the actions that are hard to undo. Knowing an agent's risk
 ## In this application (the-series)
 
 With **Environment & risk** on, the merged node shows a **Risk** meter for the selected
-agent — `None` for `ChatBot`, `Low` for read-only or calculator agents like
+agent — `None` for `ChatAgent`, `Low` for read-only or calculator agents like
 `WikiAssistant`, `Ask` and `Plan`, and `High` for `Coder`, which can write files and run
 allowlisted commands in your workspace. The level comes from the backend (`GET /agents`),
 derived from what each agent's tools can actually do.

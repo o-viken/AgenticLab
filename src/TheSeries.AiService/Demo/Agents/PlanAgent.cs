@@ -13,8 +13,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class PlanAgent(FileSystemTool files, AskQuestionTool ask) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "Plan";
+
     /// <inheritdoc />
-    public override string Name => "Plan";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Read-only planner that investigates the workspace and proposes an implementation plan without changing anything.";

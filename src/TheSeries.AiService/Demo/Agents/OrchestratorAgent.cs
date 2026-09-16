@@ -12,8 +12,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class OrchestratorAgent(CalculatorTool calculator, A2AAgentProvider a2a) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "Orchestrator";
+
     /// <inheritdoc />
-    public override string Name => "Orchestrator";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Solves arithmetic itself and delegates research questions to a specialist agent over A2A.";

@@ -11,8 +11,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class M365ResearcherAgent(Microsoft365Tool m365, WikiTool wiki) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "M365Researcher";
+
     /// <inheritdoc />
-    public override string Name => "M365Researcher";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Deep researcher that combines your Microsoft 365 work content with public web knowledge.";

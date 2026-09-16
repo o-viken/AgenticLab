@@ -9,8 +9,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class WikiAssistantAgent(WikiTool wiki) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "WikiAssistant";
+
     /// <inheritdoc />
-    public override string Name => "WikiAssistant";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Concise research helper that answers factual questions using Wikipedia.";

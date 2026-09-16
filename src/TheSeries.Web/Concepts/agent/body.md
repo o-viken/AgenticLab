@@ -16,7 +16,7 @@ plus a bounded **toolset**:
 - **WikiAssistant** — concise research grounded in Wikipedia.
 - **MathTutor** — patient arithmetic tutor.
 - **TriviaMaster** — playful host that researches *and* calculates.
-- **ChatBot** — friendly conversation, no tools.
+- **ChatAgent** — friendly conversation, no tools.
 - **Coder** — workspace-scoped coding agent that reads, writes and runs commands.
 
 The user sits **outside** the agent: you send a prompt and read the reply, but the

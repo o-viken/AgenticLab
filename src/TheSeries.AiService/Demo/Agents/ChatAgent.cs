@@ -4,21 +4,21 @@ using TheSeries.AiService.Application;
 namespace TheSeries.AiService.Demo.Agents;
 
 /// <summary>
-/// A plain conversational chatbot with no tools. It answers from the model's own knowledge and
+/// A plain conversational agent with no tools. It answers from the model's own knowledge and
 /// the conversation so far, with no Wikipedia lookups or calculator access. Because it has no
 /// tools, it overrides the shared <see cref="AgentDefinitionBase.Harness"/> to drop the
 /// tool-oriented operating rules.
 /// </summary>
-public sealed class ChatBotAgent : AgentDefinitionBase
+public sealed class ChatAgent : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
-    public const string AgentName = "ChatBot";
+    public const string AgentName = nameof(ChatAgent);
 
     /// <inheritdoc />
     public override string Name => AgentName;
 
     /// <inheritdoc />
-    public override string Description => "Friendly conversational chatbot that chats from its own knowledge, with no tools.";
+    public override string Description => "Friendly conversational agent that chats from its own knowledge, with no tools.";
 
     /// <summary>
     /// Tool-free operating rules. Unlike the shared harness, this version makes no promises about
@@ -35,7 +35,7 @@ public sealed class ChatBotAgent : AgentDefinitionBase
 
     /// <inheritdoc />
     protected override string Persona =>
-        "You are ChatBot, a warm and friendly conversational companion. " +
+        "You are ChatAgent, a warm and friendly conversational companion. " +
         "You enjoy casual chat and answering general questions in a relaxed, approachable tone. " +
         "Keep replies natural and conversational, and feel free to ask a follow-up question to keep " +
         "the conversation going.";

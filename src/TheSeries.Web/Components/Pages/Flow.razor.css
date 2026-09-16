@@ -117,7 +117,7 @@
     box-sizing: border-box;
     height: 100dvh;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     overflow: hidden;
     color: var(--text);
     background: var(--page-bg);
@@ -126,13 +126,12 @@
     letter-spacing: 0;
 }
 
-/* The shell holds the header + body to the right of the full-height vendor rail. It owns the
-   page padding (so the rail can sit flush against the window's left edge, Discord/Slack-style). */
 .flow-shell {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     overflow: hidden;
     padding: 0;
 }
@@ -668,20 +667,18 @@
 }
 
 .flow-header h1 {
-    margin: 0;
+    margin: 0 0 .35rem;
     font-family: Cambria, Georgia, serif;
     font-size: 30px;
-    color: var(--heading);
+    color: #1b211d;
     letter-spacing: 0;
     font-weight: 500;
 }
 
 .flow-header p {
     margin: 0;
-    padding-left: 18px;
-    border-left: 1px solid var(--panel-border);
-    color: var(--text-muted);
-    font-size: 12px;
+    color: #56635b;
+    font-size: 14px;
 }
 
 .flow-header {
@@ -690,59 +687,52 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem 2rem;
-    padding: 18px 24px;
-    border-bottom: 1px solid var(--panel-border);
+    gap: 1rem;
+    padding: 12px 24px;
+    background: #f7f8f6;
+    color: #1b211d;
+    border-bottom: 1px solid #d9ded9;
 }
 
 .flow-header-text {
-    flex: 1 1 18rem;
     min-width: 0;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 18px;
 }
 
 .concept-toggle {
     flex: 0 0 auto;
-    margin-top: .35rem;
-    padding: .45rem .7rem;
-    background: var(--surface);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
     white-space: nowrap;
 }
 
-/* Header-right cluster: the layout (Stacked / Side by side) toggle and the concept switch. */
 .flow-header-actions {
-    flex: 0 0 auto;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: .6rem .75rem;
+    gap: 1.25rem;
 }
 
-.flow-header-actions .concept-toggle {
-    margin-top: 0;
+.flow-header input[type="checkbox"] {
+    accent-color: #167052;
 }
 
-/* Link to the standalone discovery page. */
 .discovery-link {
     flex: 0 0 auto;
-    padding: .45rem .8rem;
-    background: var(--surface);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    color: var(--link-accent);
+    color: #167052;
     text-decoration: none;
+    text-underline-offset: 3px;
     font-weight: 600;
-    font-size: .85rem;
     white-space: nowrap;
 }
 
 .discovery-link:hover {
-    border-color: var(--accent);
+    text-decoration: underline;
+}
+
+.flow-header :focus-visible {
+    outline: 2px solid #315f9e;
+    outline-offset: 4px;
 }
 
 /* ============================================================
@@ -755,6 +745,7 @@
    ============================================================ */
 .flow-body {
     flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     overflow: hidden;
     display: grid;
@@ -840,13 +831,13 @@
     }
 
     .flow-shell {
+        flex-direction: column;
         overflow: visible;
         padding: 0;
     }
 
     .flow-header {
-        padding: 16px;
-        background: var(--page-bg);
+        padding: 12px 16px;
     }
 
     .flow-body {

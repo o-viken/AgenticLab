@@ -13,8 +13,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal, SkillsTool skills) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "Coder";
+
     /// <inheritdoc />
-    public override string Name => "Coder";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Workspace-scoped coding agent that reads, writes and deletes files and runs allowlisted commands.";

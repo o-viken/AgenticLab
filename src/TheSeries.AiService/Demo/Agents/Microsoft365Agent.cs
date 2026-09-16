@@ -11,8 +11,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class Microsoft365Agent(Microsoft365Tool m365) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "M365Copilot";
+
     /// <inheritdoc />
-    public override string Name => "M365Copilot";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Workplace assistant grounded in your Microsoft 365 content: email, files, Teams chats, calendar and people — and can send email on your behalf.";

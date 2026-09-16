@@ -10,8 +10,11 @@ namespace TheSeries.AiService.Demo.Agents;
 /// </summary>
 public sealed class M365AnalystAgent(Microsoft365Tool m365, CalculatorTool calculator) : AgentDefinitionBase
 {
+    /// <summary>The catalog name this agent is registered and selected under.</summary>
+    public const string AgentName = "M365Analyst";
+
     /// <inheritdoc />
-    public override string Name => "M365Analyst";
+    public override string Name => AgentName;
 
     /// <inheritdoc />
     public override string Description => "Data analyst that reads figures from your documents and computes the numbers.";

@@ -10,5 +10,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj" />
+    <Project Path="tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj" />
   </Folder>
 </Solution>

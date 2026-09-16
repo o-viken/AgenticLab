@@ -85,7 +85,7 @@ builder.Services.AddSingleton<IVendorHarness, Microsoft365Harness>();
 builder.Services.AddSingleton<VendorHarnessCatalog>();
 
 // Each agent declares its own persona and tool subset; the first registered is the default.
-builder.Services.AddSingleton<IAgentDefinition, ChatBotAgent>();
+builder.Services.AddSingleton<IAgentDefinition, ChatAgent>();
 builder.Services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
 builder.Services.AddSingleton<IAgentDefinition, MathTutorAgent>();
 // builder.Services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();

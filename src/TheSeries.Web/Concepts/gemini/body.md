@@ -20,5 +20,5 @@ Pick the **Gemini** vendor to restyle the page in its light look on Google's blu
 Selecting the **Gemini** vendor is presentation only: it restyles the page and labels the
 LLM node *Gemini 2.5 Pro (Google)* in the non-Expert perspectives to mimic that the product
 runs on its own model. The real backend is always **Azure OpenAI** — no Google model is
-called. The vendor offers a single **chat** mode backed by the `ChatBot` agent (which answers
+called. The vendor offers a single **chat** mode backed by the `ChatAgent` agent (which answers
 from its own knowledge, with no tools).

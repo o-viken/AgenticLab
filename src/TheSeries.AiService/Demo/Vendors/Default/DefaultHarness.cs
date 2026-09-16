@@ -1,4 +1,5 @@
 using TheSeries.AiService.Application;
+using TheSeries.AiService.Demo.Agents;
 
 namespace TheSeries.AiService.Demo.Vendors;
 
@@ -30,9 +31,9 @@ public sealed class DefaultHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode("ChatBot", "chat"),
-        new VendorMode("WikiAssistant", "wiki"),
-        new VendorMode("TimeKeeper", "time"),
-        new VendorMode("Orchestrator", "orchestrator"),
+        new VendorMode(ChatAgent.AgentName, "chat"),
+        new VendorMode(WikiAssistantAgent.AgentName, "wiki"),
+        new VendorMode(TimeKeeperAgent.AgentName, "time"),
+        new VendorMode(OrchestratorAgent.AgentName, "orchestrator"),
     };
 }
