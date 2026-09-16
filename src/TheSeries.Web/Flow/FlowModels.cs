@@ -8,6 +8,32 @@ internal enum FlowMode
 }
 
 /// <summary>
+/// What the agent is doing right now, as announced in the conversation panel. Derived from the run
+/// state (running/paused/awaiting/breakpoint/error), in the order the UI resolves it.
+/// <list type="bullet">
+/// <item><description><see cref="Idle"/>: no run has started (or the conversation was reset).</description></item>
+/// <item><description><see cref="Thinking"/>: a turn is in flight and progressing on its own.</description></item>
+/// <item><description><see cref="AwaitingStep"/>: manual stepping — the run is held until the user clicks Next.</description></item>
+/// <item><description><see cref="Paused"/>: auto stepping was paused by the user.</description></item>
+/// <item><description><see cref="AtBreakpoint"/>: held at an execution breakpoint (the boundary names it).</description></item>
+/// <item><description><see cref="AwaitingAnswer"/>: a tool asked the user a question and is blocked on the reply.</description></item>
+/// <item><description><see cref="Failed"/>: the run ended with an error.</description></item>
+/// <item><description><see cref="Done"/>: the run finished and the answer is shown.</description></item>
+/// </list>
+/// </summary>
+internal enum AgentActivity
+{
+    Idle,
+    Thinking,
+    AwaitingStep,
+    Paused,
+    AtBreakpoint,
+    AwaitingAnswer,
+    Failed,
+    Done,
+}
+
+/// <summary>
 /// Which tab is active in the left Controls panel, reorganised from two stacked cards into a tabbed view.
 /// <list type="bullet">
 /// <item><description><see cref="Chat"/>: the agent picker, message box, run/stepping buttons and conversation log (FlowChat).</description></item>

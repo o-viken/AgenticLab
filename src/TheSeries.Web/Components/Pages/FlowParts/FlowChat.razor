@@ -1,7 +1,8 @@
-@* The chat part of the left panel: a scrollable conversation log (oldest at the top, newest at the
-   bottom, like a typical chat app) above a composer pinned to the bottom — the agent picker, the
-   message box, the run/stepping action buttons and the inline answer box (shown when an agent's
-   AskQuestion tool is waiting). Reads and writes the shared view/run state. The remaining settings
+@* The conversation part of the left panel: a scrollable log (oldest at the top, newest at the bottom)
+   and a composer pinned to the bottom — the agent picker, the message box, the run/stepping buttons and
+   the inline answer box (shown when an agent's AskQuestion tool is waiting). The agent's live status is
+   announced on its own entry: a status chip, the turn meta and a one-line note saying where the run has
+   got to and what it is waiting on. Reads and writes the shared view/run state. The remaining settings
    (vendor in the VendorRail; stepping, tools and workspace in the sibling FlowControls) live elsewhere. *@
 @inject IJSRuntime JS
 <section class="controls chat-controls">
@@ -15,24 +16,21 @@
             @foreach (var turn in Run.Turns)
             {
                 <div class="turn" @key="turn">
-                    <div class="bubble user">
-                        <span class="who">🧑 You</span>
+                    <article class="entry user">
+                        <header class="entry-head"><span class="role">You</span></header>
                         <p>@turn.Message</p>
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(turn.Error))
-                    {
-                        <div class="bubble agent error">
-                            <span class="who">🤖 @(turn.Agent ?? "Agent")</span>
-                            <p>@turn.Error</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="bubble agent">
-                            <span class="who">🤖 @(turn.Agent ?? "Agent")</span>
+                    </article>
+                    <article class="entry agent @(string.IsNullOrWhiteSpace(turn.Error) ? "" : "failed")">
+                        <header class="entry-head"><span class="role">@(turn.Agent ?? "Agent")</span></header>
+                        @if (!string.IsNullOrWhiteSpace(turn.Error))
+                        {
+                            <p class="error">@turn.Error</p>
+                        }
+                        else
+                        {
                             <p>@turn.Reply</p>
-                        </div>
-                    }
+                        }
+                    </article>
                 </div>
             }
 
@@ -41,12 +39,24 @@
             @if (!string.IsNullOrWhiteSpace(Run.RunMessage))
             {
                 <div class="turn pending">
-                    <div class="bubble user">
-                        <span class="who">🧑 You</span>
+                    <article class="entry user">
+                        <header class="entry-head"><span class="role">You</span></header>
                         <p>@Run.RunMessage</p>
-                    </div>
-                    <div class="bubble agent">
-                        <span class="who">🤖 @(View.SelectedAgent ?? "Agent")</span>
+                    </article>
+                    <article class="entry agent @(Run.Activity == AgentActivity.Failed ? "failed" : "")">
+                        <header class="entry-head">
+                            <span class="role">@(View.SelectedAgent ?? "Agent")</span>
+                            @if (Run.AgentStatusLabel is { } status)
+                            {
+                                <span class="status @StatusClass" role="status">
+                                    <span class="status-mark" aria-hidden="true"></span>@status
+                                </span>
+                            }
+                            @if (Run.TurnMeta is { } meta)
+                            {
+                                <span class="turn-meta @(Run.LoopActive ? "live" : "")">@meta</span>
+                            }
+                        </header>
                         @if (!string.IsNullOrWhiteSpace(Run.Error))
                         {
                             <p class="error">@Run.Error</p>
@@ -55,11 +65,11 @@
                         {
                             <p>@Run.Reply</p>
                         }
-                        else if (Run.Running)
+                        @if (Run.AgentStatusNote is { } note)
                         {
-                            <p class="typing"><span></span><span></span><span></span></p>
+                            <p class="status-note">@note</p>
                         }
-                    </div>
+                    </article>
                 </div>
             }
         }
@@ -73,8 +83,8 @@
             <div class="ask-question-row">
                 <input id="answer" @bind="Run.AnswerText" @bind:event="oninput"
                        placeholder="Type your answer…" @onkeydown="OnAnswerKeyDownAsync" />
-                <button class="send" @onclick="Run.SubmitAnswerAsync"
-                        disabled="@string.IsNullOrWhiteSpace(Run.AnswerText)">Answer ▶</button>
+                <button class="send-icon" @onclick="Run.SubmitAnswerAsync" title="Send your answer" aria-label="Send your answer"
+                        disabled="@string.IsNullOrWhiteSpace(Run.AnswerText)"><MiniIcon Name="send" /></button>
             </div>
         </div>
     }
@@ -104,27 +114,42 @@
                       disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
         </div>
 
-        <FlowBreakpointControls />
+        <div class="composer-actions">
+            <FlowBreakpointControls ShowReason="false" />
 
-        @if (!Run.BreakpointPaused)
-        {
-        <div class="control actions">
-            @if (!Run.Running)
+            @if (!Run.BreakpointPaused)
             {
-                <button class="send" @onclick="Run.SendAsync" disabled="@(string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">Send</button>
-                <button class="stop" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">New conversation</button>
+                @if (!Run.Running)
+                {
+                    <button class="chip" @onclick="Run.NewConversationAsync" title="Forget the conversation history and start fresh.">
+                        <MiniIcon Name="new" />New conversation
+                    </button>
+                }
+                else if (View.Mode == FlowMode.Manual)
+                {
+                    <button class="chip" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">
+                        <MiniIcon Name="next" />@(Run.AwaitingStep ? "Waiting…" : "Next")
+                    </button>
+                    <button class="chip danger" @onclick="Run.StopAsync"><MiniIcon Name="stop" />Stop</button>
+                }
+                else
+                {
+                    <button class="chip" @onclick="Run.TogglePauseAsync">
+                        <MiniIcon Name="@(Run.Paused ? "play" : "pause")" />@(Run.Paused ? "Resume" : "Pause")
+                    </button>
+                    <button class="chip danger" @onclick="Run.StopAsync"><MiniIcon Name="stop" />Stop</button>
+                }
             }
-            else if (View.Mode == FlowMode.Manual)
-            {
-                <button class="send" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">@(Run.AwaitingStep ? "Waiting…" : "Next ▶")</button>
-                <button class="stop" @onclick="Run.StopAsync">Stop</button>
-            }
-            else
-            {
-                <button class="send" @onclick="Run.TogglePauseAsync">@(Run.Paused ? "Resume ▶" : "Pause ⏸")</button>
-                <button class="stop" @onclick="Run.StopAsync">Stop</button>
-            }
+
+            <button class="send-icon" @onclick="Run.SendAsync" title="Send" aria-label="Send"
+                    disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">
+                <MiniIcon Name="send" />
+            </button>
         </div>
+
+        @if (Run.ComposerHint is { } hint)
+        {
+            <p class="composer-hint">@hint</p>
         }
     </div>
 </section>
@@ -137,6 +162,16 @@
 
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
+
+    // A held run still reads as "in progress", so the chip keeps its mark but stops spinning (.held).
+    private string StatusClass => Run.Activity switch
+    {
+        AgentActivity.Failed => "failed",
+        AgentActivity.AwaitingAnswer => "waiting",
+        AgentActivity.Paused => "held",
+        AgentActivity.AwaitingStep or AgentActivity.AtBreakpoint => "busy held",
+        _ => "busy",
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

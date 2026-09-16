@@ -785,6 +785,15 @@
     color: var(--heading);
 }
 
+/* A quiet count next to a SidePanel's title (passed in as its HeaderActions). */
+.panel-meta {
+    margin-right: .35rem;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .main-panel-body {
     flex: 1 1 auto;
     min-width: 0;
@@ -1012,6 +1021,69 @@
     color: var(--text);
 }
 
+/* Compact icon+label transport buttons (New conversation / Next / Pause / Continue / Stop), shared by
+   the conversation composer and the breakpoint controls. */
+.flow-app ::deep button.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    min-height: 30px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.flow-app ::deep button.chip:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.flow-app ::deep button.chip.danger:hover:not(:disabled) {
+    border-color: var(--error);
+    color: var(--error);
+}
+
+.flow-app ::deep button.chip:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* The round accent send button at the end of the composer's action row. */
+.flow-app ::deep button.send-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    cursor: pointer;
+}
+
+.flow-app ::deep button.send-icon:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.flow-app ::deep .mini-icon {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+}
+
+.flow-app ::deep button.send-icon .mini-icon {
+    width: 18px;
+    height: 18px;
+}
+
 .flow-app ::deep button,
 .flow-app ::deep input,
 .flow-app ::deep select,
@@ -1049,6 +1121,10 @@
 @keyframes pulse {
     0%, 100% { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), .15); }
     50% { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .25); }
+}
+
+@keyframes status-spin {
+    to { transform: rotate(360deg); }
 }
 
 @keyframes dash-right {

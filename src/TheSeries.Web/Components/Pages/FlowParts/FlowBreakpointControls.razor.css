@@ -5,6 +5,13 @@
     min-width: 0;
 }
 
+/* In the conversation composer the buttons join the action row beside the send button, and the agent's
+   status note already names the boundary — so unwrap both boxes and let the buttons flow with the row. */
+.breakpoint-status.bare,
+.breakpoint-status.bare .bp-actions {
+    display: contents;
+}
+
 .breakpoint-status p,
 .breakpoint-error {
     font-size: .85rem;
@@ -18,7 +25,7 @@
     font-weight: 600;
 }
 
-.breakpoint-status .actions {
+.bp-actions {
     display: flex;
     flex-wrap: wrap;
     gap: .4rem;

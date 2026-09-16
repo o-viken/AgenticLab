@@ -1,25 +1,12 @@
-/* Conversation transcript (ConversationTranscript). The <li class="step"> items in .mini-steps are
-   styled by FlowStepList. */
+/* Conversation transcript (ConversationTranscript). Uses the same entry idiom as the conversation
+   panel — a role label over the text on a 3px contributor-coloured rail. Its title and message count
+   come from the hosting panel header. The <li class="step"> items in .mini-steps are styled by
+   FlowStepList. */
 .transcript {
     padding: 0;
     background: transparent;
     border: 0;
     border-radius: 0;
-}
-
-.transcript > h2 {
-    margin: 0 0 1rem;
-    font-size: .85rem;
-    letter-spacing: 0;
-    color: var(--text-dim);
-}
-
-.transcript > h2 .count {
-    margin-left: .5rem;
-    font-size: .78rem;
-    letter-spacing: 0;
-    color: var(--accent-soft);
-    text-transform: none;
 }
 
 .transcript .turns {
@@ -38,44 +25,38 @@
 
 .turn:last-child { border-bottom: none; padding-bottom: 0; }
 
-.bubble {
-    border-radius: 0;
-    padding: 8px 0;
+.entry {
+    align-self: stretch;
     max-width: 100%;
-    font-size: 13px;
+    padding: .45rem .7rem;
+    border-left: 3px solid var(--contrib-agent);
 }
 
-.bubble .who {
+.entry.user {
+    border-left-color: var(--contrib-user);
+    background: var(--surface-2);
+}
+
+.entry.failed { border-left-color: var(--contrib-app); }
+
+.entry .role {
     display: block;
-    font-size: .68rem;
+    margin-bottom: .2rem;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0;
-    margin-bottom: .25rem;
-    opacity: .8;
+    color: var(--text);
 }
 
-.bubble p {
+.entry p {
     margin: 0;
+    font-size: 13px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
 }
 
-.bubble.user {
-    align-self: stretch;
-    background: transparent;
-    border: 0;
-}
-
-.bubble.user .who { color: var(--accent-soft); }
-
-.bubble.agent {
-    align-self: stretch;
-    background: transparent;
-    border: 0;
-}
-
-.bubble.agent .who { color: var(--kind-text); }
+.entry .error { color: var(--error); }
 
 .turn-flow {
     align-self: stretch;
@@ -87,13 +68,26 @@
 .turn-flow > summary {
     cursor: pointer;
     padding: .5rem .8rem;
-    font-size: .75rem;
+    font-size: 12px;
     color: var(--text-dim);
     user-select: none;
 }
 
-.turn-flow > summary .progress { color: var(--accent-soft); margin-left: .35rem; }
-.turn-flow > summary .turns-badge { color: var(--purple-text); margin-left: .2rem; }
+/* Step/turn counts as the same uppercase pills the Steps list uses for its step kinds. */
+.turn-flow > summary .progress,
+.turn-flow > summary .turns-badge {
+    display: inline-block;
+    margin-left: .35rem;
+    padding: .12rem .45rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.turn-flow > summary .progress { background: var(--kind-bg); color: var(--kind-text); }
+.turn-flow > summary .turns-badge { background: var(--loop-bg); color: var(--purple-text); }
 
 .turn-flow[open] > summary { border-bottom: 1px solid var(--panel-border); }
 

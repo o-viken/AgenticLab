@@ -24,6 +24,7 @@
 .tab-strip .tab {
     position: relative;
     flex: 0 1 auto;
+    min-width: 0;
     display: inline-flex;
     flex-direction: row;
     align-items: center;
@@ -43,6 +44,14 @@
 
 .tab-strip .tab .tab-icon {
     display: inline-flex;
+}
+
+/* "Conversation" is long for a narrow panel, so let the label shrink rather than wrap the strip. */
+.tab-strip .tab .tab-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tab-strip .tab .tab-icon svg {

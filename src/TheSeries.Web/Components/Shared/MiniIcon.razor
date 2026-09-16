@@ -1,0 +1,24 @@
+@namespace TheSeries.Web.Components.Shared
+
+@* Small inline line icons (Lucide-style geometry) for the conversation panel's compact buttons. They
+   are inlined rather than masked from /icons/lucide so they inherit currentColor inside a button. *@
+<svg class="mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @Glyph(Name)
+</svg>
+
+@code {
+    /// <summary>Which glyph to draw: send, play, next, pause, stop or new.</summary>
+    [Parameter] public string Name { get; set; } = string.Empty;
+
+    private static RenderFragment Glyph(string name) => name switch
+    {
+        "send" => @<g><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></g>,
+        "play" => @<path d="M7 4.5 19 12 7 19.5z" />,
+        "next" => @<g><path d="M6 4.5 16 12 6 19.5z" /><path d="M19 5v14" /></g>,
+        "pause" => @<g><path d="M9 5v14" /><path d="M15 5v14" /></g>,
+        "stop" => @<rect x="6" y="6" width="12" height="12" rx="1.5" />,
+        "new" => @<g><path d="M12 5v14" /><path d="M5 12h14" /></g>,
+        _ => @<circle cx="12" cy="12" r="8" />,
+    };
+}

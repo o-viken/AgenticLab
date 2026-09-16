@@ -1,6 +1,7 @@
-/* Chat part of the left panel (FlowChat). The shared .controls/.control/.actions/button atoms live in
-   Flow.razor.css; this file adds the chat-specific layout: a scrollable conversation log above a
-   composer pinned to the bottom, the message bubbles, the ask-question box and the typing indicator. */
+/* Conversation part of the left panel (FlowChat). The shared .controls/.control/.chip/.send-icon atoms
+   live in Flow.razor.css; this file adds the conversation layout: a scrollable log of role-labelled
+   entries on contributor-coloured rails, the agent's status chip and note, the ask-question box and the
+   composer pinned to the bottom. */
 
 /* The chat tab fills the tab body and lays its log + composer out top-to-bottom. The shared .controls
    atom is a right-aligned, padded card row; override it to a full-bleed, full-width stacked column so
@@ -45,67 +46,115 @@
     color: var(--text-dim);
 }
 
-/* One exchange: the user message then the agent message, as a flat (bubble-free) list — v5 style. */
+/* One exchange: the user's message then the agent's. */
 .turn {
     display: flex;
     flex-direction: column;
-    gap: .75rem;
+    gap: .5rem;
 }
 
-.bubble {
-    padding: 0;
+/* One message, drawn like a diagram node: a 3px left rail in the contributor colour (user green, agent
+   yellow, errors app red — the same encoding as the harness anatomy) under a plain role label. */
+.entry {
+    padding: .45rem .7rem;
+    border-left: 3px solid var(--contrib-agent);
     max-width: 100%;
 }
 
-.bubble .who {
-    display: block;
-    font-size: .62rem;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    font-weight: 700;
-    margin-bottom: .2rem;
-    color: var(--text-faint);
+.entry.user {
+    border-left-color: var(--contrib-user);
+    background: var(--surface-2);
 }
 
-.bubble p {
+.entry.failed {
+    border-left-color: var(--contrib-app);
+}
+
+.entry-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .2rem;
+}
+
+.entry .role {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* The live LLM round-trip, matching the diagram's loop badge. */
+.entry .turn-meta {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.entry .turn-meta.live {
+    color: var(--accent);
+}
+
+.entry p {
     margin: 0;
-    font-size: .92rem;
+    font-size: 13px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text);
 }
 
-.bubble.user,
-.bubble.agent {
-    align-self: stretch;
-    background: transparent;
-    border: none;
+.entry .error {
+    color: var(--error);
 }
 
-.bubble.agent .error { color: var(--error); }
-
-/* Animated "agent is typing" dots shown until the reply starts streaming. */
-.typing {
+/* What the agent is doing, in the step list's pill idiom, plus a line naming what it waits on. */
+.status {
     display: inline-flex;
-    gap: .25rem;
     align-items: center;
+    gap: .35rem;
+    padding: .12rem .45rem;
+    border-radius: 999px;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    white-space: nowrap;
+    background: var(--kind-bg);
+    color: var(--kind-text);
 }
 
-.typing span {
-    width: .4rem;
-    height: .4rem;
+.status.busy { background: var(--llm-chip-bg); color: var(--llm-chip-text); }
+.status.waiting { background: var(--tool-chip-bg); color: var(--tool-chip-text); }
+.status.failed { background: var(--error-bg); color: var(--error-text); }
+
+.status-mark {
+    width: .6rem;
+    height: .6rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
     border-radius: 50%;
-    background: var(--text-dim);
-    animation: chat-typing 1s infinite ease-in-out;
+    animation: status-spin .9s linear infinite;
 }
 
-.typing span:nth-child(2) { animation-delay: .15s; }
-.typing span:nth-child(3) { animation-delay: .3s; }
+/* Held on the user (a breakpoint, manual stepping or a pause): keep the ring, stop the motion. */
+.status.held .status-mark {
+    animation: none;
+}
 
-@keyframes chat-typing {
-    0%, 60%, 100% { opacity: .3; transform: translateY(0); }
-    30% { opacity: 1; transform: translateY(-2px); }
+/* Nothing is running at all — a solid dot instead of a ring. */
+.status.waiting .status-mark,
+.status.failed .status-mark {
+    border: 0;
+    background: currentColor;
+    animation: none;
+}
+
+.status-note {
+    margin: .35rem 0 0;
+    font-size: 12px;
+    color: var(--text-dim);
 }
 
 /* The composer pinned to the bottom of the chat tab. */
@@ -157,16 +206,43 @@
 /* Beat the shared `.control.message { flex: 1 1 320px }` atom: in this vertical composer that 320px
    basis would stretch the message control's height and open a gap above the buttons. Keep both
    controls content-height so the textarea and buttons stack tightly. */
-.chat-composer .control.message,
-.chat-composer .control.actions {
+.chat-composer .control.message {
     flex: 0 0 auto;
+}
+
+/* Transport buttons on the left, the round send button pushed to the right. */
+.composer-actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+}
+
+.composer-actions button.send-icon {
+    margin-left: auto;
+}
+
+/* A failed control request joins the action row on its own line rather than squeezing between buttons. */
+.composer-actions ::deep .breakpoint-error {
+    flex: 1 1 100%;
+    margin: 0;
+}
+
+/* Why the composer cannot send right now (an active turn, or a missing workspace). */
+.composer-hint {
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-dim);
 }
 
 /* The inline answer box shown when an agent's AskQuestion tool is waiting for the user's reply. */
 .control.message.ask-question {
     flex: 0 0 auto;
     padding: .75rem .85rem;
-    border-radius: 10px;
+    border-radius: 4px;
     border: 1px solid var(--accent);
     background: rgba(var(--accent-rgb), .08);
 }

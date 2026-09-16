@@ -275,6 +275,55 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// <summary>Whether the loop badge should pulse (a turn is in flight).</summary>
     public bool LoopActive => _running && CurrentTurn > 0;
 
+    /// <summary>What the agent is doing right now, resolved from the run state in announcement order.</summary>
+    public AgentActivity Activity =>
+        !string.IsNullOrWhiteSpace(_error) ? AgentActivity.Failed
+        : _awaitingAnswer ? AgentActivity.AwaitingAnswer
+        : _breakpoint is not null ? AgentActivity.AtBreakpoint
+        : _paused ? AgentActivity.Paused
+        // _awaitingStep means a Next request is already in flight, so the run is moving again.
+        : _running && view.Mode == FlowMode.Manual && !_awaitingStep ? AgentActivity.AwaitingStep
+        : _running ? AgentActivity.Thinking
+        : !string.IsNullOrWhiteSpace(_reply) ? AgentActivity.Done
+        : AgentActivity.Idle;
+
+    /// <summary>The short status shown beside the agent's name while a turn is active, or null when it is not.</summary>
+    public string? AgentStatusLabel => Activity switch
+    {
+        AgentActivity.Failed => "Error",
+        AgentActivity.AwaitingAnswer => "Waiting for you",
+        AgentActivity.Paused => "Paused",
+        AgentActivity.Thinking or AgentActivity.AwaitingStep or AgentActivity.AtBreakpoint => "In progress",
+        _ => null,
+    };
+
+    /// <summary>Where the run has got to, named after the same execution boundaries as the breakpoints.</summary>
+    public string? ProgressLabel => _events.Count == 0 ? null : FlowEventMapping.ProgressLabelFor(_events[^1]);
+
+    /// <summary>The one-line detail under the status: where the run is and what it is waiting on.</summary>
+    public string? AgentStatusNote => Activity switch
+    {
+        AgentActivity.AtBreakpoint => $"{BreakpointReason} — waiting for Next",
+        AgentActivity.AwaitingStep => ProgressLabel is { } step ? $"{step} — waiting for Next" : "Waiting for Next",
+        AgentActivity.Paused => ProgressLabel is { } at ? $"{at} — paused" : "Stepping paused — resume or stop",
+        AgentActivity.AwaitingAnswer => "Waiting for your answer",
+        AgentActivity.Thinking => ProgressLabel,
+        _ => null,
+    };
+
+    /// <summary>The live turn meta shown on the agent's entry, kept in step with the diagram's loop badge.</summary>
+    public string? TurnMeta =>
+        _running ? (CurrentTurn == 0 ? null : $"turn {CurrentTurn}")
+        : TotalTurns == 0 ? null
+        : $"{TotalTurns} turn{(TotalTurns == 1 ? "" : "s")}";
+
+    /// <summary>A note under the composer explaining why it cannot send right now, or null when it can.</summary>
+    public string? ComposerHint =>
+        _running ? "A turn is active. Continue or stop it before sending another message."
+        : view.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(view.Workspace)
+            ? "This agent needs a workspace folder — set one under Settings."
+            : null;
+
     /// <summary>The user's prompt for the current/next run, shown as the "Set by user" anatomy layer.</summary>
     public string CurrentUserPrompt =>
         !string.IsNullOrWhiteSpace(_runMessage) ? _runMessage

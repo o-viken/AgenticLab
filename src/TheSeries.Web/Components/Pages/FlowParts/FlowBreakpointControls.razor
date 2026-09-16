@@ -1,13 +1,16 @@
 @if (Run.BreakpointPaused)
 {
-    <div class="breakpoint-status">
-        <p role="status">Paused: @Run.BreakpointReason</p>
-        <div class="control actions">
-            <button type="button" class="send" @onclick="Run.ContinueAsync" disabled="@Run.BreakpointControlPending"
-                    title="Continue in Auto until the next breakpoint">Continue</button>
-            <button type="button" class="send" @onclick="Run.NextAsync" disabled="@Run.BreakpointControlPending"
-                    title="Advance and switch to Manual stepping">Next</button>
-            <button type="button" class="stop" @onclick="Run.StopAsync">Stop</button>
+    <div class="breakpoint-status @(ShowReason ? "" : "bare")">
+        @if (ShowReason)
+        {
+            <p role="status">Paused: @Run.BreakpointReason</p>
+        }
+        <div class="bp-actions">
+            <button type="button" class="chip" @onclick="Run.ContinueAsync" disabled="@Run.BreakpointControlPending"
+                    title="Continue in Auto until the next breakpoint"><MiniIcon Name="play" />Continue</button>
+            <button type="button" class="chip" @onclick="Run.NextAsync" disabled="@Run.BreakpointControlPending"
+                    title="Advance and switch to Manual stepping"><MiniIcon Name="next" />Next</button>
+            <button type="button" class="chip danger" @onclick="Run.StopAsync"><MiniIcon Name="stop" />Stop</button>
         </div>
     </div>
 }
@@ -17,6 +20,9 @@
 }
 
 @code {
+    /// <summary>Whether to name the holding boundary; off where the caller already shows it (the conversation).</summary>
+    [Parameter] public bool ShowReason { get; set; } = true;
+
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
 }

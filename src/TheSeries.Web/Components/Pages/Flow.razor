@@ -44,11 +44,16 @@
 
                             @if (_run.Turns.Count > 0)
                             {
-                                <SidePanel Side="PanelSide.Bottom" Title="Conversation"
+                                <SidePanel Side="PanelSide.Bottom" Title="Transcript"
                                            Collapsed="_view.BottomPanelCollapsed"
                                            OnToggleCollapse="ToggleBottomPanelAsync"
                                            OnResize="SetBottomHeightAsync">
-                                    <ConversationTranscript />
+                                    <HeaderActions>
+                                        <span class="panel-meta">@_run.Turns.Count message@(_run.Turns.Count == 1 ? "" : "s")</span>
+                                    </HeaderActions>
+                                    <ChildContent>
+                                        <ConversationTranscript />
+                                    </ChildContent>
                                 </SidePanel>
                             }
                         </div>

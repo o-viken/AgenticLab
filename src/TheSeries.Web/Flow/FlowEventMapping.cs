@@ -33,18 +33,38 @@ internal static partial class FlowEventMapping
     /// </summary>
     public static string? ToolNameFor(FlowEvent flowEvent)
     {
-        var label = flowEvent.Label;
         var marker = flowEvent.Kind switch
         {
             "tool-result" => "Harness: ",
             _ => null,
         };
 
-        if (marker is null)
-        {
-            return null;
-        }
+        return marker is null ? null : ToolFromLabel(flowEvent.Label, marker);
+    }
 
+    /// <summary>
+    /// Names where a run has got to, reusing the execution-boundary wording of the breakpoints so the
+    /// live status and the Settings tab's breakpoint list read the same way. Null for steps with no
+    /// meaningful boundary.
+    /// </summary>
+    public static string? ProgressLabelFor(FlowEvent flowEvent) => flowEvent.Kind switch
+    {
+        "received" => "Message received",
+        "llm-request" => "Model request sent",
+        "llm-response" => "After model response",
+        "tool-call" => WithTool("Before tool execution", ToolFromLabel(flowEvent.Label, "Tool: ")),
+        "tool-result" => WithTool("After tool result", ToolNameFor(flowEvent)),
+        "ask-question" => "Question asked",
+        "final" => "Final answer",
+        _ => null,
+    };
+
+    private static string WithTool(string boundary, string? tool) =>
+        string.IsNullOrWhiteSpace(tool) ? boundary : $"{boundary}: {tool}";
+
+    // Both tool labels read "… <marker><Name>[(args)]", so the name is what follows the marker.
+    private static string? ToolFromLabel(string label, string marker)
+    {
         var start = label.IndexOf(marker, StringComparison.Ordinal);
         if (start < 0)
         {
