@@ -1,0 +1,222 @@
+@using TheSeries.Web.Components.Shared
+
+@* The Execution explorer: what the run actually did, as captured. Three panes — the conversation's
+   exchanges, the selected exchange's model round-trips and their stages, and the data captured at the
+   selected stage. Selecting anything here only changes what is displayed; it never runs, re-runs or
+   advances real execution (that stays with the composer's controls). *@
+
+@{
+    var exchanges = Run.Exchanges;
+    var selected = Run.SelectedExchange;
+    var stage = Run.SelectedStage;
+    var liveClass = Run.Replaying ? "chip" : "chip on";
+    var dataTabClass = View.ShowRawStage ? "" : "selected";
+    var rawTabClass = View.ShowRawStage ? "selected" : "";
+}
+
+<section class="execution">
+    @if (exchanges.Count == 0)
+    {
+        <p class="empty">Nothing has run yet. Send a message and every step it takes is captured here.</p>
+    }
+    else
+    {
+        <div class="exec-toolbar">
+            <div class="exec-crumb">
+                @if (selected is not null)
+                {
+                    <span class="crumb-part">Exchange @selected.Number</span>
+                    @if (stage is { Turn: > 0 })
+                    {
+                        <span class="crumb-sep">/</span>
+                        <span class="crumb-part">Model turn @stage.Turn</span>
+                    }
+                    @if (stage is not null)
+                    {
+                        <span class="crumb-sep">/</span>
+                        <span class="crumb-part current">@ExecutionReplayBuilder.StageTitle(stage)</span>
+                    }
+                }
+            </div>
+            <div class="exec-actions">
+                @if (Run.Replaying)
+                {
+                    <span class="replay-badge" title="Showing a captured stage, not the live run">Replay</span>
+                }
+                <button type="button" class="chip" disabled="@(!Run.CanStepBack)" @onclick="Run.StepBack"
+                        title="Show the previous captured stage" aria-label="Previous stage">
+                    <MiniIcon Name="prev" /> Previous
+                </button>
+                <button type="button" class="chip" disabled="@(!Run.CanStepForward)" @onclick="Run.StepForward"
+                        title="Show the next captured stage" aria-label="Next stage">
+                    <MiniIcon Name="next" /> Next
+                </button>
+                <button type="button" class="@liveClass" @onclick="View.FollowLive"
+                        title="Follow the newest stage of the current run" aria-label="Follow the live run">
+                    <MiniIcon Name="live" /> Live
+                </button>
+            </div>
+        </div>
+
+        <div class="exec-body">
+            <nav class="exec-pane exec-exchanges" aria-label="Conversation exchanges">
+                <h3 class="pane-title">Exchanges</h3>
+                <ol>
+                    @foreach (var exchange in exchanges)
+                    {
+                        var isSelected = exchange.Id == selected?.Id;
+                        var rowClass = isSelected ? "exchange selected" : "exchange";
+                        var current = isSelected ? "true" : null;
+                        var statusLabel = StatusLabel(exchange.Status);
+                        var statusClass = "status status-" + statusLabel;
+                        <li @key="exchange.Id">
+                            <button type="button" class="@rowClass" aria-current="@current"
+                                    @onclick="@(() => View.SelectExchange(exchange.Id))">
+                                <span class="exchange-head">
+                                    <span class="exchange-num">@exchange.Number</span>
+                                    <span class="@statusClass">@statusLabel</span>
+                                </span>
+                                <span class="exchange-msg">@Preview(exchange.Message)</span>
+                                <span class="exchange-meta">@AgentOf(exchange) · @exchange.Meta</span>
+                            </button>
+                        </li>
+                    }
+                </ol>
+            </nav>
+
+            <div class="exec-pane exec-stages">
+                <h3 class="pane-title">Stages</h3>
+                @if (selected is null || selected.Stages.Count == 0)
+                {
+                    <p class="empty">No stages were captured for this exchange.</p>
+                }
+                else
+                {
+                    @if (selected.Intake.Count > 0)
+                    {
+                        <div class="stage-group">
+                            <h4>Intake</h4>
+                            @foreach (var item in selected.Intake)
+                            {
+                                @StageRow(selected, item)
+                            }
+                        </div>
+                    }
+
+                    @foreach (var turn in selected.Turns)
+                    {
+                        <div class="stage-group" @key="turn.Number">
+                            <h4>Model turn @turn.Number</h4>
+                            @foreach (var item in turn.Stages)
+                            {
+                                @StageRow(selected, item)
+                            }
+                        </div>
+                    }
+
+                    @if (selected.Outcome.Count > 0)
+                    {
+                        <div class="stage-group">
+                            <h4>Delivery</h4>
+                            @foreach (var item in selected.Outcome)
+                            {
+                                @StageRow(selected, item)
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="exec-pane exec-inspector">
+                @if (stage is null)
+                {
+                    <p class="empty">Select a stage to see the data captured at it.</p>
+                }
+                else
+                {
+                    <header class="inspector-head">
+                        <div class="inspector-title">
+                            <h3>@ExecutionReplayBuilder.StageTitle(stage)</h3>
+                            <p class="inspector-route">@ExecutionReplayBuilder.StageRoute(stage)</p>
+                        </div>
+                        <div class="inspector-tabs" role="tablist" aria-label="How to show the captured data">
+                            <button type="button" role="tab" class="@dataTabClass" aria-selected="@(!View.ShowRawStage)"
+                                    @onclick="@(() => View.ShowRawStage = false)">Data</button>
+                            <button type="button" role="tab" class="@rawTabClass" aria-selected="@View.ShowRawStage"
+                                    @onclick="@(() => View.ShowRawStage = true)">Raw</button>
+                        </div>
+                    </header>
+
+                    @if (stage.Kind == "tool-result" && Run.CallFor(stage) is { } call)
+                    {
+                        <p class="inspector-note">Answers the call the model made at <em>@ExecutionReplayBuilder.StageTitle(call)</em>.</p>
+                    }
+
+                    @if (View.ShowRawStage)
+                    {
+                        <pre class="stage-raw">@RawOf(stage)</pre>
+                    }
+                    else
+                    {
+                        <div class="stage-sections">
+                            @foreach (var section in ExecutionStageReader.Sections(stage))
+                            {
+                                var sectionClass = "stage-section source-" + section.Source;
+                                <section class="@sectionClass">
+                                    <h4>
+                                        @section.Title
+                                        @if (section.Meta is not null)
+                                        {
+                                            <span class="section-meta">@section.Meta</span>
+                                        }
+                                    </h4>
+                                    <pre>@section.Body</pre>
+                                </section>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    private RenderFragment StageRow(ExecutionExchange exchange, FlowEvent item)
+    {
+        var isSelected = Run.SelectedExchange?.Id == exchange.Id && Run.SelectedStage?.Sequence == item.Sequence;
+        var rowClass = "stage-row kind-" + item.Kind + (isSelected ? " selected" : "");
+        var current = isSelected ? "true" : null;
+        return @<button type="button" class="@rowClass" aria-current="@current"
+                        @onclick="@(() => View.SelectStage(exchange.Id, item.Sequence))">
+            <span class="stage-kind">@item.Kind</span>
+            <span class="stage-name">@ExecutionReplayBuilder.StageTitle(item)</span>
+        </button>;
+    }
+
+    private static string RawOf(FlowEvent stage) =>
+        string.IsNullOrWhiteSpace(stage.Data) ? "(nothing was captured for this stage)" : stage.Data;
+
+    private static string AgentOf(ExecutionExchange exchange) =>
+        string.IsNullOrWhiteSpace(exchange.Agent) ? "—" : exchange.Agent;
+
+    private static string Preview(string message)
+    {
+        var collapsed = string.IsNullOrWhiteSpace(message) ? "(no message)" : message.ReplaceLineEndings(" ").Trim();
+        return collapsed.Length <= 80 ? collapsed : collapsed[..80] + "…";
+    }
+
+    private static string StatusLabel(ExchangeStatus status) => status switch
+    {
+        ExchangeStatus.Running => "running",
+        ExchangeStatus.Completed => "done",
+        ExchangeStatus.Stopped => "stopped",
+        _ => "failed",
+    };
+}

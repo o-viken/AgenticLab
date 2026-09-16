@@ -22,6 +22,9 @@ public sealed class LlmTurn(int turnNumber, string requestData, string requestSu
 
     /// <summary>A human-readable rendering of the model's response (text and/or tool calls); null until completed.</summary>
     public string? ResponseData { get; internal set; }
+
+    /// <summary>A short, single-line summary of what the model returned this turn (its answer, or the tool calls it requested); null until completed.</summary>
+    public string? ResponseSummary { get; internal set; }
 }
 
 /// <summary>

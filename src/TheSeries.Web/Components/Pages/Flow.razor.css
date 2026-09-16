@@ -817,6 +817,53 @@
     container-type: inline-size;
 }
 
+/* The Execution dock manages its own panes and scrolling, so it gets the panel body edge to edge. */
+.flow-app ::deep .side-bottom .panel-body {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Maximized: the diagram keeps a compact strip so it can still follow the selected stage. */
+.main-panel-body.bottom-max .flow-main-panel {
+    flex: 0 1 auto;
+    max-height: 38%;
+}
+
+.main-panel-body.bottom-max ::deep .side-bottom {
+    flex: 1 1 auto;
+    height: auto;
+}
+
+/* Expand/restore control in the Execution panel's header. */
+.panel-max {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+}
+
+.panel-max:hover {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.panel-max[aria-pressed="true"] {
+    color: var(--accent);
+    border-color: var(--panel-border);
+}
+
+.panel-max ::deep .mini-icon {
+    width: 14px;
+    height: 14px;
+}
+
 /* While a splitter is being dragged, suppress text selection across the page. */
 .flow-body.resizing { cursor: col-resize; }
 .flow-body.resizing-y { cursor: row-resize; }

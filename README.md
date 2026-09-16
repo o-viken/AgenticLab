@@ -233,17 +233,43 @@ accepts `before-model`, `after-model`, `before-tool`, and `after-tool`; omitted 
 Unknown breakpoint names return `400 Bad Request`. Returns a
 `text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
 `kind` (`received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`, `breakpoint`),
-`label`, an optional `detail`, the `turn` (1-based LLM round-trip it belongs to), and an optional
-`data` payload with the full, untruncated request/response for that step. The stream is gated on the
+`label`, an optional `detail`, the `turn` (1-based LLM round-trip it belongs to), an optional
+`data` payload with the full, untruncated request/response for that step, and — on tool steps — the
+model's own `callId`, so a result can be paired with the call it answers even when the same tool is
+called several times in one turn. An `llm-response` is emitted for **every** round-trip, not just the
+last one, so the response that asked for a tool stays visible. The stream is gated on the
 backend: each real step waits for the session to be allowed to advance, so it stays in sync with the
 agent's execution and telemetry. The Blazor web UI consumes this to animate the data flow — with
-separate send/receive arrows, a loop/turn counter, and expandable steps that reveal the real data
-sent to and returned by the model.
+separate send/receive arrows and a loop/turn counter — and to record the run in the Execution panel.
+
+### Execution panel
+
+The web UI's bottom **Execution** dock is where a run is read back. It pulls out from the bottom of
+the main column (collapse it to a rail, drag its top edge to resize, or expand it to fill the column)
+and holds three panes:
+
+- **Exchanges** — every message you sent, with the agent that ran, how it ended (running / done /
+  stopped / failed) and how many model round-trips it took. The current run appears as soon as you
+  send, and a run that was stopped or failed stays inspectable rather than being reported as complete.
+- **Stages** — the selected exchange broken into intake, each **model turn**, and delivery. A turn
+  reads in causal order: the request sent, the model's response, the tool calls that response asked
+  for, and their results.
+- **Inspector** — the data captured at the selected stage. **Data** shows it in readable blocks (the
+  system prompt, each message re-sent to the model, the tools offered, a call's arguments, a tool's
+  result); **Raw** shows the captured payload verbatim. Anything the capture does not hold is marked
+  as not captured rather than reconstructed.
+
+**Previous** / **Next** step through the captured stages and cross turn boundaries; clicking any
+exchange or stage jumps straight to it. Selecting a stage moves the diagram to it too, built only
+from what was captured up to that point — standing on a tool call does not reveal the result that
+came back afterwards. Navigating history never re-runs anything: it makes no model or tool calls, and
+the live run keeps recording in the background. **Live** returns to the newest stage of the current
+run. Captures cover the current conversation and are cleared by **New conversation**.
 
 `breakpoint` events bypass normal pacing so the browser learns about a pause while execution is
 blocked inside a model or tool call. Their `data` is JSON containing `Id`, `Kind`, `Tool`, `Paused`
 and `Manual`. They are control notifications, not conversation content, and are excluded from the
-steps list, prompt signature and context totals.
+Execution panel, prompt signature and context totals.
 
 ### `POST /chat/control`
 

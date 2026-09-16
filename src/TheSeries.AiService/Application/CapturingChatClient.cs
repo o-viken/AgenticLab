@@ -32,6 +32,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
             SummarizeRequest(messages, options));
         var text = new System.Text.StringBuilder();
         var toolCalls = new List<object>();
+        var toolCallNames = new List<string>();
 
         var execution = FlowExecutionScope.Current;
         if (execution is not null)
@@ -52,6 +53,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
                             break;
                         case FunctionCallContent call:
                             toolCalls.Add(new { name = call.Name, arguments = call.Arguments });
+                            toolCallNames.Add(call.Name);
                             break;
                     }
                 }
@@ -63,6 +65,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         if (turn is not null)
         {
             turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
+            turn.ResponseSummary = SummarizeResponse(text.ToString(), toolCallNames);
         }
 
         if (execution is not null)
@@ -133,6 +136,27 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
     {
         var collapsed = value.ReplaceLineEndings(" ").Trim();
         return collapsed.Length <= max ? collapsed : collapsed[..max] + "…";
+    }
+
+    /// <summary>
+    /// Builds a short, single-line summary of what the model returned this round-trip: the tool calls it
+    /// asked for (the reason the agent loops again) and/or a preview of the text it produced.
+    /// </summary>
+    private static string SummarizeResponse(string text, IReadOnlyList<string> toolCallNames)
+    {
+        var parts = new List<string>();
+
+        if (toolCallNames.Count > 0)
+        {
+            parts.Add($"requested {toolCallNames.Count} tool call{(toolCallNames.Count == 1 ? "" : "s")}: {string.Join(", ", toolCallNames)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            parts.Add($"text: {Preview(text)}");
+        }
+
+        return parts.Count == 0 ? "The model returned no text and no tool calls." : string.Join(" · ", parts);
     }
 
     private static string RenderResponse(string text, IReadOnlyList<object> toolCalls)

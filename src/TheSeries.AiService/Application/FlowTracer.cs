@@ -24,7 +24,12 @@ namespace TheSeries.AiService.Application;
 /// arguments/result for a <c>tool-call</c>/<c>tool-result</c>, or a serialized
 /// <see cref="BreakpointNotice"/> for a <c>breakpoint</c> control event.
 /// </param>
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null);
+/// <param name="CallId">
+/// The model-assigned identifier of the tool call a <c>tool-call</c>/<c>tool-result</c> (or
+/// <c>ask-question</c>) step belongs to, so a result can be paired with its call even when the same
+/// tool is called several times in one turn; null for every other kind.
+/// </param>
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null);
 
 /// <summary>
 /// Runs an agent and projects its real execution (the LLM round-trips and tool invocations) into an
@@ -68,8 +73,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
     {
         var sequence = 0;
         var currentTurn = 0;
-        FlowEvent Step(string kind, string label, string? detail = null, string? data = null) =>
-            new(++sequence, kind, label, detail, currentTurn, data);
+        FlowEvent Step(string kind, string label, string? detail = null, string? data = null, string? callId = null) =>
+            new(++sequence, kind, label, detail, currentTurn, data, callId);
 
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -149,6 +154,39 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             var finalText = new StringBuilder();
             var callNames = new Dictionary<string, string>();
             var emittedTurns = 0;
+            var emittedResponses = 0;
+
+            // Surfaces each captured round-trip in causal order: the request the harness sent, then the
+            // model's own response as soon as that round-trip completes. Turn 1 carries the prompt +
+            // tools; later turns carry the tool results fed back to the model. Without the per-turn
+            // response the UI would only ever see the last one, hiding the response that asked for a tool.
+            async IAsyncEnumerable<FlowEvent> DrainCapturedAsync()
+            {
+                var turns = capture.Turns;
+                while (true)
+                {
+                    // A response can only be surfaced once its own request has been shown.
+                    if (emittedResponses < emittedTurns && turns[emittedResponses].ResponseData is { } response)
+                    {
+                        var completed = turns[emittedResponses++];
+                        currentTurn = completed.TurnNumber;
+                        await session.WaitForStepAsync(token);
+                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), completed.ResponseSummary, response);
+                        continue;
+                    }
+
+                    if (emittedTurns < turns.Count)
+                    {
+                        var started = turns[emittedTurns++];
+                        currentTurn = started.TurnNumber;
+                        await session.WaitForStepAsync(token);
+                        yield return Step("llm-request", DescribeTurn(started.TurnNumber), started.RequestSummary, started.RequestData);
+                        continue;
+                    }
+
+                    break;
+                }
+            }
 
             // Enumerate manually so we can re-assert the capture scope right before each agent advance.
             // The scope lives in an AsyncLocal that is reset whenever this iterator resumes after a yield,
@@ -190,15 +228,11 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
                 var update = updates.Current;
 
-                // Surface an llm-request for every round-trip captured since the last update. The first
-                // turn carries the prompt + tools; later turns carry the tool results fed back to the model.
-                var turns = capture.Turns;
-                while (emittedTurns < turns.Count)
+                // Surface an llm-request for every round-trip captured since the last update, followed by
+                // the response it produced once the model has finished returning it.
+                await foreach (var step in DrainCapturedAsync())
                 {
-                    var turn = turns[emittedTurns++];
-                    currentTurn = turn.TurnNumber;
-                    await session.WaitForStepAsync(token);
-                    yield return Step("llm-request", DescribeTurn(turn.TurnNumber), turn.RequestSummary, turn.RequestData);
+                    yield return step;
                 }
 
                 foreach (var content in update.Contents)
@@ -217,7 +251,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                                     "ask-question",
                                     "Agent → User: question",
                                     question,
-                                    question);
+                                    question,
+                                    call.CallId);
                                 break;
                             }
 
@@ -225,7 +260,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                                 "tool-call",
                                 $"LLM → Tool: {DescribeCall(call.Name, call.Arguments)}",
                                 DescribeArguments(call.Arguments) ?? "(no arguments)",
-                                FullCall(call.Name, call.Arguments));
+                                FullCall(call.Name, call.Arguments),
+                                call.CallId);
                             break;
 
                         case FunctionResultContent result:
@@ -233,7 +269,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                             var toolName = callNames.GetValueOrDefault(result.CallId);
                             var resultLabel = toolName is null ? "Tool → Harness" : $"Tool → Harness: {toolName}";
                             await session.WaitForStepAsync(token);
-                            yield return Step("tool-result", resultLabel, Truncate(resultText), resultText);
+                            yield return Step("tool-result", resultLabel, Truncate(resultText), resultText, result.CallId);
                             break;
 
                         case TextContent text when !string.IsNullOrEmpty(text.Text):
@@ -243,24 +279,13 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                 }
             }
 
-            // Emit any round-trip captured right at the end of the stream (defensive; normally none remain).
-            var finalTurns = capture.Turns;
-            while (emittedTurns < finalTurns.Count)
+            // Flush the round-trip captured right at the end of the stream (the one that produced the answer).
+            await foreach (var step in DrainCapturedAsync())
             {
-                var turn = finalTurns[emittedTurns++];
-                currentTurn = turn.TurnNumber;
-                await session.WaitForStepAsync(token);
-                yield return Step("llm-request", DescribeTurn(turn.TurnNumber), turn.RequestSummary, turn.RequestData);
+                yield return step;
             }
 
-            var lastResponse = finalTurns.Count > 0 ? finalTurns[^1].ResponseData : null;
             var answer = finalText.ToString();
-            var responseDetail = string.IsNullOrWhiteSpace(answer)
-                ? "The model returned its final answer."
-                : $"Answer: {Truncate(answer)}";
-            await session.WaitForStepAsync(token);
-            yield return Step("llm-response", "LLM → Harness", responseDetail, lastResponse);
-
             await session.WaitForStepAsync(token);
             yield return Step("final", "Harness → Client", answer, answer);
         }
@@ -298,6 +323,9 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
     private static string DescribeTurn(int turnNumber) =>
         turnNumber <= 1 ? "Harness → LLM" : $"Harness → LLM (turn {turnNumber})";
+
+    private static string DescribeResponse(int turnNumber) =>
+        turnNumber <= 1 ? "LLM → Harness" : $"LLM → Harness (turn {turnNumber})";
 
     // Extracts the question text from an AskQuestion tool call's arguments.
     private static string QuestionText(IDictionary<string, object?>? arguments)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace TheSeries.Web.Flow;
@@ -43,6 +44,18 @@ internal static partial class FlowEventMapping
     }
 
     /// <summary>
+    /// The tool a captured stage concerns, for the Execution explorer. Unlike <see cref="ToolNameFor"/>
+    /// — which ignores a tool-call so the live diagram's resource only lights up once the tool has
+    /// actually been contacted — this names the tool on the call as well as on its result.
+    /// </summary>
+    public static string? StageToolName(FlowEvent flowEvent) => flowEvent.Kind switch
+    {
+        "tool-call" => ToolFromLabel(flowEvent.Label, "Tool: "),
+        "tool-result" => ToolFromLabel(flowEvent.Label, "Harness: "),
+        _ => null,
+    };
+
+    /// <summary>
     /// Names where a run has got to, reusing the execution-boundary wording of the breakpoints so the
     /// live status and the Settings tab's breakpoint list read the same way. Null for steps with no
     /// meaningful boundary.
@@ -83,9 +96,47 @@ internal static partial class FlowEventMapping
     public static string? ResponseHintFor(FlowEvent flowEvent) => flowEvent.Kind switch
     {
         "tool-call" => "\U0001F527 function call",
-        "llm-response" => "\U0001F4AC text",
+        "llm-response" => ResponseKind(flowEvent.Data),
         _ => null,
     };
+
+    /// <summary>
+    /// Names what a round-trip's response actually carried. Every round-trip emits a response, so the
+    /// one that asked for a tool must not be labelled as text; a response carrying both is reported as a
+    /// function call, because that is what sends the agent round the loop again.
+    /// </summary>
+    private static string? ResponseKind(string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+        {
+            return "\U0001F4AC text";
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(PromptSignatureBuilder.ToStrictJson(data));
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("toolCalls", out var calls)
+                && calls.ValueKind == JsonValueKind.Array
+                && calls.GetArrayLength() > 0)
+            {
+                return calls.GetArrayLength() == 1
+                    ? "\U0001F527 function call"
+                    : $"\U0001F527 {calls.GetArrayLength()} function calls";
+            }
+
+            var hasText = root.TryGetProperty("text", out var text)
+                && text.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(text.GetString());
+
+            return hasText ? "\U0001F4AC text" : null;
+        }
+        catch (JsonException)
+        {
+            return "\U0001F4AC text";
+        }
+    }
 
     /// <summary>
     /// True for events whose payload is conversation content rather than structural scaffolding.

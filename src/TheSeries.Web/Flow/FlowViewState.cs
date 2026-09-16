@@ -28,7 +28,7 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private const int MinPanelHeight = 120;
 
     /// <summary>The tallest the bottom panel may be dragged.</summary>
-    private const int MaxPanelHeight = 600;
+    private const int MaxPanelHeight = 900;
 
     /// <summary>The width of a collapsed panel's thin rail (matches the CSS rail width).</summary>
     private const int RailWidth = 44;
@@ -51,7 +51,10 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
     private int _leftPanelWidth = 276;
     private int _rightPanelWidth = 260;
     private bool _bottomPanelCollapsed;
-    private int _bottomPanelHeight = 240;
+    // The Execution dock is the main way to read a run, so it opens tall enough for its three panes.
+    private int _bottomPanelHeight = 380;
+    private bool _bottomPanelMaximized;
+    private bool _showRawStage;
     private bool _showHarnessBoundary;
     private bool _showAgentBoundary;
     private bool _showEnvironment;
@@ -383,8 +386,30 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         set { _bottomPanelHeight = Math.Clamp(value, MinPanelHeight, MaxPanelHeight); Notify(); }
     }
 
+    /// <summary>
+    /// Whether the bottom (Execution) panel is expanded to fill the main column, for reading a large
+    /// captured payload. Deliberately not persisted — it is a momentary way to look at something, unlike
+    /// the panel's collapsed state and height.
+    /// </summary>
+    public bool BottomPanelMaximized
+    {
+        get => _bottomPanelMaximized;
+        set { _bottomPanelMaximized = value; Notify(); }
+    }
+
+    /// <summary>Whether the Execution inspector shows the raw captured payload instead of the readable view.</summary>
+    public bool ShowRawStage
+    {
+        get => _showRawStage;
+        set { _showRawStage = value; Notify(); }
+    }
+
     /// <summary>Whether the right (learning) panel is rendered at all (gated by the concept switch).</summary>
     public bool RightPanelVisible => _showConcepts;
+
+    /// <summary>The main column body's class, carrying the bottom panel's maximized state.</summary>
+    public string MainBodyClass =>
+        _bottomPanelMaximized && !_bottomPanelCollapsed ? "main-panel-body bottom-max" : "main-panel-body";
 
     /// <summary>Collapses or expands the left panel.</summary>
     public void ToggleLeftPanel() { _leftPanelCollapsed = !_leftPanelCollapsed; Notify(); }
@@ -394,6 +419,9 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
 
     /// <summary>Collapses or expands the bottom panel.</summary>
     public void ToggleBottomPanel() { _bottomPanelCollapsed = !_bottomPanelCollapsed; Notify(); }
+
+    /// <summary>Fills the main column with the bottom panel, or restores it to its dragged height.</summary>
+    public void ToggleBottomMaximized() { _bottomPanelMaximized = !_bottomPanelMaximized; Notify(); }
 
     /// <summary>Restores persisted panel state without raising change notifications (used during initial load).</summary>
     public void InitPanels(bool leftCollapsed, bool rightCollapsed, bool bottomCollapsed, int leftWidth, int rightWidth, int bottomHeight)
@@ -599,6 +627,52 @@ internal sealed class FlowViewState(ConceptCatalog concepts)
         => _selectedToken is not null
            && !string.IsNullOrWhiteSpace(text)
            && string.Equals(text.Trim().ToLowerInvariant(), _selectedToken, StringComparison.Ordinal);
+
+    // --- Execution explorer cursor ---------------------------------------
+
+    private string? _cursorExchangeId;
+    private int? _cursorSequence;
+
+    /// <summary>
+    /// Whether the Execution explorer tracks the newest captured stage. Cleared as soon as the user pins a
+    /// past exchange or stage, so incoming live events keep recording without stealing the selection.
+    /// </summary>
+    public bool FollowingLive => _cursorExchangeId is null;
+
+    /// <summary>The pinned exchange, or null while following the newest.</summary>
+    public string? CursorExchangeId => _cursorExchangeId;
+
+    /// <summary>The pinned stage's sequence within its exchange, or null when only an exchange is pinned.</summary>
+    public int? CursorSequence => _cursorSequence;
+
+    /// <summary>Pins one captured stage. Read-only: it selects what to show, it never re-runs anything.</summary>
+    public void SelectStage(string exchangeId, int sequence)
+    {
+        _cursorExchangeId = exchangeId;
+        _cursorSequence = sequence;
+        Notify();
+    }
+
+    /// <summary>Pins an exchange, opening it at its first captured stage.</summary>
+    public void SelectExchange(string exchangeId)
+    {
+        _cursorExchangeId = exchangeId;
+        _cursorSequence = null;
+        Notify();
+    }
+
+    /// <summary>Returns to following the newest captured stage of the current run.</summary>
+    public void FollowLive()
+    {
+        if (_cursorExchangeId is null && _cursorSequence is null)
+        {
+            return;
+        }
+
+        _cursorExchangeId = null;
+        _cursorSequence = null;
+        Notify();
+    }
 
     // --- Stepping helper toggles -----------------------------------------
 

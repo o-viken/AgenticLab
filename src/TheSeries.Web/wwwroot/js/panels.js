@@ -8,7 +8,7 @@ window.theSeriesPanels = (function () {
     const MIN_W = 240;
     const MAX_W = 640;
     const MIN_H = 120;
-    const MAX_H = 600;
+    const MAX_H = 900;
 
     function initResizer(handle, dotnetRef, side) {
         if (!handle) {

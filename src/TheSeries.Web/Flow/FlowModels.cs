@@ -89,15 +89,21 @@ public enum Vendor
 }
 
 /// <summary>
-/// One completed exchange in the conversation transcript: the user's message, the responding agent,
-/// its final reply (or error) and the full ordered flow history for that turn.
+/// One exchange in the conversation: the user's message, the responding agent, its final reply (or
+/// error) and the full ordered flow history for that turn. <paramref name="Id"/> is assigned when the
+/// message is sent and survives archiving, so a selection in the Execution explorer stays put. The
+/// vendor/workspace are recorded as they were at send time, so history never reports whatever the
+/// controls happen to be set to now.
 /// </summary>
 internal sealed record ConversationTurn(
+    string Id,
     string Message,
     string? Agent,
     string Reply,
     string? Error,
-    IReadOnlyList<FlowEvent> Events);
+    IReadOnlyList<FlowEvent> Events,
+    string? Vendor = null,
+    string? Workspace = null);
 
 /// <summary>A skill discovered in the workspace and offered to the agent: its name and one-line description.</summary>
 internal sealed record SkillChip(string Name, string Description);

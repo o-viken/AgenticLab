@@ -23,6 +23,12 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // The message/agent of the run currently shown in the live panels, archived into _turns on next send.
     private string _runMessage = string.Empty;
     private string? _runAgent;
+    // The vendor/workspace the current run was actually sent with, so its history cannot report the
+    // values the controls happen to hold later.
+    private string? _runVendor;
+    private string? _runWorkspace;
+    // Identifies the exchange in the live panels; kept when it is archived so a selection survives.
+    private string _runExchangeId = string.Empty;
 
     private string _reply = string.Empty;
     private string? _error;
@@ -63,6 +69,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private AnatomySizes _anatomySizes = AnatomySizes.Empty;
     private InferenceView _inference = InferenceView.Empty;
     private EmbeddingsView _embeddings = EmbeddingsView.Empty;
+    private IReadOnlyList<ExecutionExchange> _exchanges = Array.Empty<ExecutionExchange>();
 
     /// <summary>Raised whenever the run state changes so the page can re-render (marshal onto the UI thread).</summary>
     public event Func<Task>? Changed;
@@ -167,7 +174,28 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
         // The embeddings/NN view reuses the inference view's prompt tokenization (fake vectors + 2-D map).
         _embeddings = EmbeddingBuilder.Build(_inference);
+
+        // The Execution explorer reads every exchange: the archived ones plus the one in the live panels
+        // (which exists from the moment a message is sent, even before any event arrives).
+        var all = new List<ConversationTurn>(_turns.Count + 1);
+        all.AddRange(_turns);
+        var liveIndex = -1;
+        if (!string.IsNullOrEmpty(_runExchangeId))
+        {
+            if (_running)
+            {
+                liveIndex = all.Count;
+            }
+
+            all.Add(CurrentExchange());
+        }
+
+        _exchanges = ExecutionReplayBuilder.Build(all, liveIndex);
     }
+
+    // The run in the live panels, shaped like an archived exchange so both read the same way.
+    private ConversationTurn CurrentExchange() =>
+        new(_runExchangeId, _runMessage, _runAgent, _reply, _error, _events, _runVendor, _runWorkspace);
 
     // --- Exposed state ----------------------------------------------------
 
@@ -217,7 +245,144 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         set => _answerText = value;
     }
 
+    // --- Execution explorer ----------------------------------------------
+
+    /// <summary>
+    /// Every exchange in the conversation, oldest first, with each one's captured stages grouped into the
+    /// model round-trips they belong to. Includes the run currently in the live panels.
+    /// </summary>
+    public IReadOnlyList<ExecutionExchange> Exchanges
+    {
+        get
+        {
+            EnsureComputed();
+            return _exchanges;
+        }
+    }
+
+    /// <summary>The exchange the explorer is showing: the pinned one, or the newest.</summary>
+    public ExecutionExchange? SelectedExchange
+    {
+        get
+        {
+            var all = Exchanges;
+            if (all.Count == 0)
+            {
+                return null;
+            }
+
+            if (view.CursorExchangeId is { } id)
+            {
+                foreach (var exchange in all)
+                {
+                    if (exchange.Id == id)
+                    {
+                        return exchange;
+                    }
+                }
+            }
+
+            return all[^1];
+        }
+    }
+
+    /// <summary>
+    /// The stage the explorer is showing: the pinned one, the first stage of a freshly opened exchange, or
+    /// the newest captured stage while following the live run.
+    /// </summary>
+    public FlowEvent? SelectedStage
+    {
+        get
+        {
+            if (SelectedExchange is not { Stages.Count: > 0 } exchange)
+            {
+                return null;
+            }
+
+            if (view.CursorSequence is { } sequence)
+            {
+                foreach (var stage in exchange.Stages)
+                {
+                    if (stage.Sequence == sequence)
+                    {
+                        return stage;
+                    }
+                }
+            }
+
+            return view.FollowingLive ? exchange.Stages[^1] : exchange.Stages[0];
+        }
+    }
+
+    /// <summary>Whether the explorer is pinned to a captured stage instead of following the live run.</summary>
+    public bool Replaying => !view.FollowingLive;
+
+    private int SelectedStageIndex
+    {
+        get
+        {
+            if (SelectedExchange is not { } exchange || SelectedStage is not { } stage)
+            {
+                return -1;
+            }
+
+            for (var i = 0; i < exchange.Stages.Count; i++)
+            {
+                if (exchange.Stages[i].Sequence == stage.Sequence)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+    }
+
+    /// <summary>Whether an earlier captured stage exists to step back to.</summary>
+    public bool CanStepBack => SelectedStageIndex > 0;
+
+    /// <summary>Whether a later captured stage exists to step forward to.</summary>
+    public bool CanStepForward =>
+        SelectedExchange is { } exchange && SelectedStageIndex is var i && i >= 0 && i < exchange.Stages.Count - 1;
+
+    /// <summary>Selects the previous captured stage. Inspection only — it never re-runs anything.</summary>
+    public void StepBack() => StepBy(-1);
+
+    /// <summary>Selects the next captured stage. Inspection only — it never re-runs anything.</summary>
+    public void StepForward() => StepBy(1);
+
+    private void StepBy(int delta)
+    {
+        if (SelectedExchange is not { } exchange)
+        {
+            return;
+        }
+
+        var index = SelectedStageIndex + delta;
+        if (index < 0 || index >= exchange.Stages.Count)
+        {
+            return;
+        }
+
+        view.SelectStage(exchange.Id, exchange.Stages[index].Sequence);
+    }
+
+    /// <summary>The tool call a captured result answers, matched on the model's own call id.</summary>
+    public FlowEvent? CallFor(FlowEvent result) =>
+        result.CallId is { } id && SelectedExchange is { } exchange
+            ? exchange.Stages.FirstOrDefault(s => s.Kind == "tool-call" && s.CallId == id)
+            : null;
+
     // --- Diagram highlighting ---------------------------------------------
+
+    // While a captured stage is pinned the diagram shows that stage instead of the live run, built only
+    // from what was captured up to it — a later tool result never leaks back into an earlier stage.
+    private (string? Node, string? Arrow) CursorTarget =>
+        SelectedStage is { } stage ? FlowEventMapping.MapTarget(stage.Kind) : (null, null);
+
+    private string? CursorNode => Replaying ? CursorTarget.Node : _activeNode;
+
+    private string? CursorArrow => Replaying ? CursorTarget.Arrow : _activeArrow;
 
     /// <summary>
     /// Highlights a node when it is the active target. The Client and AiService are merged into one
@@ -226,30 +391,54 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     /// </summary>
     public string NodeClass(string node)
     {
+        var current = CursorNode;
         var active = node switch
         {
-            "harness" => _activeNode is "harness" or "tools",
-            _ => _activeNode == node,
+            "harness" => current is "harness" or "tools",
+            _ => current == node,
         };
         return active ? "active" : string.Empty;
     }
 
-    public string ArrowClass(string arrow) => _activeArrow == arrow ? "active" : string.Empty;
+    public string ArrowClass(string arrow) => CursorArrow == arrow ? "active" : string.Empty;
 
-    public string? ActiveArrow => _activeArrow;
-    public string? ResponseHint => _responseHint;
+    public string? ActiveArrow => CursorArrow;
+
+    public string? ResponseHint =>
+        Replaying ? (SelectedStage is { } stage ? FlowEventMapping.ResponseHintFor(stage) : null) : _responseHint;
 
     /// <summary>The resource currently being used, based on the active tool, or null when none is active.</summary>
-    public ResourceInfo? ActiveResourceInfo => VendorCatalog.ActiveResource(_activeTool);
+    public ResourceInfo? ActiveResourceInfo => VendorCatalog.ActiveResource(ActiveToolName);
 
     /// <summary>The specific tool function that contacted the active resource (e.g. "FindPeople"), or null.</summary>
-    public string? ActiveToolName => _activeTool;
+    public string? ActiveToolName =>
+        Replaying ? (SelectedStage is { } stage ? FlowEventMapping.StageToolName(stage) : null) : _activeTool;
 
     /// <summary>A short preview of the arguments the model passed to the active tool call, or null.</summary>
-    public string? ActiveToolArgs => _activeToolArgs;
+    public string? ActiveToolArgs => Replaying ? ReplayToolArgs : _activeToolArgs;
 
     /// <summary>A short preview of the result the active tool returned to the harness, or null.</summary>
-    public string? ActiveToolResult => _activeToolResult;
+    public string? ActiveToolResult => Replaying ? ReplayToolResult : _activeToolResult;
+
+    private string? ReplayToolArgs
+    {
+        get
+        {
+            if (SelectedStage is not { } stage)
+            {
+                return null;
+            }
+
+            var call = stage.Kind == "tool-call" ? stage : CallFor(stage);
+            return call is null ? null : FlowEventMapping.TruncatePreview(call.Detail ?? call.Data);
+        }
+    }
+
+    // Only a result stage has a result: standing on the call must not reveal what came back afterwards.
+    private string? ReplayToolResult =>
+        SelectedStage is { Kind: "tool-result" } stage
+            ? FlowEventMapping.TruncatePreview(stage.Detail ?? stage.Data)
+            : null;
 
     // --- Derived run values ----------------------------------------------
 
@@ -268,12 +457,14 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     /// <summary>A compact label for the loop badge: the live turn while running, or the total when finished.</summary>
     public string LoopLabel =>
-        _running
-            ? (CurrentTurn == 0 ? "Turn …" : $"Turn {CurrentTurn}")
-            : (TotalTurns == 0 ? "—" : $"{TotalTurns} turn{(TotalTurns == 1 ? "" : "s")}");
+        Replaying
+            ? (SelectedStage is { Turn: > 0 } stage ? $"Turn {stage.Turn}" : "—")
+            : _running
+                ? (CurrentTurn == 0 ? "Turn …" : $"Turn {CurrentTurn}")
+                : (TotalTurns == 0 ? "—" : $"{TotalTurns} turn{(TotalTurns == 1 ? "" : "s")}");
 
     /// <summary>Whether the loop badge should pulse (a turn is in flight).</summary>
-    public bool LoopActive => _running && CurrentTurn > 0;
+    public bool LoopActive => !Replaying && _running && CurrentTurn > 0;
 
     /// <summary>What the agent is doing right now, resolved from the run state in announcement order.</summary>
     public AgentActivity Activity =>
@@ -484,6 +675,11 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _responseHint = null;
         _runMessage = view.Message;
         _runAgent = view.SelectedAgent;
+        _runVendor = view.VendorKey;
+        _runWorkspace = view.Workspace;
+        _runExchangeId = Guid.NewGuid().ToString("n");
+        // A new message always takes the explorer back to the run that is happening now.
+        view.FollowLive();
         // Remember the workspace this run used so it can be suggested again next time.
         view.AddRecentWorkspace(view.Workspace);
         // Clear the composer so the sent message moves into the conversation log, not lingering in the box.
@@ -525,6 +721,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _loadedSkills.Clear();
         _runMessage = string.Empty;
         _runAgent = null;
+        _runVendor = null;
+        _runWorkspace = null;
+        _runExchangeId = string.Empty;
+        view.FollowLive();
 
         try
         {
@@ -541,17 +741,14 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // Moves the run currently in the live panels into the conversation transcript, preserving its history.
     private void ArchiveCurrentRun()
     {
-        if (_events.Count == 0)
+        // Archive by exchange, not by event count: a run that was stopped before anything arrived is still
+        // a real exchange and stays inspectable.
+        if (string.IsNullOrEmpty(_runExchangeId))
         {
             return;
         }
 
-        _turns.Add(new ConversationTurn(
-            _runMessage,
-            _runAgent,
-            _reply,
-            _error,
-            new List<FlowEvent>(_events)));
+        _turns.Add(CurrentExchange() with { Events = new List<FlowEvent>(_events) });
         BumpState();
     }
 
@@ -785,6 +982,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     {
         _running = false;
         _paused = false;
+        // The exchange's status changes with it, so let the explorer recompute.
+        BumpState();
         _breakpoint = null;
         _breakpointControlPending = false;
         _breakpointSettingsPending = false;

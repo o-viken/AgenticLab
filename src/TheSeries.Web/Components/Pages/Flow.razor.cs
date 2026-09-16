@@ -29,6 +29,19 @@ public partial class Flow : IDisposable
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
 
+    /// <summary>How much the Execution panel has captured, shown in its header.</summary>
+    private string ExecutionMeta
+    {
+        get
+        {
+            var count = _run.Exchanges.Count;
+            return count == 0 ? "nothing captured yet" : $"{count} exchange{(count == 1 ? "" : "s")}";
+        }
+    }
+
+    private string MaximizeTitle =>
+        _view.BottomPanelMaximized ? "Restore the Execution panel" : "Expand the Execution panel";
+
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);

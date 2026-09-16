@@ -149,7 +149,7 @@
     flex: 0 0 auto;
     flex-direction: column;
     width: 100%;
-    height: var(--bottom-h, 240px);
+    height: var(--bottom-h, 380px);
 }
 
 /* The splitter sits on the panel's top edge and drags vertically. */

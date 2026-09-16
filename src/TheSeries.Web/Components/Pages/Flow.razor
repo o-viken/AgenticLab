@@ -36,26 +36,27 @@
                         <header class="main-panel-head">
                             <span class="main-panel-title">Agent flow · @_view.VendorName</span>
                         </header>
-                        <div class="main-panel-body">
+                        <div class="@_view.MainBodyClass">
                             <div class="flow-main-panel">
                                 <FlowDiagram />
-                                <FlowOutput />
                             </div>
 
-                            @if (_run.Turns.Count > 0)
-                            {
-                                <SidePanel Side="PanelSide.Bottom" Title="Transcript"
-                                           Collapsed="_view.BottomPanelCollapsed"
-                                           OnToggleCollapse="ToggleBottomPanelAsync"
-                                           OnResize="SetBottomHeightAsync">
-                                    <HeaderActions>
-                                        <span class="panel-meta">@_run.Turns.Count message@(_run.Turns.Count == 1 ? "" : "s")</span>
-                                    </HeaderActions>
-                                    <ChildContent>
-                                        <ConversationTranscript />
-                                    </ChildContent>
-                                </SidePanel>
-                            }
+                            <SidePanel Side="PanelSide.Bottom" Title="Execution"
+                                       Collapsed="_view.BottomPanelCollapsed"
+                                       OnToggleCollapse="ToggleBottomPanelAsync"
+                                       OnResize="SetBottomHeightAsync">
+                                <HeaderActions>
+                                    <span class="panel-meta">@ExecutionMeta</span>
+                                    <button type="button" class="panel-max" @onclick="_view.ToggleBottomMaximized"
+                                            title="@MaximizeTitle" aria-label="@MaximizeTitle"
+                                            aria-pressed="@_view.BottomPanelMaximized">
+                                        <MiniIcon Name="expand" />
+                                    </button>
+                                </HeaderActions>
+                                <ChildContent>
+                                    <ExecutionExplorer />
+                                </ChildContent>
+                            </SidePanel>
                         </div>
                     </section>
 
