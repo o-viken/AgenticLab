@@ -1,6 +1,6 @@
 .foundation-lesson { min-width: 0; }
 .foundation-lesson * { box-sizing: border-box; }
-.story-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
+.story-toolbar { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
 button { cursor: pointer; min-height: 40px; }
 button:disabled { opacity: .45; cursor: default; }
@@ -11,6 +11,11 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); out
 .complete-button { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .4rem .7rem; margin-left: auto; }
 .restart-button { padding: .4rem .7rem; }
 .beat-count { min-width: 3rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+@container (max-width: 420px) {
+    .story-toolbar { display: grid; grid-template-columns: 40px minmax(3rem, 1fr) 40px auto; }
+    .complete-button { grid-column: 1 / -1; margin-left: 0; }
+    .restart-button { grid-column: 4; grid-row: 1; }
+}
 .story-caption { min-height: 4.8em; margin: 1rem 0; max-width: 95ch; line-height: 1.6; color: var(--ink); }
 .reveal { transition: opacity 240ms ease; }
 .unrevealed { visibility: hidden; opacity: 0; pointer-events: none; }

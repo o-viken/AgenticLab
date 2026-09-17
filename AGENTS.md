@@ -110,10 +110,16 @@ but does not replace, the contextual Learn panel. See [README.md](README.md#agen
 user-facing journey and its implementation-status caveats. Flow and Discovery link to it in a new
 tab to preserve the originating page's live run and page-scoped state.
 
-[AgentLearningJourney](src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains nine stage definitions
+Learn uses a `100dvh` flex shell with independently scrolling `.stage-rail` and `.stage-main`
+regions. The main region is positioned to contain absolute accessibility labels without leaking
+document overflow. Below 760px navigation becomes a horizontally scrolling strip above the lesson.
+Foundation and Hosting reveal toolbars are sticky within their lesson, with opaque backgrounds.
+These layout rules do not change reveal state or chapter navigation.
+
+[AgentLearningJourney](src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains ten stage definitions
 in `AllStages`, with stable IDs, diagram nodes, concept references and optional local demo links.
 Its `Stages` list excludes definitions marked `Hidden`; the product-specific `map-to-foundry`
-stage is hidden, leaving eight visible stages. All navigation, numbering and URL resolution use
+stage is hidden, leaving nine visible stages. All navigation, numbering and URL resolution use
 that filtered list, so Previous/Next skip hidden stages and hidden URLs fall back to the first stage.
 The page code-behind
 resolves `?stage=` case-insensitively with a first-stage fallback, handles focus after navigation,
@@ -141,7 +147,27 @@ are excluded from accessibility/focus; reduced motion disables transitions, not 
 The landscape shares one foundation across overlapping purposes; local/cloud comparisons describe
 context, tools and permissions, not automatic portability, real scheduling or deployment. These lessons
 do not reference live Flow state or call backend APIs. Existing stage permalinks remain valid; `/learn`
-now starts at Agent. See README for the eight-stage order and presentation controls.
+now starts at Agent. See README for the nine-stage order and presentation controls.
+
+The `where-to-run` lesson follows `agents-everywhere` and precedes `wider-ecosystem`.
+[HostingLesson](src/TheSeries.Web/Components/Pages/LearningParts/HostingLesson.razor) and its scoped CSS
+render the four-part hosting comparison and three manual reveals. The pure
+[HostingStory](src/TheSeries.Web/Learning/HostingStory.cs) owns platform-neutral option content,
+trigger and operational-readiness selections, and bounded reveal progress. Those selections are
+independent; Restart preserves them. Removing the component on chapter navigation resets its state,
+while related-topic rerenders preserve it. Unrevealed sections use native `hidden` and are not focusable.
+This is separate from FoundationStory's space-reserving diagrams. Existing Lucide assets and Learn
+tokens are reused, with container-based stacking. No deployment or service calls occur; product
+features and organizational platform access are not assumed. Existing journey tests cover placement,
+references, bounded reveals and independent selections. See README for the operating-model comparison.
+`HostingStory.Examples` contains sourced `HostingExample` records with vendor, offering type,
+explanation and explicit `OptionIds`; `CurrentExamples` filters by the selected operating model.
+An offering can span categories. Frameworks are distinguished from managed runtime products,
+and n8n's cloud/self-hosted options remain separate. The always-visible **Vendors and stacks** list
+uses native `details` with official-source links; its category key resets expansion on selection
+changes. No vendor backend, discovery or deployment integration is introduced. Tests cover valid
+category mappings, required examples, cross-vendor coverage and HTTPS sources. Keep the visible
+source-review date and README in sync when rechecking this curated list.
 
 `anatomy-of-agent` sits between harness responsibilities and the agent loop. Its eight cumulative
 reveals cover the shared system prompt/catalogue, persona, configured tools and model/settings,

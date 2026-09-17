@@ -15,7 +15,7 @@ public sealed class AgentLearningJourneyTests
     public void Stages_PreserveOrderedPermalinks()
     {
         Assert.Equal(
-            ["model-to-agent", "agent-landscape", "inside-the-harness", "anatomy-of-agent", "agent-loop", "agents-everywhere", "wider-ecosystem", "run-and-improve"],
+            ["model-to-agent", "agent-landscape", "inside-the-harness", "anatomy-of-agent", "agent-loop", "agents-everywhere", "where-to-run", "wider-ecosystem", "run-and-improve"],
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
     }
 
@@ -128,7 +128,7 @@ public sealed class AgentLearningJourneyTests
     {
         Assert.Equal("run-and-improve", AgentLearningJourney.Move("wider-ecosystem", 1).Id);
         Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("run-and-improve", -1).Id);
-        Assert.Equal(7, AgentLearningJourney.IndexOf("run-and-improve"));
+        Assert.Equal(8, AgentLearningJourney.IndexOf("run-and-improve"));
         Assert.All(AgentLearningJourney.Stages, stage => Assert.False(stage.Hidden));
     }
 
@@ -141,6 +141,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-observe,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
+    [InlineData("where-to-run", "hosting-runtime,hosting-model,hosting-access,hosting-owner")]
     [InlineData("run-and-improve", "lifecycle-run,lifecycle-observe,lifecycle-evaluate,lifecycle-improve")]
     public void Stage_SelectsOnlyItsFocusedNodes(string stageId, string expectedNodeIds)
     {
@@ -149,6 +150,101 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(expectedNodes, stage.HighlightedNodes.ToArray());
         Assert.False(stage.PlatformMap);
         Assert.InRange(stage.ConceptIds.Count, 1, 4);
+    }
+
+    /// <summary>Hosting has a stable address between environment and protocol lessons.</summary>
+    [Fact]
+    public void HostingStage_HasStablePlacementAndPermalink()
+    {
+        Assert.Equal("where-to-run", AgentLearningJourney.Move("agents-everywhere", 1).Id);
+        Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("where-to-run", 1).Id);
+        Assert.Equal("where-to-run", AgentLearningJourney.Move("wider-ecosystem", -1).Id);
+        Assert.Equal("/learn?stage=where-to-run", AgentLearningJourney.Href(AgentLearningJourney.Resolve("WHERE-TO-RUN").Id));
+        Assert.Null(AgentLearningJourney.Resolve("where-to-run").ActionHref);
+    }
+
+    /// <summary>Vendor examples have valid category mappings and HTTPS documentation, distinct from runtime choices.</summary>
+    [Fact]
+    public void HostingExamples_MapToOperatingModelsWithSources()
+    {
+        Assert.Equal(HostingStory.Examples.Count, HostingStory.Examples.Select(example => example.Name).Distinct().Count());
+        Assert.All(HostingStory.Examples, example =>
+        {
+            Assert.All(new[] { example.Name, example.Vendor, example.Kind, example.Detail }, value => Assert.False(string.IsNullOrWhiteSpace(value)));
+            Assert.Equal(Uri.UriSchemeHttps, new Uri(example.Url).Scheme);
+            Assert.NotEmpty(example.OptionIds);
+            Assert.All(example.OptionIds, id => Assert.Contains(HostingStory.Options, option => option.Id == id));
+        });
+        var story = new HostingStory();
+        story.Complete();
+        foreach (var option in HostingStory.Options)
+        {
+            story.SelectOption(option.Id);
+            Assert.NotEmpty(story.CurrentExamples);
+            Assert.All(story.CurrentExamples, example => Assert.Contains(option.Id, example.OptionIds));
+            Assert.Equal(2, story.Beat);
+        }
+        Assert.Equal(["local", "service"], HostingStory.Examples.Single(example => example.Name == "Microsoft Agent Framework").OptionIds.ToArray());
+        Assert.Equal(["managed"], HostingStory.Examples.Single(example => example.Name == "Microsoft Foundry Agent Service").OptionIds.ToArray());
+        Assert.Equal(["product"], HostingStory.Examples.Single(example => example.Name == "Microsoft 365 Copilot").OptionIds.ToArray());
+        Assert.Equal(["local", "service"], HostingStory.Examples.Single(example => example.Name == "n8n (self-hosted)").OptionIds.ToArray());
+        Assert.Equal(["product"], HostingStory.Examples.Single(example => example.Name == "n8n Cloud").OptionIds.ToArray());
+        Assert.Equal(["service", "managed"], HostingStory.Examples.Single(example => example.Name == "LangSmith Deployment").OptionIds.ToArray());
+        foreach (var vendor in new[] { "Microsoft", "OpenAI", "Anthropic", "Google", "AWS", "LangChain", "n8n" })
+        {
+            Assert.Contains(HostingStory.Examples, example => example.Vendor == vendor);
+        }
+    }
+
+    /// <summary>Hosting choices, triggers and readiness do not change each other or reveal progress.</summary>
+    [Fact]
+    public void HostingStory_ChoicesAreIndependentAndComplete()
+    {
+        var story = new HostingStory();
+        Assert.Equal(["local", "product", "service", "managed"], HostingStory.Options.Select(option => option.Id).ToArray());
+        story.Complete();
+        foreach (var option in HostingStory.Options)
+        {
+            story.SelectOption(option.Id);
+            Assert.Same(option, story.Option);
+            Assert.All(new[] { option.Fit, option.Runtime, option.Model, option.Access, option.Owner, option.Tradeoff, option.Availability },
+                value => Assert.False(string.IsNullOrWhiteSpace(value)));
+            foreach (var readiness in HostingStory.ReadinessLevels)
+            {
+                story.SelectReadiness(readiness.Id);
+                Assert.Same(readiness, story.Readiness);
+                Assert.All(new[] { readiness.Identity, readiness.State, readiness.Reliability, readiness.Control },
+                    value => Assert.False(string.IsNullOrWhiteSpace(value)));
+                foreach (var trigger in HostingStory.Triggers)
+                {
+                    story.SelectTrigger(trigger);
+                    Assert.Equal(trigger, story.Trigger);
+                    Assert.NotEmpty(story.TriggerDetail);
+                    Assert.Same(option, story.Option);
+                    Assert.Same(readiness, story.Readiness);
+                    Assert.False(story.CanNext);
+                }
+            }
+        }
+        story.SelectOption("unknown");
+        story.SelectReadiness(null);
+        story.SelectTrigger("unknown");
+        Assert.Equal("managed", story.Option.Id);
+        Assert.Equal("operate", story.Readiness.Id);
+        Assert.Equal("Event", story.Trigger);
+        story.Restart();
+        Assert.Equal(0, story.Beat);
+        Assert.Equal("managed", story.Option.Id);
+        story.Move(int.MaxValue);
+        Assert.Equal(2, story.Beat);
+        story.Move(-1);
+        Assert.Equal(1, story.Beat);
+        story.Move(int.MinValue);
+        Assert.False(story.CanPrevious);
+        var fresh = new HostingStory();
+        Assert.Equal("local", fresh.Option.Id);
+        Assert.Equal("try", fresh.Readiness.Id);
+        Assert.Equal("User request", fresh.Trigger);
     }
 
     /// <summary>Reveal navigation is bounded, reversible and reset only when the lesson changes.</summary>

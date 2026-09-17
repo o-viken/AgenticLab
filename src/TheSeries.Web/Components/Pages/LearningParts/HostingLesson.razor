@@ -1,0 +1,86 @@
+@using TheSeries.Web.Learning
+
+<section class="hosting-lesson" data-diagram="hosting" data-beat="@_story.Beat" aria-label="Agent hosting and operating models">
+    <div class="reveal-controls" role="group" aria-label="Diagram reveals">
+        <button type="button" class="icon-button" title="Previous reveal" aria-label="Previous reveal" disabled="@(!_story.CanPrevious)" @onclick="() => _story.Move(-1)"><MiniIcon Name="prev" /></button>
+        <span class="beat-count">@(_story.Beat + 1) / @HostingStory.Captions.Count</span>
+        <button type="button" class="icon-button" title="Next reveal" aria-label="Next reveal" disabled="@(!_story.CanNext)" @onclick="() => _story.Move(1)"><MiniIcon Name="next" /></button>
+        <button type="button" disabled="@(!_story.CanNext)" @onclick="_story.Complete"><MiniIcon Name="expand" /> Show complete diagram</button>
+        <button type="button" disabled="@(!_story.CanPrevious)" @onclick="_story.Restart">Restart</button>
+    </div>
+    <p class="caption" role="status" aria-live="polite" aria-atomic="true">@_story.Caption</p>
+
+    <div class="option-picker" role="group" aria-label="Operating model">
+        @foreach (var option in HostingStory.Options)
+        {
+            <button type="button" aria-pressed="@((_story.Option == option).ToString().ToLowerInvariant())" @onclick="() => _story.SelectOption(option.Id)">@option.Label</button>
+        }
+    </div>
+    <p class="task-fit">@_story.Option.Fit</p>
+    <dl class="hosting-map" aria-label="Runtime, model, access and ownership">
+        <div data-node="hosting-runtime" class="runtime"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Harness runtime</dt><dd>@_story.Option.Runtime</dd></div>
+        <div data-node="hosting-model" class="model"><dt><span class="host-icon model-icon" aria-hidden="true"></span>Model service</dt><dd>@_story.Option.Model</dd></div>
+        <div data-node="hosting-access" class="access"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Tools and data</dt><dd>@_story.Option.Access</dd></div>
+        <div data-node="hosting-owner" class="owner"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Operational owner</dt><dd>@_story.Option.Owner</dd></div>
+    </dl>
+    <dl class="decision-notes">
+        <div><dt>Trade-off</dt><dd>@_story.Option.Tradeoff</dd></div>
+        <div><dt>Available to you?</dt><dd>@_story.Option.Availability</dd></div>
+    </dl>
+
+    <section class="lesson-band vendor-examples" aria-labelledby="vendor-examples-title">
+        <h3 id="vendor-examples-title">Vendors and stacks</h3>
+        <p class="examples-note">Representative examples, not equivalent products or an approved vendor list. A framework builds the agent; a runtime hosts it; a product provides a ready-made experience. Offerings can span categories.</p>
+        <div class="example-list" @key="_story.Option.Id">
+            @foreach (var example in _story.CurrentExamples)
+            {
+                <details class="vendor-example" @key="example.Name">
+                    <summary><span class="example-name">@example.Name</span><span class="example-meta">@example.Vendor &middot; @example.Kind</span></summary>
+                    <div class="example-detail">
+                        <p>@example.Detail</p>
+                        <a href="@example.Url" target="_blank" rel="noopener noreferrer">Official source<span class="sr-only"> for @example.Name (opens in a new tab)</span></a>
+                    </div>
+                </details>
+            }
+        </div>
+        <p class="examples-note">Sources checked 17 September 2026. Features, names, licenses, regions and access can change. Local framework execution does not imply a local model, and a listed product does not imply unattended operation.</p>
+    </section>
+
+    <section class="lesson-band" hidden="@(_story.Beat < 1)" aria-labelledby="execution-title">
+        <h3 id="execution-title">How work starts is a separate choice</h3>
+        <label class="trigger-picker">Trigger
+            <select value="@_story.Trigger" @onchange="args => _story.SelectTrigger(args.Value?.ToString())">
+                @foreach (var trigger in HostingStory.Triggers)
+                {
+                    <option>@trigger</option>
+                }
+            </select>
+        </label>
+        <p class="trigger-detail">@_story.TriggerDetail</p>
+        <p><strong>Supervision:</strong> an attended run keeps a person involved; an unattended run needs explicit limits and escalation. In this example, recommendations still require human approval before publication, regardless of the trigger.</p>
+        <p><strong>Hybrid:</strong> a cloud harness can call a tool inside your company network through an explicitly secured connection. The model, harness and tools need not share a host. Connectivity alone does not grant permission.</p>
+        <p class="constraint">A trigger is a design choice, not a promised feature of every product. Verify scheduling, event delivery and durable approval support in the chosen runtime.</p>
+    </section>
+
+    <section class="lesson-band" hidden="@(_story.Beat < 2)" aria-labelledby="readiness-title">
+        <h3 id="readiness-title">From experiment to an operated service</h3>
+        <p>This is one possible development path, not a ladder every agent must climb. The operating model above and the responsibilities below are independent.</p>
+        <div class="readiness-picker" role="group" aria-label="Operational readiness">
+            @foreach (var level in HostingStory.ReadinessLevels)
+            {
+                <button type="button" aria-pressed="@((_story.Readiness == level).ToString().ToLowerInvariant())" @onclick="() => _story.SelectReadiness(level.Id)">@level.Label</button>
+            }
+        </div>
+        <dl class="readiness-details">
+            <div><dt>Identity and access</dt><dd>@_story.Readiness.Identity</dd></div>
+            <div><dt>State and isolation</dt><dd>@_story.Readiness.State</dd></div>
+            <div><dt>Reliability and cost</dt><dd>@_story.Readiness.Reliability</dd></div>
+            <div><dt>Controls and release</dt><dd>@_story.Readiness.Control</dd></div>
+        </dl>
+        <p class="constraint">Moving code does not move its permissions, files, sessions or secrets. Validate tool compatibility, data residency, network access and recovery in the target environment. Product configurations may need redesign, not redeployment.</p>
+    </section>
+</section>
+
+@code {
+    private readonly HostingStory _story = new();
+}

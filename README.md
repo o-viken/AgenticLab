@@ -88,8 +88,12 @@ Open **Agent guide** from Flow or Discovery for the standalone `/learn` page. Th
 tab so a live or paused run remains in its original page. The existing **Learn** checkbox still
 controls the contextual topic panel; it is independent of the guide.
 
-Eight stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the harness**,
-**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **The wider ecosystem**, and
+The guide fits the viewport: the header and stage navigation stay visible while the lesson pane
+scrolls independently. Navigation scrolls separately when needed and becomes a horizontal strip
+on narrow screens. Reveal controls stay pinned at the top of the pane while scrolling their lesson.
+
+Nine stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the harness**,
+**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **Where should your agent run?**, **The wider ecosystem**, and
 **Run and improve**. Each stage has a
 concept diagram and related topics from the same concept catalog as the contextual panel.
 **The Agentic Landscape** connects chat, coding, office and custom purposes to one shared
@@ -139,6 +143,30 @@ local/cloud comparisons describe those products. The configurations show the sha
 for each purpose, including context, tools and controls. A separate user/schedule/event selector
 explains triggers. A local application can use a remote model; portability and tool access are
 not automatic. These controls never move agents, schedule work or make model calls.
+**Where should your agent run?** (`/learn?stage=where-to-run`) compares **Personal runtime**,
+**Existing product**, **Your own service**, and **Managed agent platform** using one report-review task.
+Each option separates harness runtime, model service, tools/data access and operational ownership,
+then explains its trade-off and the approvals or capabilities needed to use it. These are operating
+models, not a list of platforms available in your organization.
+The **Vendors and stacks** list adds expandable, officially sourced examples for the selected
+category: Microsoft Agent Framework, OpenAI Agents SDK, Claude Agent SDK, Google ADK, Strands
+Agents and LangGraph for code-based stacks; Microsoft 365 Copilot, Copilot Studio, ChatGPT GPTs
+and workspace agents, Gemini Gems and n8n Cloud for product-based work; Foundry Agent Service,
+Google's Gemini Enterprise Agent Platform Agent Runtime, Amazon Bedrock AgentCore Runtime,
+Claude Managed Agents and LangSmith Deployment for managed operation. Self-hosted n8n appears
+under personal/own-service options; LangSmith Deployment spans own-service and managed options.
+Each entry distinguishes its offering type from hosting and links to an official source. Sources
+were checked on 17 September 2026; preview/beta, license and access caveats are not guarantees of
+organizational availability. Category changes collapse the new list's details, without resetting
+the lesson's reveal, trigger or readiness selections.
+Three manual reveals cover the comparison, triggers/supervision and hybrid connections, then
+operational readiness. Later sections remain hidden and unfocusable until revealed. User request,
+schedule and event are independent of hosting; all retain review before publication in this example.
+**Try it yourself / Share with a team / Run operationally** compares identity, state and isolation,
+recovery, cost and release controls. Local-to-cloud is one possible path, not a requirement or a
+promise of portability. Selections preserve reveal progress; Restart preserves selections, while
+chapter reentry or reload resets them. Related topics do not reset state. No deployment, platform
+discovery, scheduling or backend calls are performed by this lesson.
 **The wider ecosystem** contrasts MCP tool calls with A2A delegation, without exposing agent internals.
 **Run and improve** follows Run, Observe, Evaluate and Improve back to the next tested version;
 this operating cycle is separate from the agent's per-turn execution loop.

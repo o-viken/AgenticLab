@@ -9,8 +9,11 @@
     --blue: #315f9e;
     --app: #a5473d;
     --agent: #8c6815;
-    min-height: 100vh;
-    padding: 0 var(--page-gutter) 2.5rem;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 var(--page-gutter);
     background: var(--page);
     color: var(--ink);
     font-family: Bahnschrift, "Segoe UI Variable", sans-serif;
@@ -19,7 +22,7 @@
 }
 
 .learn-app, .learn-app * { box-sizing: border-box; }
-.learn-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin: 0 calc(-1 * var(--page-gutter)); padding: 12px var(--page-gutter); border-bottom: 1px solid var(--line); }
+.learn-header { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin: 0 calc(-1 * var(--page-gutter)); padding: 12px var(--page-gutter); border-bottom: 1px solid var(--line); }
 .learn-header h1 { margin: 0 0 .35rem; font: 500 30px Cambria, Georgia, serif; }
 .learn-header p { margin: 0; color: var(--muted); }
 .page-links { display: flex; flex-wrap: wrap; gap: 1.25rem; }
@@ -29,8 +32,8 @@ a { color: var(--accent); text-underline-offset: 3px; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
-.learn-workspace { display: grid; grid-template-columns: 245px minmax(0, 1fr); }
-.stage-rail { padding: 1.2rem 1rem 1rem 0; border-right: 1px solid var(--line); }
+.learn-workspace { display: grid; grid-template-columns: 245px minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; }
+.stage-rail { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.2rem 1rem 1rem 0; border-right: 1px solid var(--line); }
 .journey-heading { display: flex; justify-content: space-between; gap: .5rem; color: var(--muted); font-size: 12px; margin: 0 .65rem 1rem; }
 .stage-progress { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
@@ -38,7 +41,7 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .stage-list a:hover { background: #edf1ed; }
 .stage-list a[aria-current="step"] { color: var(--accent); background: #e8f1eb; border-left-color: var(--accent); font-weight: 600; }
 .stage-number { font-size: 12px; font-variant-numeric: tabular-nums; }
-.stage-main { padding: 1.4rem 0 0 2rem; min-width: 0; container-type: inline-size; }
+.stage-main { --lesson-scroll-inset: 1.4rem; position: relative; padding: var(--lesson-scroll-inset) 1rem 2.5rem 2rem; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-top: 8rem; container-type: inline-size; }
 .stage-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .8rem; }
 .eyebrow { margin: 0 0 .4rem; font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
 .stage-heading h2 { margin: 0; font: 500 26px Cambria, Georgia, serif; overflow-wrap: anywhere; }
@@ -165,11 +168,13 @@ figcaption { margin-top: .85rem; font-size: 12px; line-height: 1.5; color: var(-
 }
 
 @media (max-width: 760px) {
-    .learn-workspace { display: block; }
-    .stage-rail { padding: 1rem 0; border-right: 0; border-bottom: 1px solid var(--line); }
-    .stage-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .stage-list a { padding: .5rem; gap: .35rem; font-size: 12px; }
-    .stage-main { padding: 1.25rem 0 0; }
+    .learn-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .stage-rail { padding: .6rem 0; border-right: 0; border-bottom: 1px solid var(--line); }
+    .journey-heading { margin-bottom: .4rem; }
+    .stage-list { display: flex; overflow-x: auto; }
+    .stage-list li { flex: 0 0 175px; }
+    .stage-list a { height: 100%; padding: .5rem; gap: .35rem; font-size: 12px; }
+    .stage-main { --lesson-scroll-inset: 1.25rem; padding: var(--lesson-scroll-inset) 0 2rem; }
     .stage-heading h2 { font-size: 24px; }
 }
 
