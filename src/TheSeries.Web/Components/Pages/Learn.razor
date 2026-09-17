@@ -1,6 +1,7 @@
 @page "/learn"
 @rendermode InteractiveServer
 @using TheSeries.Web.Learning
+@using TheSeries.Web.Components.Pages.LearningParts
 
 <PageTitle>Agentic AI - @_stage.Title</PageTitle>
 
@@ -48,7 +49,11 @@
             <p class="stage-summary">@_stage.Summary</p>
 
             <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
-                @if (_stage.Id == "inside-the-harness")
+                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "agents-everywhere" or "anatomy-of-agent")
+                {
+                    <FoundationLesson StageId="@_stage.Id" />
+                }
+                else if (_stage.Id == "inside-the-harness")
                 {
                     <p class="boundary-label">Harness</p>
                     <div class="harness-anatomy" data-diagram="harness">
@@ -72,17 +77,6 @@
                         <div class="loop-observe">@DiagramNode("loop-observe")</div>
                         <div class="loop-return" role="img" aria-label="Observation returns to the model as updated context for another decision">
                             <span class="sr-only">Repeat with updated context</span>
-                        </div>
-                    </div>
-                }
-                else if (_stage.Id == "model-to-agent")
-                {
-                    <div class="agent-composition" data-diagram="composition">
-                        <p class="boundary-label">Agent = harness + model</p>
-                        <div class="composition-parts">
-                            @DiagramNode("harness")
-                            <span class="composition-plus" aria-hidden="true">+</span>
-                            @DiagramNode("model")
                         </div>
                     </div>
                 }

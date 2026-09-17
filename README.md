@@ -88,25 +88,68 @@ Open **Agent guide** from Flow or Discovery for the standalone `/learn` page. Th
 tab so a live or paused run remains in its original page. The existing **Learn** checkbox still
 controls the contextual topic panel; it is independent of the guide.
 
-Five stages connect the ideas: **Agent**, **Inside the harness**, **The agent loop**,
-**The wider ecosystem**, and **Run and improve**. Each stage has a
+Eight stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the harness**,
+**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **The wider ecosystem**, and
+**Run and improve**. Each stage has a
 concept diagram and related topics from the same concept catalog as the contextual panel.
-**Agent** introduces only the harness-plus-model composition, with the harness first.
+**The Agentic Landscape** connects chat, coding, office and custom purposes to one shared
+agentic foundation. These overlapping examples are not a vendor taxonomy.
+Its final reveal illustrates the agent loop with application/model responsibilities, an explicit
+observation-to-context return path, and an answer branch that ends the turn without requiring a tool.
+**Agent** builds **Application + Model** in seven reveals: a names-only Application + Model
+overview, application details and responsibilities, application tool execution, model details,
+the outbound context/tool definitions/tool results, the model's answer or tool
+request, and the enclosing agent boundary. The application's
+agent-running part is introduced as the harness; triggers remain outside the agent boundary.
 Its original `/learn?stage=model-to-agent` permalink is preserved.
+Both component boxes and the plus sign remain visible from the opening overview; descriptions,
+responsibilities, tools and exchange paths appear progressively without moving the boxes.
+These two lessons, **Anatomy of an agent**, and **Same foundation, different setting** provide Previous/Next reveal controls,
+**Show complete diagram** and **Restart**, separate from chapter navigation. Reveals reserve
+their layout space, are manually advanced (no autoplay), and respect reduced motion.
+Reveal progress resets on a chapter change or reload; opening a related concept does not reset it.
 **Inside the harness** focuses on instructions, context, tools and execution controls, without
-repeating the model-plus-harness overview. **The agent loop** shows the model's decision, the
+repeating the model-plus-harness overview.
+**Anatomy of an agent** (`/learn?stage=anatomy-of-agent`) follows with eight cumulative reveals:
+system prompt, available harness capabilities, agent persona, selected tools and model/settings,
+task prompt, custom instructions, skill descriptions, and a loaded skill body. The layered diagram
+distinguishes standing guidance, configured capabilities, and per-task context. MCP tools and A2A
+delegation are labelled separately; a skill is guidance loaded through an allowed tool, not extra permissions.
+The **Chat / Office / Coding / Custom** selector changes the entire anatomy to fit its purpose:
+system guidance, capability catalogue and selected subset, persona, model role, required controls,
+task, custom instructions and playbooks. **Office** is a Microsoft 365 Copilot-style example with
+mail, calendar, document and people connectors plus sending mail with user confirmation.
+**Chat** researches questions; **Custom** investigates equipment alerts with read-only telemetry
+and manuals, without equipment control. These are illustrative teaching configurations, not product
+replicas or claims about native connectors, skills, models or enforcement in Microsoft 365.
+**Coding** retains the **Ask / Plan / Review** modes. Switching coding modes keeps its shared prompt,
+catalogue and model role fixed. Purpose and mode changes preserve reveal progress; choosing a purpose
+selects its first mode. **Restart** retains the selected purpose and mode; leaving and reentering the
+chapter or reloading restores Coding / Ask.
+Opening a related topic preserves both selection and progress. No backend agent is selected and no
+model, tool or discovery call runs. On narrow screens the layers stack in reveal order.
+**The agent loop** shows the model's decision, the
 tool execution and observation cycle, and a separate final-answer exit that can bypass tools.
+**Same foundation, different setting** compares illustrative local/cloud application configurations
+and names familiar applications by purpose: ChatGPT, Gemini and Claude for Chat; GitHub Copilot,
+Claude Code and Gemini Code Assist for Coding; Microsoft 365 Copilot and Gemini for Google Workspace
+for Office; and an in-house agent or business application for Custom. Products can span purposes,
+and agentic capabilities depend on mode/configuration. These examples do not claim that the
+local/cloud comparisons describe those products. The configurations show the shared foundation
+for each purpose, including context, tools and controls. A separate user/schedule/event selector
+explains triggers. A local application can use a remote model; portability and tool access are
+not automatic. These controls never move agents, schedule work or make model calls.
 **The wider ecosystem** contrasts MCP tool calls with A2A delegation, without exposing agent internals.
 **Run and improve** follows Run, Observe, Evaluate and Improve back to the next tested version;
 this operating cycle is separate from the agent's per-turn execution loop.
 Stage URLs such as `/learn?stage=agent-loop` support bookmarks, reload and browser Back/Forward.
 The product-specific **Map to Microsoft Foundry** stage is retained in code but hidden from the guide.
-Previous/Next skip it, and **Run and improve** is stage 05. Hidden or unknown stage IDs fall back
+Previous/Next skip it, and **Run and improve** is stage 08. Hidden or unknown stage IDs fall back
 to the first stage. Live-flow and discovery links navigate only; they
 never send a prompt or start discovery automatically.
 
-The diagrams are explanations, not live telemetry. The first four stages describe existing
-capabilities. The final stage distinguishes today's execution traces from future
+The diagrams are explanations, not live telemetry. Landscape and environment comparisons are
+illustrative, not product or deployment guarantees. The final stage distinguishes today's execution traces from future
 Foundry hosting and managed-evaluation integration. The guide works without AiService or Azure
 credentials; run only the Web project and visit `/learn`:
 
@@ -114,7 +157,8 @@ credentials; run only the Web project and visit `/learn`:
 dotnet run --project src/TheSeries.Web
 ```
 
-Focused tests validate stable stage URLs, navigation, per-stage node selection and references to the shipped concept content:
+Focused tests validate stable stage URLs, navigation, reveal bounds/reset, independent example/trigger
+selection, per-stage node selection and references to the shipped concept content:
 
 ```sh
 dotnet test tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj

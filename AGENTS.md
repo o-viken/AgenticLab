@@ -110,10 +110,10 @@ but does not replace, the contextual Learn panel. See [README.md](README.md#agen
 user-facing journey and its implementation-status caveats. Flow and Discovery link to it in a new
 tab to preserve the originating page's live run and page-scoped state.
 
-[AgentLearningJourney](src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains six stage definitions
+[AgentLearningJourney](src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains nine stage definitions
 in `AllStages`, with stable IDs, diagram nodes, concept references and optional local demo links.
 Its `Stages` list excludes definitions marked `Hidden`; the product-specific `map-to-foundry`
-stage is hidden, leaving five visible stages. All navigation, numbering and URL resolution use
+stage is hidden, leaving eight visible stages. All navigation, numbering and URL resolution use
 that filtered list, so Previous/Next skip hidden stages and hidden URLs fall back to the first stage.
 The page code-behind
 resolves `?stage=` case-insensitively with a first-stage fallback, handles focus after navigation,
@@ -128,6 +128,35 @@ the responsive layouts. Focused tests protect stage node selection and reference
 browser checks for rendered diagrams and connectors. These diagrams are not live telemetry or
 deployment/security maps. Current execution traces are distinguished from future Foundry hosting
 and managed evaluations. No Foundry integration is added by this page.
+
+The opening `model-to-agent`, second `agent-landscape`, fourth `anatomy-of-agent`, and post-loop `agents-everywhere`
+lessons render [FoundationLesson](src/TheSeries.Web/Components/Pages/LearningParts/FoundationLesson.razor)
+with its own scoped CSS. The pure local [FoundationStory](src/TheSeries.Web/Learning/FoundationStory.cs)
+owns bounded reveal progression, captions and illustrative task/environment examples. Chapter changes
+reset reveals; parent rerenders (such as opening a related concept) preserve them. Purpose and trigger
+selection are independent. The application/model composition introduces the harness as the application's
+agent-running part, reveals controls/tools before the exchange paths, and keeps triggers outside the agent
+boundary. Desktop exchange paths become vertical on narrow containers. Hidden reveals reserve space and
+are excluded from accessibility/focus; reduced motion disables transitions, not manual progression.
+The landscape shares one foundation across overlapping purposes; local/cloud comparisons describe
+context, tools and permissions, not automatic portability, real scheduling or deployment. These lessons
+do not reference live Flow state or call backend APIs. Existing stage permalinks remain valid; `/learn`
+now starts at Agent. See README for the eight-stage order and presentation controls.
+
+`anatomy-of-agent` sits between harness responsibilities and the agent loop. Its eight cumulative
+reveals cover the shared system prompt/catalogue, persona, configured tools and model/settings,
+task prompt, custom instructions, skill descriptions and a loaded playbook. `FoundationStory`
+owns `AnatomyPurpose` profiles containing separate `AnatomyExample`, `AnatomyCapability` and
+`AnatomySkill` data. The always-available Chat / Office / Coding / Custom selector switches the
+system guidance, catalogue, subset, persona, model role, required controls, task, instructions and skills.
+Office is Microsoft 365 Copilot-inspired work grounding and confirmed sending, not a native product
+contract; Chat researches questions and Custom reads equipment telemetry without equipment control.
+Coding retains illustrative read-only Ask / Plan / Review modes with its shared catalogue/model.
+These are not backend agents. Purpose selection chooses its first mode without changing reveal progress.
+Restart preserves selection; chapter reentry resets it to Coding / Ask. Hidden persona controls are inert.
+MCP tools and A2A delegation remain distinct; instructions and skills do not grant permissions.
+Anatomy styles stay in FoundationLesson.razor.css and stack by container width. Existing journey
+tests cover ordered permalinks, reveal/reset semantics and bounded purpose-specific capability subsets.
 
 [TheSeries.Web.Tests](tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj) follows the solution's
 `tests/` convention and accesses the internal journey through `InternalsVisibleTo`. Concept content

@@ -48,9 +48,6 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .stage-summary { max-width: 90ch; line-height: 1.65; margin: 1rem 0 1.4rem; }
 .architecture { margin: 0; padding: 1.25rem; border: 1px solid var(--line); background-color: var(--surface); background-image: linear-gradient(#f1f4f1 1px, transparent 1px), linear-gradient(90deg, #f1f4f1 1px, transparent 1px); background-size: 24px 24px; }
 .boundary-label { color: var(--muted); font-size: 11px; font-weight: 600; margin: 0 0 .8rem; line-height: 1.5; text-transform: uppercase; }
-.agent-composition { max-width: 700px; margin: 0 auto; }
-.composition-parts { display: grid; grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr); align-items: center; }
-.composition-plus { color: var(--accent); font-size: 28px; text-align: center; }
 .ecosystem-connections { display: grid; grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr); row-gap: 1rem; max-width: 700px; margin: 0 auto; }
 .ecosystem-origin { grid-area: 1 / 1 / 3 / 2; display: grid; }
 .mcp-link { grid-area: 1 / 2; color: var(--agent); }
@@ -149,7 +146,6 @@ figcaption { margin-top: .85rem; font-size: 12px; line-height: 1.5; color: var(-
     .mapping-row dt span { transform: rotate(90deg); }
     .ecosystem-connections { grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr); }
     .ecosystem-connections .map-node { grid-template-columns: minmax(0, 1fr); padding: .6rem; }
-    .composition-parts { grid-template-columns: 1fr; }
     .execution-loop { grid-template-columns: 18px minmax(0, 1fr) 22px minmax(80px, .65fr); }
     .execution-loop .map-node { grid-template-columns: minmax(0, 1fr); padding: .6rem; }
     .harness-anatomy { grid-template-columns: 1fr; }
