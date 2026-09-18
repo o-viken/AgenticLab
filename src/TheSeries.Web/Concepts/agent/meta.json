@@ -1,7 +1,7 @@
 {
   "title": "Agent",
   "category": "core",
-  "summary": "A model plus a harness: the LLM does the thinking, the harness gives it context, tools and a loop to actually get things done.",
+  "summary": "Agent = Agent host + Model. The model reasons and chooses a next step; the host manages context and executes permitted actions. Together, they form an agent.",
   "links": [
     { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
     { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }

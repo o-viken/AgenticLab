@@ -5,7 +5,7 @@
 }
 <section class="@sectionClass" aria-label="Remote A2A agents">
     <div class="a2a-entry">
-        <span>@Run.Focus.A2ACaller harness <span class="a2a-protocol">A2A</span></span>
+        <span>@Run.Focus.A2ACaller agent host <span class="a2a-protocol">A2A</span></span>
     </div>
     <header class="a2a-heading">
         <h3>Remote agents</h3>
@@ -34,7 +34,7 @@
                 <div class="a2a-agent-outline" aria-hidden="true"></div>
                 <div class="a2a-harness">
                     <div class="a2a-agent-title"><span class="diagram-icon icon-harness" aria-hidden="true"></span><h4>@item.Agent.Name</h4></div>
-                    <span class="a2a-role">Harness</span>
+                    <span class="a2a-role">Agent host</span>
                     @if (View.Diagram.ShowEnvironment)
                     {
                         <span class="a2a-location">A2A service · shared process</span>
@@ -56,7 +56,7 @@
                 </div>
                 <div class="a2a-model">
                     <span class="diagram-icon icon-model" aria-hidden="true"></span>
-                    <strong>LLM</strong>
+                    <strong>Model</strong>
                     <span>Cloud model</span>
                 </div>
             </article>

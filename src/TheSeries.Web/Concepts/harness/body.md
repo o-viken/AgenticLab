@@ -1,25 +1,31 @@
-## What is a harness?
+## What is an agent host?
 
-The **harness** is everything that wraps the model to turn it into a working agent. The
-model thinks; the harness does the rest:
+The **agent host** is the software that manages an agent's run around the model.
+Its agent-running machinery is also called the **harness**. Here, host means that
+software role, not a particular machine, cloud provider or product.
 
-- **Assembles context** — system prompt, persona, conversation history, and (per run) the
-  skills catalogue and environment info.
-- **Exposes a bounded toolset** — only the tools this agent is allowed to use.
-- **Runs the loop** — sends a request to the model, executes any tool calls it makes,
-  feeds the results back, and repeats (think → act → observe).
-- **Relays results** — returns the final answer to the client.
+**Agent host = Context + Instructions + Tools + Memory + Execution controls.**
 
-Because the harness controls the toolset and the prompt, it's also where **safety and
-limits** live: tools are scoped to a workspace, commands are allowlisted, and the model
-only ever sees the tools you leave enabled.
+- **Context**: gathers the task, relevant information and tool results for the next model request.
+- **Instructions**: loads operating guidance, the agent persona and applicable task guidance.
+- **Tools**: exposes a bounded catalogue and dispatches permitted requests to actual implementations.
+- **Memory**: retains conversation or other state outside the model and selects what to include in context.
+- **Execution controls**: enforces permissions, approvals, limits, cancellation and other runtime checks.
+
+The model proposes a next step; the host checks it, executes an allowed action and returns
+the result to the model. A final answer is delivered to the client. Instructions guide
+behavior, but enforcement must happen outside the prompt. The host can be local or remote,
+independently of where model inference runs.
 
 ## In this application (the-series)
 
-The **Harness** node merges the client and the AI service. Turn on **Expand harness** in
+The **Agent host** node merges the client and the AI service. Turn on **Expand agent host** in
 the Expert perspective to break it into colour-coded layers — *application* (system prompt
 + plumbing), *agent* (persona, tools, settings) and *user* (the prompt) — and watch the
 **Context** bar grow as each turn adds to what the model sees.
 
-> **Agent = Model + Harness.** The dashed **Harness** boundary wraps the scaffolding; the
-> **Agent** boundary additionally wraps the LLM.
+Conversation memory is retained in the service with a sliding inactivity expiry; it is not
+permanent model memory. Workspace access and tool selection are enforced by application code.
+
+> **Agent = Agent host + Model.** The **Agent host** boundary excludes the model;
+> the **Agent** boundary includes both.

@@ -18,7 +18,7 @@
     </div>
     <p class="task-fit">@_story.Option.Fit</p>
     <dl class="hosting-map" aria-label="Runtime, model, access and ownership">
-        <div data-node="hosting-runtime" class="runtime"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Harness runtime</dt><dd>@_story.Option.Runtime</dd></div>
+        <div data-node="hosting-runtime" class="runtime"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Agent host</dt><dd>@_story.Option.Runtime</dd></div>
         <div data-node="hosting-model" class="model"><dt><span class="host-icon model-icon" aria-hidden="true"></span>Model service</dt><dd>@_story.Option.Model</dd></div>
         <div data-node="hosting-access" class="access"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Tools and data</dt><dd>@_story.Option.Access</dd></div>
         <div data-node="hosting-owner" class="owner"><dt><span class="host-icon runtime-icon" aria-hidden="true"></span>Operational owner</dt><dd>@_story.Option.Owner</dd></div>
@@ -58,7 +58,7 @@
         </label>
         <p class="trigger-detail">@_story.TriggerDetail</p>
         <p><strong>Supervision:</strong> an attended run keeps a person involved; an unattended run needs explicit limits and escalation. In this example, recommendations still require human approval before publication, regardless of the trigger.</p>
-        <p><strong>Hybrid:</strong> a cloud harness can call a tool inside your company network through an explicitly secured connection. The model, harness and tools need not share a host. Connectivity alone does not grant permission.</p>
+        <p><strong>Hybrid:</strong> a cloud agent host can call a tool inside your company network through an explicitly secured connection. The model, agent host and tools need not run on the same machine. Connectivity alone does not grant permission.</p>
         <p class="constraint">A trigger is a design choice, not a promised feature of every product. Verify scheduling, event delivery and durable approval support in the chosen runtime.</p>
     </section>
 

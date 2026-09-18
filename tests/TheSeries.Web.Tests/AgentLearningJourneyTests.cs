@@ -10,6 +10,20 @@ namespace TheSeries.Web.Tests;
 /// <summary>Protects journey permalinks, navigation and references to the shipped learning content.</summary>
 public sealed class AgentLearningJourneyTests
 {
+    /// <summary>The teaching vocabulary separates model decisions from host-managed execution.</summary>
+    [Fact]
+    public void AgentDefinition_DistinguishesHostAndModel()
+    {
+        var stage = AgentLearningJourney.Resolve("model-to-agent");
+        Assert.Contains("Agent = Agent host + Model", stage.Takeaway);
+        Assert.Contains("memory", stage.Summary);
+        Assert.Contains("execution controls", stage.Summary);
+        Assert.Equal("Agent host", AgentLearningJourney.Node("harness").Title);
+        Assert.Equal("Inside the agent host", AgentLearningJourney.Resolve("inside-the-harness").Title);
+        Assert.Equal("Agent host executes", AgentLearningJourney.Node("loop-execute").Title);
+        Assert.Contains("chooses", AgentLearningJourney.Node("model").Detail);
+    }
+
     /// <summary>Visible stages retain their identifiers and exclude the product-specific lesson.</summary>
     [Fact]
     public void Stages_PreserveOrderedPermalinks()
@@ -91,13 +105,16 @@ public sealed class AgentLearningJourneyTests
         }
     }
 
-    /// <summary>The harness lesson contains only its four responsibilities and matching related concepts.</summary>
+    /// <summary>The host lesson uses the overview's five responsibilities in the same order and wording.</summary>
     [Fact]
     public void HarnessStage_FocusesOnResponsibilities()
     {
         var stage = AgentLearningJourney.Resolve("inside-the-harness");
 
-        Assert.Equal(["instructions", "harness-context", "available-tools", "execution-controls"], stage.HighlightedNodes.ToArray());
+        Assert.Equal(["harness-context", "instructions", "available-tools", "harness-memory", "execution-controls"], stage.HighlightedNodes.ToArray());
+        Assert.Equal(
+            ["Gather context", "Load instructions", "Make tools available", "Manage memory", "Enforce execution controls"],
+            stage.HighlightedNodes.Select(id => AgentLearningJourney.Node(id).Title).ToArray());
         Assert.Equal(["system-prompt", "context", "tools", "guardrails"], stage.ConceptIds.ToArray());
         Assert.False(stage.PlatformMap);
     }
@@ -137,7 +154,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-landscape", "harness,model")]
     [InlineData("agents-everywhere", "harness,model")]
     [InlineData("model-to-agent", "harness,model")]
-    [InlineData("inside-the-harness", "instructions,harness-context,available-tools,execution-controls")]
+    [InlineData("inside-the-harness", "harness-context,instructions,available-tools,harness-memory,execution-controls")]
     [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-observe,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
@@ -274,6 +291,26 @@ public sealed class AgentLearningJourneyTests
         }
     }
 
+    /// <summary>The landscape stops at the shared foundation, leaving execution to the dedicated loop lesson.</summary>
+    [Fact]
+    public void FoundationStory_LandscapeHasOnlyTwoReveals()
+    {
+        var story = new FoundationStory();
+        story.SetStage("agent-landscape");
+
+        Assert.Equal(2, story.Captions.Count);
+        Assert.Equal(0, story.Beat);
+        story.Move(1);
+        Assert.Contains("Agent = Agent host + Model", story.Caption);
+        Assert.False(story.CanNext);
+        story.Complete();
+        Assert.Equal(1, story.Beat);
+        story.Move(1);
+        Assert.Equal(1, story.Beat);
+        story.Restart();
+        Assert.Equal(0, story.Beat);
+    }
+
     /// <summary>Composition separates the outbound model request from its response before revealing the agent boundary.</summary>
     [Fact]
     public void FoundationStory_CompositionSeparatesRequestAndResponse()
@@ -282,20 +319,21 @@ public sealed class AgentLearningJourneyTests
         story.SetStage("model-to-agent");
 
         Assert.Equal(7, story.Captions.Count);
-        Assert.Contains("Start with the two parts: Application + Model", story.Caption);
+        Assert.Contains("Agent = Agent host + Model", story.Caption);
         story.Move(1);
-        Assert.Contains("The application's harness assembles instructions and context", story.Caption);
+        Assert.Contains("context, instructions, tools, memory and execution controls", story.Caption);
         story.Move(1);
-        Assert.Contains("The application executes tools", story.Caption);
+        Assert.Contains("The agent host executes tools", story.Caption);
         story.Move(1);
-        Assert.Contains("A model generates a response", story.Caption);
+        Assert.Contains("The model reasons", story.Caption);
+        Assert.Contains("does not execute tools itself", story.Caption);
         story.Move(1);
-        Assert.Contains("sends context, available tool definitions and any previous tool results", story.Caption);
+        Assert.Contains("sends instructions, context, available tool definitions and previous tool results", story.Caption);
         story.Move(1);
         Assert.Contains("model returns an answer or a tool request", story.Caption);
         Assert.True(story.CanNext);
         story.Move(1);
-        Assert.Contains("Application plus model forms the agent", story.Caption);
+        Assert.Contains("The model reasons. The agent host acts.", story.Caption);
         Assert.False(story.CanNext);
     }
 
@@ -372,19 +410,30 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal("ask", story.Anatomy.Id);
     }
 
-    /// <summary>Illustrative read-only subsets stay within the shared catalogue and can load their skills.</summary>
+    /// <summary>Illustrative subsets stay bounded; only Implement permits edits and terminal use.</summary>
     [Fact]
     public void AnatomyExamples_UseBoundedCapabilitiesAndCompletePlaybooks()
     {
         var capabilityIds = FoundationStory.AnatomyCapabilities.Select(tool => tool.Id).ToArray();
         Assert.Equal(capabilityIds.Length, capabilityIds.Distinct().Count());
-        Assert.Equal(["ask", "plan", "review"], FoundationStory.AnatomyExamples.Select(example => example.Id).ToArray());
+        Assert.Equal(["ask", "plan", "implement", "review"], FoundationStory.AnatomyExamples.Select(example => example.Id).ToArray());
         foreach (var example in FoundationStory.AnatomyExamples)
         {
             Assert.All(example.ToolIds, id => Assert.Contains(id, capabilityIds));
             Assert.Contains("skill", example.ToolIds);
-            Assert.DoesNotContain("write", example.ToolIds);
-            Assert.DoesNotContain("terminal", example.ToolIds);
+            if (example.Id == "implement")
+            {
+                Assert.Contains("write", example.ToolIds);
+                Assert.Contains("terminal", example.ToolIds);
+                Assert.Contains("approval", example.Controls);
+                Assert.Contains("limits", example.Controls);
+            }
+            else
+            {
+                Assert.DoesNotContain("write", example.ToolIds);
+                Assert.DoesNotContain("terminal", example.ToolIds);
+                Assert.Null(example.Controls);
+            }
             Assert.DoesNotContain("delegate", example.ToolIds);
             Assert.False(string.IsNullOrWhiteSpace(example.Persona));
             Assert.False(string.IsNullOrWhiteSpace(example.Task));
@@ -398,7 +447,7 @@ public sealed class AgentLearningJourneyTests
             });
         }
         Assert.Contains("ask", FoundationStory.AnatomyExamples[1].ToolIds);
-        Assert.Contains("docs", FoundationStory.AnatomyExamples[2].ToolIds);
+        Assert.Contains("docs", FoundationStory.AnatomyExamples.Single(example => example.Id == "review").ToolIds);
         Assert.DoesNotContain("docs", FoundationStory.AnatomyExamples[0].ToolIds);
     }
 
@@ -416,14 +465,18 @@ public sealed class AgentLearningJourneyTests
             Assert.Same(profile, story.AnatomyProfile);
             Assert.Same(profile.Examples[0], story.Anatomy);
             Assert.Equal(2, story.Beat);
-            Assert.All(new[] { profile.SystemPrompt, profile.Model, profile.Controls, profile.Instructions, profile.ContextLabel },
+            Assert.All(new[] { profile.SystemPrompt, profile.Controls, profile.Instructions, profile.ContextLabel },
                 value => Assert.False(string.IsNullOrWhiteSpace(value)));
+            Assert.StartsWith("You are ", profile.SystemPrompt);
+            Assert.InRange(profile.SystemPrompt.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length, 1, 60);
             var ids = profile.Capabilities.Select(tool => tool.Id).ToArray();
             Assert.Equal(ids.Length, ids.Distinct().Count());
             foreach (var example in profile.Examples)
             {
                 story.SelectAnatomy(example.Id);
                 Assert.Same(example, story.Anatomy);
+                Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.Model));
+                Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.ModelReason));
                 Assert.All(example.ToolIds, id => Assert.Contains(id, ids));
                 Assert.Contains("skill", example.ToolIds);
                 Assert.Contains(story.LoadedSkill, example.Skills);
@@ -450,6 +503,34 @@ public sealed class AgentLearningJourneyTests
         story.SelectAnatomyPurpose("custom");
         Assert.DoesNotContain("control", story.Anatomy.ToolIds);
         Assert.DoesNotContain("delegate", story.Anatomy.ToolIds);
+    }
+
+    /// <summary>Office personas share their host but differ in model fit, capabilities and task without resetting reveals.</summary>
+    [Fact]
+    public void OfficePersonas_SeparateMeetingsFromReadOnlyDocumentReview()
+    {
+        var story = new FoundationStory();
+        story.SetStage("anatomy-of-agent");
+        story.SelectAnatomyPurpose("office");
+        story.Complete();
+        var meeting = story.Anatomy;
+        var profile = story.AnatomyProfile;
+        Assert.Equal(["office-agent", "document-reviewer"], profile.Examples.Select(example => example.Id).ToArray());
+
+        story.SelectAnatomy("document-reviewer");
+        Assert.Same(profile, story.AnatomyProfile);
+        Assert.Equal(7, story.Beat);
+        Assert.Equal(["documents", "skill"], story.Anatomy.ToolIds.ToArray());
+        Assert.Contains("Read-only", story.Anatomy.Controls);
+        Assert.NotEqual(meeting.Model, story.Anatomy.Model);
+        Assert.NotEqual(meeting.Task, story.Anatomy.Task);
+        Assert.Equal("compare-documents", story.LoadedSkill.Name);
+        story.Restart();
+        Assert.Equal("document-reviewer", story.Anatomy.Id);
+        story.SelectAnatomy("office-agent");
+        Assert.Same(meeting, story.Anatomy);
+        Assert.Contains("send", story.Anatomy.ToolIds);
+        Assert.Null(story.Anatomy.Controls);
     }
 
     private sealed class ContentEnvironment : IWebHostEnvironment

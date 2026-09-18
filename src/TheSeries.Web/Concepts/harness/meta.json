@@ -1,7 +1,7 @@
 {
-  "title": "Harness",
+  "title": "Agent host (harness)",
   "category": "core",
-  "summary": "The scaffolding around the model: it assembles context, exposes a bounded toolset, runs the think-act-observe loop and relays results.",
+  "summary": "The software that manages context, instructions, tools, memory and execution controls. The model proposes a next step; the agent host checks and executes it.",
   "links": [
     { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
     { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }

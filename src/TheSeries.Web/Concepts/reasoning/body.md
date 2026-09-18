@@ -32,9 +32,9 @@ model's memory) keeps the chain honest.
 
 ## In this application (the-series)
 
-Reasoning happens **inside the LLM node** — every arrow to it is one round-trip where the
+Reasoning happens **inside the Model node** — each request/response exchange is one round-trip where the
 model may reason before replying with a final answer or a **tool call**. When a question
-needs several steps, the model typically reasons, calls a tool, observes the result, then
-reasons again; the loop badge on the node↔LLM link counts those round-trips. The
-intermediate reasoning tokens aren't surfaced as their own flow step — you see the model's
-externalised actions (tool calls) and its final answer.
+needs several steps, the model requests a tool, the agent host checks and executes it,
+and the model reasons over the returned result. The loop badge counts those round-trips.
+Intermediate reasoning tokens aren't surfaced as their own flow step: you see the model's
+requests, the host's tool results and the final answer, not a transcript of internal reasoning.

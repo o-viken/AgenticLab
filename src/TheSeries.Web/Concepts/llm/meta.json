@@ -1,7 +1,7 @@
 {
-  "title": "LLM (Large Language Model)",
+  "title": "Model (LLM)",
   "category": "core",
-  "summary": "The neural network that predicts text. It does the reasoning, but it only produces words — the harness turns those words into actions.",
+  "summary": "The model reasons over supplied context, plans and chooses a next step or final answer. It returns tool requests; the agent host executes permitted actions.",
   "links": [
     { "label": "Attention Is All You Need (Vaswani et al., 2017)", "url": "https://arxiv.org/abs/1706.03762" },
     { "label": "Jay Alammar — The Illustrated Transformer", "url": "https://jalammar.github.io/illustrated-transformer/" },

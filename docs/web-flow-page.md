@@ -4,6 +4,13 @@ Part of the [TheSeries architecture notes](../AGENTS.md). How the Blazor flow pa
 
 ## Live flow visualization
 
+**Naming.** Flow and Learn use **Agent = Agent host + Model**. The default merged Client +
+AiService node is **Agent host**, the inference node is **Model**, and the anatomy control is
+**Expand agent host**. Vendor names remain the node title when selected; subtitles identify the
+host role. A2A agents use the same host/model labels. The model requests a next step; the host
+checks permissions and executes permitted actions. Technical harness/LLM references below,
+component names, event kinds and concept IDs remain unchanged; these are presentation-only labels.
+
 **Corporate workbench styling (current).** The approved [V8 preview](../design/mockups/v8-corporate-workbench.html)
 is implemented in the Web UI; see [README.md](../README.md#corporate-workbench) for the user-facing behavior.
 All harnesses share the Default off-white/forest-green/charcoal palette, with Bahnschrift UI text and Cambria/Georgia product

@@ -4,6 +4,18 @@ Part of the [TheSeries architecture notes](../AGENTS.md). The two learning surfa
 
 ## In-app learning content (Learn panel)
 
+The primary teaching vocabulary is **Agent = Agent host + Model**. The host manages context,
+instructions, tools, memory and execution controls; the model reasons, plans and chooses a next
+step or final answer. Model tool requests are proposals, not authorization: the host checks and
+executes permitted actions and returns results as context. Memory is retained state outside the
+model; context is the input selected for a request. The host lesson matches the overview's five labels
+and order: **Gather context**, **Load instructions**, **Make tools available**, **Manage memory**,
+and **Enforce execution controls**. Context and memory have separate nodes.
+**Harness** remains the technical name for the host's agent-running machinery,
+not a replacement name for the complete agent. Host describes software, not a particular machine.
+Flow labels use **Agent host**, **Model** and **Expand agent host**; vendor titles remain visible.
+Existing concept IDs (`harness`, `llm`), code names and stage URLs (`inside-the-harness`) remain stable.
+
 The Web flow page doubles as a teaching aid: the diagram's concepts are **clickable** and open the docked right **Learn** panel explaining what each one means. Content is authored as data, not code — each concept lives in its own folder under [src/TheSeries.Web/Concepts](../src/TheSeries.Web/Concepts), combining structured metadata with a markdown body (mirroring the `skills/<id>/SKILL.md` folder convention):
 
 ```
@@ -37,7 +49,7 @@ The page code-behind
 resolves `?stage=` case-insensitively with a first-stage fallback, handles focus after navigation,
 and opens existing `ConceptCatalog` content inline. It does not depend on `FlowViewState`,
 `FlowRunController`, AiService or cloud credentials. Each stable stage ID selects its own diagram
-in Learn.razor: model-plus-harness composition, four harness responsibilities, the per-turn
+in Learn.razor: model-plus-harness composition, five agent host responsibilities, the per-turn
 decision/execution/observation loop, MCP versus A2A connections, a three-row Foundry capability
 mapping, and the Run/Observe/Evaluate/Improve operating cycle. Only `map-to-foundry` has
 `PlatformMap` set, controlling its conceptual badge and external documentation link; the lifecycle
@@ -52,12 +64,14 @@ lessons render [FoundationLesson](../src/TheSeries.Web/Components/Pages/Learning
 with its own scoped CSS. The pure local [FoundationStory](../src/TheSeries.Web/Learning/FoundationStory.cs)
 owns bounded reveal progression, captions and illustrative task/environment examples. Chapter changes
 reset reveals; parent rerenders (such as opening a related concept) preserve them. Purpose and trigger
-selection are independent. The application/model composition introduces the harness as the application's
-agent-running part, reveals controls/tools before the exchange paths, and keeps triggers outside the agent
+selection are independent. The host/model composition introduces the harness as the host's
+agent-running machinery, reveals controls/tools before the exchange paths, and keeps triggers outside the agent
 boundary. Desktop exchange paths become vertical on narrow containers. Hidden reveals reserve space and
 are excluded from accessibility/focus; reduced motion disables transitions, not manual progression.
 The landscape shares one foundation across overlapping purposes; local/cloud comparisons describe
 context, tools and permissions, not automatic portability, real scheduling or deployment. These lessons
+keep the landscape to two reveals: purposes, then the shared host/model foundation. It has no agent-loop
+diagram; execution remains in the dedicated `agent-loop` chapter. These lessons
 do not reference live Flow state or call backend APIs. Existing stage permalinks remain valid; `/learn`
 now starts at Agent. See README for the nine-stage order and presentation controls.
 
@@ -86,15 +100,31 @@ reveals cover the shared system prompt/catalogue, persona, configured tools and 
 task prompt, custom instructions, skill descriptions and a loaded playbook. `FoundationStory`
 owns `AnatomyPurpose` profiles containing separate `AnatomyExample`, `AnatomyCapability` and
 `AnatomySkill` data. The always-available Chat / Office / Coding / Custom selector switches the
-system guidance, catalogue, subset, persona, model role, required controls, task, instructions and skills.
+system guidance, catalogue, subset, persona, model example, required controls, task, instructions and skills.
 Office is Microsoft 365 Copilot-inspired work grounding and confirmed sending, not a native product
 contract; Chat researches questions and Custom reads equipment telemetry without equipment control.
-Coding retains illustrative read-only Ask / Plan / Review modes with its shared catalogue/model.
+Office has two selectable personas: **Meeting assistant** (the existing `office-agent` ID) prepares
+briefings and confirmed communications; **Document reviewer** compares proposals against approved
+briefs with document search and skill reading only. The reviewer has its own task, comparison
+playbooks, reasoning-model rationale and read-only controls, with no email, editing or deletion.
+Both share Office's system prompt and catalogue; switching preserves reveal progress.
+The shared system prompts are original teaching examples, each under 60 words, not vendor prompt
+copies: Chat emphasizes direct answers and source/tool grounding; Office uses work sources, actions
+and confirmed communications; Coding follows repository instructions, preserves unrelated work and
+verifies permitted edits; Custom checks measurement quality and escalates to an operator.
+Coding offers Ask / Plan / Implement / Review with a shared catalogue. Only Implement selects writes
+and terminal execution; it overrides the read-only purpose controls with workspace scope, command
+approval or allowlisting, time/resource limits and no production access. It has its own task and playbooks.
+Each `AnatomyExample` owns a model choice and rationale across all four purposes, plus an optional
+controls override. Settings renders these for the selected persona, falling back to purpose controls.
+Model examples describe capability, context, latency, cost and evaluation trade-offs, not specific
+deployments or automatic routing. Neither a model nor persona grants tool permissions.
 These are not backend agents. Purpose selection chooses its first mode without changing reveal progress.
 Restart preserves selection; chapter reentry resets it to Coding / Ask. Hidden persona controls are inert.
 MCP tools and A2A delegation remain distinct; instructions and skills do not grant permissions.
 Anatomy styles stay in FoundationLesson.razor.css and stack by container width. Existing journey
-tests cover ordered permalinks, reveal/reset semantics and bounded purpose-specific capability subsets.
+tests cover ordered permalinks, reveal/reset semantics, per-persona model descriptions and bounded
+capability subsets, including Implement-only write and terminal access.
 
 [TheSeries.Web.Tests](../tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj) follows the solution's
 `tests/` convention and accesses the internal journey through `InternalsVisibleTo`. Concept content

@@ -52,7 +52,7 @@ strip above the panels below 1200 pixels.
 
 The live Flow diagram follows the Agent guide's visual language: a subtle 24-pixel grid, square nodes
 with compact left-aligned icons and colored edges, plain dashed boundaries, and divider-led tool
-sections. The Agent boundary explicitly labels **Agent = model + harness**. Active nodes pulse
+sections. The Agent boundary explicitly labels **Agent = Agent host + Model**. Active nodes pulse
 without moving or resizing; directional arrows retain their live animations and align vertically
 when the diagram stacks. Perspectives, breakpoints and panel persistence are unchanged.
 
@@ -66,7 +66,7 @@ with no runtime CDN dependency.
 ### Remote A2A agents
 
 Select **Orchestrator** and **Expert** to see each discovered remote agent (Research and Poet by
-default) as its own **Harness + LLM** composition below the main flow. Both harnesses run in the same
+default) as its own **Agent host + Model** composition below the main flow. Both agent hosts run in the same
 separate **A2A service** process; the cloud-model nodes show each agent's model role, not separate
 deployments. **Agent** outlines each composition, while **Environment & risk** distinguishes the
 shared server process from the cloud models. Narrow panes stack each harness above its model.
@@ -92,19 +92,22 @@ The guide fits the viewport: the header and stage navigation stay visible while 
 scrolls independently. Navigation scrolls separately when needed and becomes a horizontal strip
 on narrow screens. Reveal controls stay pinned at the top of the pane while scrolling their lesson.
 
-Nine stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the harness**,
+Nine stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the agent host**,
 **Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **Where should your agent run?**, **The wider ecosystem**, and
 **Run and improve**. Each stage has a
 concept diagram and related topics from the same concept catalog as the contextual panel.
 **The Agentic Landscape** connects chat, coding, office and custom purposes to one shared
 agentic foundation. These overlapping examples are not a vendor taxonomy.
-Its final reveal illustrates the agent loop with application/model responsibilities, an explicit
-observation-to-context return path, and an answer branch that ends the turn without requiring a tool.
-**Agent** builds **Application + Model** in seven reveals: a names-only Application + Model
-overview, application details and responsibilities, application tool execution, model details,
+It has two reveals: the agent purposes, then their shared **Agent host + Model** foundation.
+Execution is introduced later in the dedicated **The agent loop** chapter.
+**Agent** builds **Agent host + Model** in seven reveals: a names-only Agent host + Model
+overview, host details and responsibilities, host tool execution, model details,
 the outbound context/tool definitions/tool results, the model's answer or tool
-request, and the enclosing agent boundary. The application's
-agent-running part is introduced as the harness; triggers remain outside the agent boundary.
+request, and the enclosing agent boundary. The agent host manages context, instructions, tools,
+memory and execution controls; the model reasons, plans and chooses a next step or final answer.
+**The model reasons. The agent host acts. Together, they form an agent.** A model request is not
+permission to execute. Harness remains the technical term for the host's agent-running machinery;
+host describes a software role, not a machine. Triggers remain outside the agent boundary.
 Its original `/learn?stage=model-to-agent` permalink is preserved.
 Both component boxes and the plus sign remain visible from the opening overview; descriptions,
 responsibilities, tools and exchange paths appear progressively without moving the boxes.
@@ -112,10 +115,11 @@ These two lessons, **Anatomy of an agent**, and **Same foundation, different set
 **Show complete diagram** and **Restart**, separate from chapter navigation. Reveals reserve
 their layout space, are manually advanced (no autoplay), and respect reduced motion.
 Reveal progress resets on a chapter change or reload; opening a related concept does not reset it.
-**Inside the harness** focuses on instructions, context, tools and execution controls, without
-repeating the model-plus-harness overview.
+**Inside the agent host** uses the overview's five responsibilities in the same order: **Gather context**,
+**Load instructions**, **Make tools available**, **Manage memory**, and **Enforce execution controls**.
+Its `inside-the-harness` permalink remains unchanged.
 **Anatomy of an agent** (`/learn?stage=anatomy-of-agent`) follows with eight cumulative reveals:
-system prompt, available harness capabilities, agent persona, selected tools and model/settings,
+system prompt, available host capabilities, agent persona, selected tools and model/settings,
 task prompt, custom instructions, skill descriptions, and a loaded skill body. The layered diagram
 distinguishes standing guidance, configured capabilities, and per-task context. MCP tools and A2A
 delegation are labelled separately; a skill is guidance loaded through an allowed tool, not extra permissions.
@@ -123,11 +127,20 @@ The **Chat / Office / Coding / Custom** selector changes the entire anatomy to f
 system guidance, capability catalogue and selected subset, persona, model role, required controls,
 task, custom instructions and playbooks. **Office** is a Microsoft 365 Copilot-style example with
 mail, calendar, document and people connectors plus sending mail with user confirmation.
+Its **Meeting assistant / Document reviewer** selector contrasts briefing and confirmed communications
+with read-only document comparison. The reviewer has its own task, model-choice rationale and
+playbooks; only document search and skill reading are selected, with no sending, editing or deletion.
 **Chat** researches questions; **Custom** investigates equipment alerts with read-only telemetry
 and manuals, without equipment control. These are illustrative teaching configurations, not product
 replicas or claims about native connectors, skills, models or enforcement in Microsoft 365.
-**Coding** retains the **Ask / Plan / Review** modes. Switching coding modes keeps its shared prompt,
-catalogue and model role fixed. Purpose and mode changes preserve reveal progress; choosing a purpose
+**Coding** offers **Ask / Plan / Implement / Review**. Ask, Plan and Review stay read-only;
+Implement selects workspace writes and terminal use with approval or allowlisting, resource limits
+and no production access. Its task and playbooks demonstrate an edit-and-test workflow.
+Every persona across Chat, Office, Coding and Custom carries a **Model choice example** and a short
+rationale: conversational speed, long-context synthesis, planning/review reasoning, reliable coding
+tool use or domain-tested alert triage. These are capability-based trade-offs, not required model
+products or automatic routing. Model choice never grants permissions. The host prompt and capability
+catalogue remain shared within each purpose. Purpose and mode changes preserve reveal progress; choosing a purpose
 selects its first mode. **Restart** retains the selected purpose and mode; leaving and reentering the
 chapter or reloading restores Coding / Ask.
 Opening a related topic preserves both selection and progress. No backend agent is selected and no
@@ -145,7 +158,7 @@ explains triggers. A local application can use a remote model; portability and t
 not automatic. These controls never move agents, schedule work or make model calls.
 **Where should your agent run?** (`/learn?stage=where-to-run`) compares **Personal runtime**,
 **Existing product**, **Your own service**, and **Managed agent platform** using one report-review task.
-Each option separates harness runtime, model service, tools/data access and operational ownership,
+Each option separates agent host, model service, tools/data access and operational ownership,
 then explains its trade-off and the approvals or capabilities needed to use it. These are operating
 models, not a list of platforms available in your organization.
 The **Vendors and stacks** list adds expandable, officially sourced examples for the selected

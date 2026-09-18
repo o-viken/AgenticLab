@@ -1,7 +1,7 @@
 {
   "title": "Tools",
   "category": "core",
-  "summary": "Functions the agent can call to act in the world — search a wiki, do math, read or write files, run a command.",
+  "summary": "Capabilities the model can request and the agent host can execute, subject to permissions and execution controls.",
   "links": [
     { "label": "OpenAI — Function calling", "url": "https://platform.openai.com/docs/guides/function-calling" },
     { "label": "Anthropic — Tool use", "url": "https://docs.anthropic.com/en/docs/build-with-claude/tool-use" }

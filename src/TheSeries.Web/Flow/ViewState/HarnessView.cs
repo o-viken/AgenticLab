@@ -1,7 +1,7 @@
 namespace TheSeries.Web.Flow;
 
 /// <summary>
-/// How the merged Client + AiService ("Harness"/"Application") node and the LLM node present themselves
+/// How the merged Client + AiService ("Agent host") node and the Model node present themselves
 /// for the current vendor and perspective — their labels and the active system (harness) prompt fetched
 /// from the service, shown in the anatomy's System Prompt box as a preview or the full text.
 /// </summary>
@@ -10,18 +10,18 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     private string _promptText = string.Empty;
     private bool _showFullPrompt;
 
-    /// <summary>The merged node's title: the brand vendor name when one is picked, else Harness (Expert) / Application.</summary>
+    /// <summary>The merged node's title: the vendor name when selected, otherwise Agent host.</summary>
     public string Label => owner.Vendor == Vendor.Default
-        ? (owner.Perspective == Perspective.Expert ? "Harness" : "Application")
+        ? "Agent host"
         : owner.Roster.VendorName;
 
     /// <summary>The merged node's subtitle: Non-technical states the grouping plainly; Technical/Expert name the agent.</summary>
     public string Subtitle => owner.Perspective switch
     {
-        Perspective.Simple => "Service",
-        Perspective.NonTechnical => "Client + AiService",
-        Perspective.Technical => $"Client + AiService · {owner.SelectedAgent ?? "Agent"}",
-        _ => $"AiService · {owner.SelectedAgent ?? "Agent"}",
+        Perspective.Simple => "Agent service",
+        Perspective.NonTechnical => "Agent host · Client + AiService",
+        Perspective.Technical => $"Agent host · Client + AiService · {owner.SelectedAgent ?? "Agent"}",
+        _ => $"Agent host · AiService · {owner.SelectedAgent ?? "Agent"}",
     };
 
     /// <summary>
@@ -48,8 +48,8 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
 
     /// <summary>The descriptive fallback for the System Prompt box before the real text has been fetched.</summary>
     public string PromptBody => owner.Vendor == Vendor.Default
-        ? "Global harness prompt — operating rules + tool loop (expert coding assistant++)"
-        : $"{owner.Roster.VendorName} system prompt — replaces the shared harness for this run (persona kept)";
+        ? "Agent host instructions: operating guidance and the tool loop"
+        : $"{owner.Roster.VendorName} system prompt: replaces the shared host instructions for this run (persona kept)";
 
     /// <summary>The actual harness (system) prompt text for the selected vendor and agent, fetched from the service.</summary>
     public string PromptText => _promptText;

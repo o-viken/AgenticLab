@@ -13,13 +13,13 @@
                         title="User ↔ Service (the model is hidden inside)">Basic</button>
                 <button type="button" class="@(View.Perspective == Perspective.NonTechnical ? "selected" : "")"
                         @onclick="@(() => View.Perspective = Perspective.NonTechnical)"
-                        title="User → Application → LLM">Non-technical</button>
+                        title="User → Agent host → Model">Non-technical</button>
                 <button type="button" class="@(View.Perspective == Perspective.Technical ? "selected" : "")"
                         @onclick="@(() => View.Perspective = Perspective.Technical)"
-                        title="User → Client → AiService → LLM">Technical</button>
+                        title="User → Agent host (Client + AiService) → Model">Technical</button>
                 <button type="button" class="@(View.Perspective == Perspective.Expert ? "selected" : "")"
                         @onclick="@(() => View.Perspective = Perspective.Expert)"
-                        title="Full harness, tools and steps">Expert</button>
+                        title="Agent host, tools and execution steps">Expert</button>
             </div>
         </div>
 
@@ -42,7 +42,7 @@
             <div class="diagram-control boundaries-control">
                 <label>Anatomy</label>
                 <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand harness</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand agent host</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowPromptSignature" /> Prompt signature</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowInferenceView" /> Inference</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEmbeddingsView" /> Embeddings</label>
@@ -55,13 +55,13 @@
     @if (View.Perspective == Perspective.Expert && View.Diagram.ShowHarnessBoundary)
     {
         <div class="boundary harness-b">
-            <span class="boundary-label">Harness</span>
+            <span class="boundary-label">Agent host</span>
         </div>
     }
     @if (View.Perspective == Perspective.Expert && View.Diagram.ShowAgentBoundary)
     {
         <div class="boundary agent-b">
-            <span class="boundary-label">Agent = model + harness</span>
+            <span class="boundary-label">Agent = Agent host + Model</span>
         </div>
     }
     @if (View.Diagram.ShowEnvironment)
@@ -150,9 +150,9 @@
 
         <div class="column right">
             <div class="node llm @Run.Focus.NodeClass("llm")">
-                <ConceptInfoButton Id="llm" Title="Learn about LLMs" />
+                <ConceptInfoButton Id="llm" Title="Learn about the model" />
                 <span class="icon diagram-icon icon-model" aria-hidden="true"></span>
-                <span class="title">LLM</span>
+                <span class="title">Model</span>
                 <span class="subtitle">@View.Harness.LlmModelLabel</span>
                 @if (View.Diagram.ShowEnvironment)
                 {

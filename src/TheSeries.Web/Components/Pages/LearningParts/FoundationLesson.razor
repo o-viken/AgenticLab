@@ -37,27 +37,6 @@
             <div class="@RevealClass(1, "shared-foundation")" aria-hidden="@IsUnrevealed(1)">
                 <p class="section-label">Shared agentic foundation</p>
                 @CorePair()
-                <div class="@RevealClass(2, "responsibilities")" aria-hidden="@IsUnrevealed(2)">
-                    <span>Instructions</span><span>Context</span><span>Tools</span><span>Controls</span>
-                </div>
-                <section class="@RevealClass(2, "foundation-cycle")" aria-hidden="@IsUnrevealed(2)" aria-label="The agent loop">
-                    <h3>The agent loop</h3>
-                    <div class="cycle-diagram">
-                        <div class="cycle-step cycle-prepare"><small>Application</small><strong>Prepare context</strong><span>Instructions, messages and observations</span></div>
-                        <span class="cycle-forward prepare-decide" aria-hidden="true">&rarr;</span>
-                        <div class="cycle-step cycle-decide"><small>Model</small><strong>Decide</strong><span>Answer or request a tool</span></div>
-                        <span class="cycle-forward decide-execute"><small>Tool request</small><span aria-hidden="true">&rarr;</span></span>
-                        <div class="cycle-step cycle-execute"><small>Application</small><strong>Execute tool</strong><span>Check permissions, then act</span></div>
-                        <span class="cycle-forward execute-observe" aria-hidden="true">&rarr;</span>
-                        <div class="cycle-step cycle-observe"><small>Application</small><strong>Observe result</strong><span>Add the result to context</span></div>
-                        <span class="cycle-answer-path" aria-hidden="true">&uarr;</span>
-                        <div class="cycle-answer"><strong>Answer</strong><span>End this turn</span></div>
-                        <div class="cycle-feedback" role="img" aria-label="The observation returns to prepared context for the next model decision">
-                            <span>Updated context &middot; next decision</span>
-                        </div>
-                    </div>
-                    <p class="cycle-note">Repeat when a tool is needed. An answer ends the turn; controls or cancellation can also stop it.</p>
-                </section>
             </div>
         </div>
     }
@@ -69,27 +48,29 @@
                 User request / schedule / event <span aria-hidden="true">&darr;</span>
             </p>
             <div class="agent-boundary @(_story.Beat == 6 ? "complete" : null)">
-                <p class="@RevealClass(6, "section-label")" aria-hidden="@IsUnrevealed(6)">Agent = Application + Model</p>
+                <p class="@RevealClass(6, "section-label")" aria-hidden="@IsUnrevealed(6)">Agent = Agent host + Model</p>
                 <div class="composition-grid">
                     <div class="application-node story-node" data-node="harness">
                         <span class="story-icon application-icon" aria-hidden="true"></span>
-                        <h3>Application</h3>
-                        <p class="@RevealClass(1, "application-description")" aria-hidden="@IsUnrevealed(1)">The harness runs the agent</p>
+                        <h3>Agent host</h3>
+                        <p class="@RevealClass(1, "application-description")" aria-hidden="@IsUnrevealed(1)">Manages the run and executes permitted actions</p>
                         <ul class="@RevealClass(1, "node-list")" aria-hidden="@IsUnrevealed(1)">
-                            <li>Assemble instructions and context</li>
-                            <li>Expose available tools</li>
-                            <li>Check permissions and execute</li>
-                            <li>Return observations to context</li>
+                            <li>Gather context</li>
+                            <li>Load instructions</li>
+                            <li>Make tools available</li>
+                            <li>Manage memory</li>
+                            <li>Enforce execution controls</li>
                         </ul>
                     </div>
                     <span class="plus" aria-hidden="true">+</span>
                     <div class="model-node story-node" data-node="model">
                         <span class="story-icon model-icon" aria-hidden="true"></span>
                         <h3>Model</h3>
-                        <p class="@RevealClass(3, "model-description")" aria-hidden="@IsUnrevealed(3)">A large language model generates a response from context</p>
+                        <p class="@RevealClass(3, "model-description")" aria-hidden="@IsUnrevealed(3)">Chooses what comes next; does not execute tools</p>
                         <ul class="@RevealClass(3, "node-list")" aria-hidden="@IsUnrevealed(3)">
-                            <li>Interpret the current context</li>
-                            <li>Return an answer or tool request</li>
+                            <li>Reason over context</li>
+                            <li>Plan the next steps</li>
+                            <li>Select a tool request or final answer</li>
                         </ul>
                     </div>
                     <div class="@RevealClass(4, "exchange-paths")" aria-hidden="@IsUnrevealed(4)">
@@ -98,7 +79,7 @@
                     </div>
                     <div class="@RevealClass(2, "application-tools")" aria-hidden="@IsUnrevealed(2)">
                         <span class="tool-link" aria-hidden="true">&updownarrow;</span>
-                        <strong>Application executes tools</strong>
+                        <strong>Agent host executes tools</strong>
                         <span>Search / Calendar / Files</span>
                         <small>Subject to permissions, approvals and limits</small>
                     </div>
@@ -119,13 +100,13 @@
         <p class="anatomy-profile-label" aria-live="polite">@_story.AnatomyProfile.ContextLabel</p>
         <div class="anatomy-story" data-diagram="anatomy" data-purpose="@_story.AnatomyProfile.Id" data-example="@_story.Anatomy.Id">
             <section class="anatomy-part anatomy-system" data-node="instructions" data-reveal="0">
-                <p class="anatomy-owner"><span class="story-icon application-icon" aria-hidden="true"></span>Shared harness</p>
+                <p class="anatomy-owner"><span class="story-icon application-icon" aria-hidden="true"></span>Shared agent host</p>
                 <h3>System prompt</h3>
                 <p class="anatomy-text">@_story.AnatomyProfile.SystemPrompt</p>
                 <small>Standing guidance, not enforced permissions</small>
             </section>
             <section class="@RevealClass(1, "anatomy-part anatomy-catalogue")" aria-hidden="@(IsUnrevealed(1) ? "true" : "false")" data-node="available-tools" data-reveal="1">
-                <p class="anatomy-owner">Harness catalogue</p>
+                <p class="anatomy-owner">Agent host catalogue</p>
                 <h3>Available capabilities</h3>
                 <ul class="anatomy-capabilities">
                     @foreach (var capability in _story.AnatomyProfile.Capabilities)
@@ -173,11 +154,12 @@
             <section class="@RevealClass(3, "anatomy-part anatomy-settings")" aria-hidden="@(IsUnrevealed(3) ? "true" : "false")" data-node="anatomy-settings" data-reveal="3">
                 <p class="anatomy-owner">Runtime choices</p>
                 <h3>Settings</h3>
-                <div class="anatomy-model"><span class="story-icon model-icon" aria-hidden="true"></span><strong>Model role</strong><span>@_story.AnatomyProfile.Model</span></div>
-                <p>Illustrative choice, not a product's actual deployment</p>
+                <div class="anatomy-model" aria-live="polite"><span class="story-icon model-icon" aria-hidden="true"></span><strong>Model choice example</strong><span>@_story.Anatomy.Model</span></div>
+                <p>@_story.Anatomy.ModelReason</p>
+                <small>Illustrative fit, not a required model or a product's actual deployment.</small>
                 <strong>Required controls</strong>
-                <p>@_story.AnatomyProfile.Controls</p>
-                <small>Real harnesses must enforce these checks outside the prompt.</small>
+                <p>@(_story.Anatomy.Controls ?? _story.AnatomyProfile.Controls)</p>
+                <small>Agent hosts must enforce these checks outside the prompt.</small>
             </section>
             <section class="@RevealClass(4, "anatomy-part anatomy-task")" aria-hidden="@(IsUnrevealed(4) ? "true" : "false")" data-node="anatomy-task" data-reveal="4">
                 <p class="anatomy-owner"><span class="story-icon user-icon" aria-hidden="true"></span>This turn</p>
@@ -232,20 +214,20 @@
             <p class="example-caveat">Products can span several purposes. Agentic capabilities depend on the mode and configuration; the comparisons below are illustrative, not descriptions of these products.</p>
             <div class="shared-core">
                 @CorePair()
-                <p>Instructions / Context / Tools / Controls</p>
+                <p>Context / Instructions / Tools / Memory / Execution controls</p>
             </div>
             <div class="@RevealClass(1, "environment-grid")" aria-hidden="@IsUnrevealed(1)" aria-live="polite" aria-atomic="true">
                 <section class="environment-local">
-                    <h3>Local application</h3>
+                    <h3>Local agent host</h3>
                     <p class="environment-location">On your machine</p>
                     <dl><dt>Tools</dt><dd>@_story.Example.LocalTools</dd><dt>Controls</dt><dd>@_story.Example.LocalControl</dd></dl>
                 </section>
                 <section class="environment-cloud">
-                    <h3>Cloud application</h3>
+                    <h3>Cloud agent host</h3>
                     <p class="environment-location">In a hosted runtime</p>
                     <dl><dt>Tools</dt><dd>@_story.Example.CloudTools</dd><dt>Controls</dt><dd>@_story.Example.CloudControl</dd></dl>
                 </section>
-                <p class="hosting-note">Either application can call a remote model. Hybrid arrangements are possible; this is not a security boundary.</p>
+                <p class="hosting-note">Either agent host can call a remote model. Hybrid arrangements are possible; this is not a security boundary.</p>
             </div>
             <div class="@RevealClass(2, "trigger-settings")" aria-hidden="@IsUnrevealed(2)" inert="@IsUnrevealed(2)">
                 <label for="foundation-trigger">Trigger</label>
@@ -287,8 +269,8 @@
     private string RevealClass(int beat, string className) => $"{className} reveal{(IsUnrevealed(beat) ? " unrevealed" : string.Empty)}";
 
     private static RenderFragment CorePair() => @<div class="core-pair">
-        <span><span class="story-icon application-icon" aria-hidden="true"></span>Application</span>
-        <span class="core-connector" aria-label="Context to the model; answer or tool request to the application">&harr;</span>
+        <span><span class="story-icon application-icon" aria-hidden="true"></span>Agent host</span>
+        <span class="core-connector" aria-label="Context to the model; answer or tool request to the agent host">&harr;</span>
         <span><span class="story-icon model-icon" aria-hidden="true"></span>Model</span>
     </div>;
 }

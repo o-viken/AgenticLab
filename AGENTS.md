@@ -75,6 +75,8 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
 
 ## Conventions
 
+- Teaching and UI vocabulary: **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and execution controls; the model reasons, plans and chooses a next step or final answer. Tool requests are not authorization: the host checks and executes permitted actions. Use **agent host** as the primary label, with **harness** explained as its agent-running machinery. Preserve technical identifiers, event kinds and existing concept/stage URLs when editing terminology.
+
 - Target framework `net10.0`; `Nullable` and `ImplicitUsings` enabled across all projects.
 - Use top-level statements in `Program.cs` and minimal APIs (no controllers).
 - DTOs are `internal sealed record` types declared at the bottom of the file that uses them — for the HTTP API that is the `Endpoints/<Group>Endpoints.cs` file mapping the route.
