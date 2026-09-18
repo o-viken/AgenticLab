@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics.Metrics;
 
 namespace TheSeries.Web.Flow;
 
@@ -10,17 +11,23 @@ namespace TheSeries.Web.Flow;
 /// disabled tools) from the shared <see cref="FlowViewState"/>. Mutations raise <see cref="Changed"/>
 /// so the hosting page can re-render; the page marshals that onto the renderer's sync context.
 /// </summary>
-internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) : IDisposable
+internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view, ReplayRetentionOptions? retentionOptions = null) : IDisposable
 {
+    internal const string MeterName = "TheSeries.Web.Flow";
+    private static readonly Meter Meter = new(MeterName);
+    private static readonly UpDownCounter<long> ActivePagesMetric = Meter.CreateUpDownCounter<long>("flow.active_pages");
+    private static readonly UpDownCounter<long> EventCountMetric = Meter.CreateUpDownCounter<long>("flow.retained_events");
+    private static readonly UpDownCounter<long> PayloadMetric = Meter.CreateUpDownCounter<long>("flow.retained_payload_bytes", "By");
     private readonly List<FlowEvent> _events = new();
-    private readonly List<ConversationTurn> _turns = new();
+    private readonly ReplayHistory _history = new(retentionOptions ?? new());
+    private IReadOnlyList<ConversationTurn> ArchivedTurns => _history.Turns;
     private readonly List<SkillChip> _knownSkills = new();
     private readonly HashSet<string> _loadedSkills = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<InstructionChip> _knownInstructions = new();
     private readonly List<McpChip> _knownMcp = new();
     private readonly List<A2AChip> _knownA2A = new();
 
-    // The message/agent of the run currently shown in the live panels, archived into _turns on next send.
+    // The message/agent of the run currently shown in the live panels, archived on next send.
     private string _runMessage = string.Empty;
     private string? _runAgent;
     // The vendor/workspace the current run was actually sent with, so its history cannot report the
@@ -56,8 +63,11 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     private string _conversationId = Guid.NewGuid().ToString("n");
     private CancellationTokenSource? _cts;
     private bool _disposed;
+    private int _metricEventCount;
+    private long _metricPayloadBytes;
+    private readonly int _activePage = RegisterPage();
 
-    // Cache for the derived collections below, recomputed only when _events/_turns change (tracked by
+    // Cache for the derived collections below, recomputed only when events/history change (tracked by
     // _stateVersion) instead of on every render — they were allocating fresh lists and running a regex
     // per chip on each of the many renders a run triggers.
     private int _stateVersion;
@@ -87,8 +97,39 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // render is the whole point of the visualiser); the page bridges this onto the renderer's context.
     private Task NotifyAsync() => _disposed ? Task.CompletedTask : (Changed?.Invoke() ?? Task.CompletedTask);
 
-    // Marks the derived caches dirty after _events/_turns change.
-    private void BumpState() => _stateVersion++;
+    private static int RegisterPage()
+    {
+        ActivePagesMetric.Add(1);
+        return 0;
+    }
+
+    // Invalidates derived caches and releases references to captures after events/history change.
+    private void BumpState()
+    {
+        _stateVersion++;
+        UpdateMetrics();
+        _historyEntries = [];
+        _currentEntries = [];
+        _exchanges = [];
+        _promptSignature = PromptSignatureView.Empty;
+        _inference = InferenceView.Empty;
+        _embeddings = EmbeddingsView.Empty;
+        _liveContext = ContextSnapshot.Empty;
+        _replayContext = ContextSnapshot.Empty;
+        _replaySignature = PromptSignatureView.Empty;
+        _liveA2A = A2AFlowView.Empty;
+        _replayA2A = A2AFlowView.Empty;
+    }
+
+    private void UpdateMetrics()
+    {
+        var eventCount = _history.EventCount + _events.Count;
+        var payloadBytes = _history.PayloadBytes + ReplayHistory.EstimatePayloadBytes(CurrentExchange());
+        EventCountMetric.Add(eventCount - _metricEventCount);
+        PayloadMetric.Add(payloadBytes - _metricPayloadBytes);
+        _metricEventCount = eventCount;
+        _metricPayloadBytes = payloadBytes;
+    }
 
     // Recomputes the cached derived collections once per state change (lazy, on first access after a bump).
     private void EnsureComputed()
@@ -119,8 +160,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             }
         }
 
-        var history = new List<ContextEntry>(_turns.Count * 2);
-        foreach (var turn in _turns)
+        var history = new List<ContextEntry>(ArchivedTurns.Count * 2);
+        foreach (var turn in ArchivedTurns)
         {
             history.Add(new ContextEntry("User message", "user", FlowEventMapping.TruncatePreview(turn.Message), History: true));
             if (!string.IsNullOrWhiteSpace(turn.Error))
@@ -140,8 +181,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         // The prompt signature works per conversation exchange (each Send): every archived turn plus the
         // current in-progress run, each labelled by its user message. The builder takes each exchange's
         // last llm-request as its representative prompt.
-        var exchanges = new List<(string Label, IReadOnlyList<FlowEvent> Events)>(_turns.Count + 1);
-        foreach (var turn in _turns)
+        var exchanges = new List<(string Label, IReadOnlyList<FlowEvent> Events)>(ArchivedTurns.Count + 1);
+        foreach (var turn in ArchivedTurns)
         {
             exchanges.Add((turn.Message, turn.Events));
         }
@@ -190,8 +231,8 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
         // The Execution explorer reads every exchange: the archived ones plus the one in the live panels
         // (which exists from the moment a message is sent, even before any event arrives).
-        var all = new List<ConversationTurn>(_turns.Count + 1);
-        all.AddRange(_turns);
+        var all = new List<ConversationTurn>(ArchivedTurns.Count + 1);
+        all.AddRange(ArchivedTurns);
         var liveIndex = -1;
         if (!string.IsNullOrEmpty(_runExchangeId))
         {
@@ -203,7 +244,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             all.Add(CurrentExchange());
         }
 
-        _exchanges = ExecutionReplayBuilder.Build(all, liveIndex);
+        _exchanges = ExecutionReplayBuilder.Build(all, liveIndex, _history.EvictedExchanges);
         _liveA2A = A2AFlowBuilder.Build(_runA2A, _events, !_running);
     }
 
@@ -214,7 +255,10 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
     // --- Exposed state ----------------------------------------------------
 
     public IReadOnlyList<FlowEvent> Events => _events;
-    public IReadOnlyList<ConversationTurn> Turns => _turns;
+    public IReadOnlyList<ConversationTurn> Turns => ArchivedTurns;
+
+    /// <summary>The number of oldest exchanges removed from this page's local history.</summary>
+    public int EvictedExchanges => _history.EvictedExchanges;
     public IReadOnlyList<SkillChip> KnownSkills => _knownSkills;
     public IReadOnlyList<McpChip> KnownMcp => _knownMcp;
 
@@ -815,7 +859,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
         _responseHint = null;
         _events.Clear();
         view.ClearExpanded();
-        _turns.Clear();
+        _history.Clear();
         BumpState();
         _loadedSkills.Clear();
         _runMessage = string.Empty;
@@ -848,7 +892,7 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
             return;
         }
 
-        _turns.Add(CurrentExchange() with { Events = new List<FlowEvent>(_events) });
+        _history.Add(CurrentExchange() with { Events = new List<FlowEvent>(_events) });
         BumpState();
     }
 
@@ -1341,8 +1385,16 @@ internal sealed class FlowRunController(AiServiceClient ai, FlowViewState view) 
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
         _disposed = true;
         _cts?.Cancel();
         _cts?.Dispose();
+        EventCountMetric.Add(-_metricEventCount);
+        PayloadMetric.Add(-_metricPayloadBytes);
+        ActivePagesMetric.Add(-1);
+        _history.Dispose();
     }
 }

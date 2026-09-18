@@ -1,5 +1,7 @@
+using OpenTelemetry.Metrics;
 using TheSeries.Web;
 using TheSeries.Web.Components;
+using TheSeries.Web.Flow;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,14 @@ builder.Services.AddRazorComponents()
 
 // Loads the in-app learning content (Concepts/<id>/meta.json + body.md) for the concept drawer.
 builder.Services.AddSingleton<ConceptCatalog>();
+
+builder.Services.AddOptions<ReplayRetentionOptions>()
+    .BindConfiguration("ReplayRetention")
+    .Validate(options => options.MaxArchivedExchanges >= 0 && options.MaxArchivedPayloadBytes >= 0,
+        "Replay retention limits must be nonnegative.")
+    .ValidateOnStart();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddMeter(ReplayHistory.MeterName, FlowRunController.MeterName));
 
 // Talks to the AI service. Under Aspire orchestration the name resolves via service discovery;
 // when run standalone, override with AiService:Url (e.g. https://localhost:7123).

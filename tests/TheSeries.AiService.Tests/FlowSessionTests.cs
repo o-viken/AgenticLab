@@ -6,6 +6,20 @@ namespace TheSeries.AiService.Tests;
 public sealed class FlowSessionTests
 {
     [Fact]
+    public void RegistryTracksActiveSessionsUntilRemoved()
+    {
+        var registry = new FlowControlRegistry();
+        using var first = registry.Create("first", false, 0);
+        using var second = registry.Create("second", true, 0);
+        Assert.Equal(2, registry.ActiveCount);
+
+        registry.Remove("first");
+        Assert.Equal(1, registry.ActiveCount);
+        registry.Remove("second");
+        Assert.Equal(0, registry.ActiveCount);
+    }
+
+    [Fact]
     public async Task EarlyUserAnswerSurvivesBreakpointAndNextQuestionWaitsForANewAnswer()
     {
         using var scope = UserInputScope.Begin();

@@ -89,12 +89,13 @@ internal static class ExecutionReplayBuilder
     /// </summary>
     /// <param name="exchanges">Every exchange, oldest first: the archived ones plus the current run.</param>
     /// <param name="liveIndex">The index of the exchange still executing, or -1 when none is.</param>
-    public static IReadOnlyList<ExecutionExchange> Build(IReadOnlyList<ConversationTurn> exchanges, int liveIndex)
+    /// <param name="numberOffset">Number of older exchanges evicted from local replay history.</param>
+    public static IReadOnlyList<ExecutionExchange> Build(IReadOnlyList<ConversationTurn> exchanges, int liveIndex, int numberOffset = 0)
     {
         var built = new List<ExecutionExchange>(exchanges.Count);
         for (var i = 0; i < exchanges.Count; i++)
         {
-            built.Add(BuildOne(exchanges[i], i + 1, i == liveIndex));
+            built.Add(BuildOne(exchanges[i], numberOffset + i + 1, i == liveIndex));
         }
 
         return built;

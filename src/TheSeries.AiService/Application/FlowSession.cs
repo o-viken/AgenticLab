@@ -199,7 +199,18 @@ public sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool
 /// </summary>
 public sealed class FlowControlRegistry
 {
+    internal const string MeterName = "TheSeries.AiService.Flow";
+    private static readonly System.Diagnostics.Metrics.Meter Meter = new(MeterName);
     private readonly ConcurrentDictionary<string, FlowSession> _sessions = new();
+
+    internal int ActiveCount => _sessions.Count;
+
+    /// <summary>Creates a registry and exposes its active-session gauge.</summary>
+    public FlowControlRegistry()
+    {
+        Meter.CreateObservableGauge("flow.active_sessions", () => _sessions.Count,
+            description: "Backend flow sessions currently awaiting or executing.");
+    }
 
     /// <summary>Creates and registers a session for the given id, replacing any existing one.</summary>
     /// <param name="id">The unique session id.</param>

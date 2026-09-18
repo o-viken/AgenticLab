@@ -231,6 +231,56 @@ dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/TheSeries.App
 
 Missing configuration throws at agent creation. **Never commit secrets.**
 
+Conversation history is held in memory by the AI service and expires on a sliding inactivity window.
+The defaults retain an active conversation for one hour and scan for expired entries every five minutes;
+override them in `src/TheSeries.AiService/appsettings.json` when needed:
+
+```json
+"Conversations": {
+  "InactiveTtl": "01:00:00",
+  "CleanupInterval": "00:05:00"
+}
+```
+
+The AI service exports `conversations.retained`, `conversations.expired` and `conversations.reset`
+through OpenTelemetry. These instruments report counts only and never include conversation content.
+
+### Replay retention
+
+The Web app keeps the current exchange intact and bounds **archived** exchanges per Flow page.
+Configure these initial budgets in [Web appsettings.json](src/TheSeries.Web/appsettings.json):
+
+```json
+"ReplayRetention": {
+  "MaxArchivedExchanges": 20,
+  "MaxArchivedPayloadBytes": 16777216
+}
+```
+
+On the next Send, the previous exchange is archived and whole oldest exchanges are removed until
+both limits are met. An oversized archive can be removed entirely; zero exchanges disables archiving.
+Negative limits fail startup. These are tunable starting budgets, not load-tested capacity limits.
+The payload estimate counts UTF-16 text (including captured data, structured tool arguments and exchange
+metadata); it is **not** managed heap size and excludes object overhead and derived display allocations.
+The current exchange is exempt, even after it finishes, until the next Send. A single long run can
+therefore exceed the archive budget. AI service history and its inactivity TTL are independent.
+
+The Web meter `TheSeries.Web.Replay` exports process-wide sums `replay.archived.exchanges`,
+`replay.archived.events`, `replay.archived.payload_bytes`, and a cumulative `replay.evicted.exchanges`
+counter. Reset and page disposal subtract their retained totals. No identifiers or content are tagged.
+
+For the CSR decision, compare these metrics with Web/AiService runtime heap, allocation rate and CPU
+in Aspire: idle tabs, repeated sends, a long tool-heavy exchange, paused runs, New conversation, and
+closed tabs after circuit retention has elapsed. Archives should plateau at the configured limits;
+reset/disposal should return their totals to baseline. Also measure browser memory and event latency.
+The synthetic retention test verifies bounded accounting, not real concurrent-user capacity.
+
+The measurement baseline also includes `TheSeries.Web.Flow` (`flow.active_pages`,
+`flow.retained_events`, `flow.retained_payload_bytes`) and `TheSeries.AiService.Flow`
+(`flow.active_sessions`). These aggregate instruments have no user, conversation or session-id tags.
+Use them with runtime heap, allocation rate and request latency when comparing Interactive Server with a
+future client-rendered build.
+
 ## Build and run
 
 Build the solution:
@@ -348,7 +398,7 @@ The web UI's bottom **Execution** dock is where a run is read back. It pulls out
 the main column (collapse it to a rail, drag its top edge to resize, or expand it to fill the column)
 and holds three panes:
 
-- **Exchanges** — every message you sent, with the agent that ran, how it ended (running / done /
+- **Exchanges** — retained messages you sent, with the agent that ran, how it ended (running / done /
   stopped / failed) and how many model round-trips it took. The current run appears as soon as you
   send, and a run that was stopped or failed stays inspectable rather than being reported as complete.
 - **Stages** — the selected exchange broken into intake, each **model turn**, and delivery. A turn
@@ -364,7 +414,11 @@ exchange or stage jumps straight to it. Selecting a stage moves the diagram to i
 from what was captured up to that point — standing on a tool call does not reveal the result that
 came back afterwards. Navigating history never re-runs anything: it makes no model or tool calls, and
 the live run keeps recording in the background. **Live** returns to the newest stage of the current
-run. Captures cover the current conversation and are cleared by **New conversation**.
+run. Captures cover the retained portion of the current conversation and are cleared by **New conversation**.
+When the [replay budget](#replay-retention) removes older exchanges, the panel shows a notice and keeps
+the original exchange numbers. Transcript, Context history, and Prompt signature Comparison/Delta
+then cover retained exchanges only; captured requests can still contain older history re-sent by the
+AI service. Starting the next exchange returns the cursor to Live, so it cannot stay on an evicted item.
 
 The expanded harness's **Context** follows playback too: its flat, contributor-colored list shows
 only earlier exchanges and content through the selected stage in the selected exchange. The header

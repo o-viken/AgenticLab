@@ -1,5 +1,6 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using OpenTelemetry.Metrics;
 using TheSeries.AiService;
 using TheSeries.AiService.Application;
 using TheSeries.AiService.Application.Tools;
@@ -107,10 +108,16 @@ builder.Services.AddSingleton(sp =>
     new AgentCatalog(sp.GetRequiredService<ChatClientProvider>(), sp.GetServices<IAgentDefinition>()));
 
 // Holds one conversation thread per conversation id so agent runs can continue an existing chat.
+builder.Services.Configure<ConversationStoreOptions>(builder.Configuration.GetSection("Conversations"));
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ConversationStore>();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddMeter(ConversationStore.MeterName));
 
 // Projects a real agent run into an observable stream of flow events for the visualization UI.
 builder.Services.AddSingleton<FlowControlRegistry>();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddMeter(FlowControlRegistry.MeterName));
 builder.Services.AddSingleton<FlowTracer>();
 
 // Orchestrates MCP + A2A discovery and projects it into a stream of discovery events for the visualization UI.

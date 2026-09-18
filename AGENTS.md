@@ -20,7 +20,7 @@ Five projects, orchestrated by Aspire (solution: [TheSeries.slnx](TheSeries.slnx
 
 Key flow: Console → `POST /chat` (with an optional agent name and conversation id) on AiService → `AgentCatalog` resolves the selected `ChatClientAgent` (Azure OpenAI) → the agent calls its tool subset → answers. The chat clients are built and cached per Azure OpenAI deployment in [Application/ChatClientProvider.cs](src/TheSeries.AiService/Application/ChatClientProvider.cs) (so different agents can run on different models — see the per-agent model section); the catalog in [Application/AgentCatalog.cs](src/TheSeries.AiService/Application/AgentCatalog.cs). Each agent is an `IAgentDefinition` under [src/TheSeries.AiService/Demo/Agents](src/TheSeries.AiService/Demo/Agents); tools live in [Demo/Tools/WikiTool.cs](src/TheSeries.AiService/Demo/Tools/WikiTool.cs) and [Demo/Tools/CalculatorTool.cs](src/TheSeries.AiService/Demo/Tools/CalculatorTool.cs). The service is split for separation of concerns: the reusable harness/framework infrastructure and its application tools live under [Application/](src/TheSeries.AiService/Application) (with the app tools in [Application/Tools/](src/TheSeries.AiService/Application/Tools)), while the demo agent personas and their demo tools live under [Demo/Agents/](src/TheSeries.AiService/Demo/Agents) and [Demo/Tools/](src/TheSeries.AiService/Demo/Tools).
 
-**Conversation memory.** Agents stay stateless, but a run can continue a prior chat. Each request carries a client-generated `ConversationId`; [Application/ConversationStore.cs](src/TheSeries.AiService/Application/ConversationStore.cs) (a singleton `ConcurrentDictionary<string, AgentSession>`) holds one `AgentSession` per conversation, created lazily via `agent.CreateSessionAsync(…)` on first use. The endpoints pass that session into `agent.RunAsync(message, session, …)` / `RunStreamingAsync(message, session, …)`, so the model sees the earlier turns. Sessions are interchangeable across agents (they just carry chat messages), so a conversation may switch agents and keep its history. `POST /chat/reset` (`ConversationResetRequest { ConversationId }`) forgets a conversation; the Console `/new` command and the Web **New conversation** button call it. Storage is in-memory and intended for sequential use within a conversation (no eviction, no per-conversation locking).
+**Conversation memory.** Agents stay stateless, but a run can continue a prior chat. Each request carries a client-generated `ConversationId`; [Application/ConversationStore.cs](src/TheSeries.AiService/Application/ConversationStore.cs) (a singleton `ConcurrentDictionary<string, ConversationEntry>`) holds one `AgentSession` per conversation, created lazily via `agent.CreateSessionAsync(…)` on first use. The endpoints pass that session into `agent.RunAsync(message, session, …)` / `RunStreamingAsync(message, session, …)`, so the model sees the earlier turns. Sessions are interchangeable across agents (they just carry chat messages), so a conversation may switch agents and keep its history. `POST /chat/reset` (`ConversationResetRequest { ConversationId }`) forgets a conversation immediately; the Console `/new` command and the Web **New conversation** button call it. Storage is in-memory and intended for sequential use within a conversation (no per-conversation locking). To bound abandoned history, access refreshes a sliding expiration window configured by `Conversations:InactiveTtl` (one hour by default), and a `TimeProvider` timer removes inactive entries at `Conversations:CleanupInterval` (five minutes by default). The store publishes count-only OpenTelemetry instruments on the `TheSeries.AiService.Conversations` meter: `conversations.retained`, `conversations.expired` and `conversations.reset`.
 
 **Layered system prompt.** Each agent's system prompt is composed from two parts via inheritance: a shared **harness** prompt and the agent's own **persona**. The framing follows the VS Code [agent harness model](https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode) — an **agent is the model plus the harness**, where the harness assembles context, exposes a bounded toolset, runs the think→act→observe loop, executes the model's tool calls, and relays results (the user/client sit outside the agent). [Application/AgentDefinitionBase.cs](src/TheSeries.AiService/Application/AgentDefinitionBase.cs) is an abstract `IAgentDefinition` that defines the harness prompt (that model-plus-harness framing plus the cross-cutting operating rules every agent runs under — ground answers in tool results, don't fabricate, prefer tools over memory, be concise and transparent) and an abstract `Persona`. Its `Instructions` property returns the harness prompt (scoped in `<harnessMode>` tags) followed by the persona (scoped in `<agentMode>` tags), and that combined string is what `AgentCatalog` passes to each `ChatClientAgent` (and what the flow visualizer captures as the "system prompt"). Concrete agents inherit `AgentDefinitionBase` and supply only `Name`, `Description`, `Persona`, and `Tools`; override the virtual `Harness` only to replace the shared rules entirely.
 
@@ -192,6 +192,31 @@ navigation and concept/node-reference validation. Public page members use XML su
 example `StageId` documents the stable query-string identifier.
 
 ### Execution explorer (replay of a captured run)
+
+**Bounded archives.** [Flow/ReplayHistory.cs](src/TheSeries.Web/Flow/ReplayHistory.cs) owns the Web
+page's archived `ConversationTurn`s, evicting whole oldest exchanges on Send under configured count
+and estimated UTF-16 payload budgets. FlowRunController invalidates derived caches so evicted captures
+are released, resets retention on New conversation, and releases metric totals on disposal.
+ExecutionReplayBuilder accepts a numbering offset; the explorer announces eviction rather than silently
+presenting retained history as complete. Current-exchange capture is exempt until the next Send;
+backend conversation memory is unchanged. The `TheSeries.Web.Replay` meter reports aggregate archived
+exchange/event/payload totals and cumulative evictions without content or IDs. Options bind and validate
+at Web startup. See [README](README.md#replay-retention) for settings, measurement semantics and the
+remaining load-test gate. Existing ExecutionReplayTests cover limits, fake-SSE controller lifecycle,
+stable numbering, reset/disposal metrics and a synthetic archive plateau.
+
+**Resource baseline.** The Web flow publishes aggregate `TheSeries.Web.Flow` instruments for active page
+controllers, retained event count and retained estimated payload bytes. The AiService publishes an
+aggregate `TheSeries.AiService.Flow` gauge for active `FlowControlRegistry` sessions. These metrics have
+no user, conversation or session-id tags and should be read with runtime heap/allocation and latency
+when comparing Interactive Server with a client-rendered build. A load test still needs to exercise idle
+tabs, active and paused runs, long tool-heavy exchanges, reset, and closed tabs.
+
+The repeatable browser profile lives in [tools/flow-loadtest.mjs](tools/flow-loadtest.mjs), with setup and
+interpretation in [tools/README.md](tools/README.md). It uses configurable concurrent Playwright browser
+contexts and reports browser-side timing/heap only; correlate it with Aspire/OpenTelemetry process
+working set, managed heap, allocation rate and the aggregate flow metrics. It is deliberately not part of
+the solution test suite and must not be treated as a CI pass/fail capacity claim.
 
 The bottom **Execution** dock ([Components/Pages/FlowParts/ExecutionExplorer.razor](src/TheSeries.Web/Components/Pages/FlowParts/ExecutionExplorer.razor) + scoped css) replaced the old Steps/Reply `FlowOutput` and the `ConversationTranscript` dock. It reuses the same bottom `SidePanel` (collapse to a rail, drag the top edge to resize, state persisted in the existing six-field `theseries-panels` `PanelState`), but is **always rendered** so the rail is discoverable before the first run, and adds a **maximize** toggle (`FlowViewState.BottomPanelMaximized` → the `.main-panel-body.bottom-max` class; deliberately **not** persisted, so `PanelState` needs no migration). `MaxPanelHeight` and `panels.js`'s `MAX_H` were raised 600 → 900 and the default height is 380. See [README.md](README.md#execution-panel) for the user-facing behaviour.
 
@@ -411,6 +436,16 @@ dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/TheSeries.App
 
 Missing config throws at chat-client creation (`ChatClientProvider`). Never commit secrets.
 
+In-memory conversation retention is configured in the AiService settings. `InactiveTtl` is a sliding
+window refreshed whenever a conversation is used; `CleanupInterval` controls the expiry scan:
+
+```json
+"Conversations": {
+  "InactiveTtl": "01:00:00",
+  "CleanupInterval": "00:05:00"
+}
+```
+
 ### Per-agent models
 
 Each agent can run on its **own Azure OpenAI deployment**, so e.g. the `Coder` can use a coding-tuned model while the chat agents use a cheaper one. [Application/ChatClientProvider.cs](src/TheSeries.AiService/Application/ChatClientProvider.cs) builds and caches one `IChatClient` per distinct deployment (all sharing the same endpoint, credential and pipeline — tool filtering, function invocation, capture, OpenTelemetry); the deployment is baked into the Azure client at construction (Azure routes by it), so this can't be a per-call override. `AgentCatalog` asks the provider to resolve each agent's deployment and builds its `ChatClientAgent` on the matching client. Resolution precedence (`ChatClientProvider.ResolveDeployment`): the **`Agents:{Name}:Deployment`** config value first, then the agent's own `IAgentDefinition.ModelId` code default (null by default), then the global `AzureOpenAI:Deployment`. Deployment names are not secrets, so set them in the AiService config (e.g. [appsettings.json](src/TheSeries.AiService/appsettings.json)) rather than user-secrets:
@@ -443,7 +478,7 @@ The resolved deployment is surfaced over `GET /agents` as `AgentInfo.ModelId`, a
 - Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter) and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()` (see `WikiTool`, `CalculatorTool`, `FileSystemTool`, `TerminalTool`). Tools live under [src/TheSeries.AiService/Application/Tools](src/TheSeries.AiService/Application/Tools) (harness/app tools, used by the workspace agents) and [src/TheSeries.AiService/Demo/Tools](src/TheSeries.AiService/Demo/Tools) (demo tools); add new ones there the same way. Tools that touch the file system or shell must stay confined to the active `WorkspaceScope` (resolve paths via `WorkspaceScope.ResolvePath`).
 - Add a new agent by inheriting `AgentDefinitionBase` and supplying its name, description, `Persona` (its own system prompt, layered on top of the shared harness prompt), and tool subset under `src/TheSeries.AiService/Demo/Agents/`, then registering it as a singleton `IAgentDefinition` in [Program.cs](src/TheSeries.AiService/Program.cs). Declare the name as a `public const string AgentName` and return it from `Name`, so vendor harnesses and other call sites reference the constant instead of repeating the string. Override `RequiresWorkspace => true` when the agent's tools need a workspace root (the endpoints then insist on a `Workspace` path and open a `WorkspaceScope` for the run). Override `SupportsSkills => true` to opt into workspace skills (the endpoints then inject the `<skills>` catalogue per run; see the Workspace skills section). Override `RiskLevel` (an `AgentRiskLevel`) and `Guardrails` (an `IReadOnlyList<string>` of human-readable safety mechanisms) to communicate how risky the agent is and what constrains it — both default to `None` / empty in `AgentDefinitionBase`, are surfaced over `GET /agents`, and drive the Environment & risk view's risk meter and guardrails chips. Override `ModelId` (a `string?`, default `null`) to declare a preferred Azure OpenAI deployment in code, though the `Agents:{Name}:Deployment` config value takes precedence (see the Per-agent models section). Alternatively, ship an agent **in a workspace** as an `agents/<name>.agent.yaml` file (no code, no redeploy) — it can only use existing backend tools and is discovered + run per request; see the Workspace-defined agents section.
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service discovery, not hardcoded URLs.
-- Agents are stateless; the shared `IChatClient` and the `AgentCatalog` are registered as singletons. Per-conversation history lives outside the agents in the singleton `ConversationStore` (keyed by `ConversationId`), not on the agents themselves.
+- Agents are stateless; the shared `IChatClient` and the `AgentCatalog` are registered as singletons. Per-conversation history lives outside the agents in the singleton `ConversationStore` (keyed by `ConversationId`), not on the agents themselves, and expires after the configured sliding inactivity window.
 
 ## Documentation
 

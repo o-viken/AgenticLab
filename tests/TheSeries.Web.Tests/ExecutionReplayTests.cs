@@ -1,3 +1,9 @@
+using System.Diagnostics.Metrics;
+using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 using TheSeries.Web;
 using TheSeries.Web.Flow;
 using Xunit;
@@ -10,6 +16,218 @@ namespace TheSeries.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    /// <summary>Streaming, replay caches, numbering and telemetry remain consistent when archives are evicted.</summary>
+    [Fact]
+    public async Task Retention_ControllerEvictsWithoutChangingCurrentCaptureOrServerMemory()
+    {
+        var totals = new Dictionary<string, long>();
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, current) =>
+        {
+            if (instrument.Meter.Name is ReplayHistory.MeterName or FlowRunController.MeterName)
+            {
+                current.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) =>
+        {
+            Assert.Equal(0, tags.Length);
+            totals[instrument.Name] = totals.GetValueOrDefault(instrument.Name) + value;
+        });
+        listener.Start();
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var catalog = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(catalog);
+        using var run = new FlowRunController(new AiServiceClient(http), view, new() { MaxArchivedExchanges = 1 });
+        Assert.Equal(1, totals.GetValueOrDefault("flow.active_pages"));
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            _ = run.Exchanges;
+            _ = run.DisplayContext;
+            _ = run.DisplayPromptSignature;
+            if (!run.Running)
+            {
+                finished.TrySetResult();
+            }
+            return Task.CompletedTask;
+        };
+        async Task SendAsync(string message)
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = message;
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await SendAsync("first");
+        var firstId = Assert.Single(run.Exchanges).Id;
+        await SendAsync("second");
+        view.SelectStage(firstId, 2);
+        Assert.True(run.Replaying);
+        _ = run.DisplayPromptSignature;
+        _ = run.DisplayContext;
+        await SendAsync("third");
+
+        Assert.False(run.Replaying);
+        Assert.Equal([2, 3], run.Exchanges.Select(exchange => exchange.Number));
+        Assert.DoesNotContain(run.Exchanges, exchange => exchange.Id == firstId);
+        Assert.Equal("second", Assert.Single(run.Turns).Message);
+        Assert.Equal(1, run.EvictedExchanges);
+        Assert.Equal(2, run.Events.Count);
+        Assert.Equal(run.DisplayPromptSignature.CurrentChars, run.DisplayContext.Chars);
+        Assert.Equal(0, handler.Resets);
+        Assert.Equal(1, totals["replay.archived.exchanges"]);
+        Assert.Equal(2, totals["replay.archived.events"]);
+        Assert.Equal(ReplayHistory.EstimatePayloadBytes(run.Turns[0]), totals["replay.archived.payload_bytes"]);
+        Assert.Equal(4, totals["flow.retained_events"]);
+        Assert.True(totals["flow.retained_payload_bytes"] > ReplayHistory.EstimatePayloadBytes(run.Turns[0]));
+
+        await run.NewConversationAsync();
+        Assert.Equal(1, handler.Resets);
+        Assert.Empty(run.Exchanges);
+        Assert.Empty(run.Turns);
+        Assert.False(run.DisplayPromptSignature.HasCurrent);
+        Assert.Equal(0, run.EvictedExchanges);
+        Assert.Equal(0, totals["replay.archived.payload_bytes"]);
+        await SendAsync("new first");
+        Assert.Equal(1, Assert.Single(run.Exchanges).Number);
+        await SendAsync("new second");
+        run.Dispose();
+        run.Dispose();
+        Assert.Equal(0, totals["flow.active_pages"]);
+        Assert.Equal(0, totals["flow.retained_events"]);
+        Assert.Equal(0, totals["flow.retained_payload_bytes"]);
+        Assert.Equal(0, totals["replay.archived.exchanges"]);
+        Assert.Equal(0, totals["replay.archived.events"]);
+        Assert.Equal(0, totals["replay.archived.payload_bytes"]);
+        Assert.Equal(1, totals["replay.evicted.exchanges"]);
+    }
+
+    /// <summary>Long synthetic conversations plateau at the configured archive count.</summary>
+    [Fact]
+    public void Retention_LongConversationReachesAPlateau()
+    {
+        using var history = new ReplayHistory(new() { MaxArchivedExchanges = 5 });
+        var turn = new ConversationTurn("test", "hello", "Chat", "reply", null,
+            [Event(1, "llm-request", 1) with { Data = new string('x', 100_000) }]);
+        for (var index = 0; index < 200; index++)
+        {
+            history.Add(turn);
+            Assert.True(history.Turns.Count <= 5);
+            Assert.True(history.PayloadBytes <= ReplayHistory.EstimatePayloadBytes(turn) * 5);
+        }
+        Assert.Equal(195, history.EvictedExchanges);
+        Assert.Equal(5, history.EventCount);
+    }
+
+    /// <summary>Zero limits disable archives and invalid limits cannot silently disable eviction.</summary>
+    [Fact]
+    public void Retention_ValidatesLimitsAndAllowsZero()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReplayHistory(new() { MaxArchivedExchanges = -1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReplayHistory(new() { MaxArchivedPayloadBytes = -1 }));
+        using var history = new ReplayHistory(new() { MaxArchivedExchanges = 0 });
+        history.Add(new("test", "hello", "Chat", "reply", null, []));
+        Assert.Empty(history.Turns);
+        Assert.Equal(1, history.EvictedExchanges);
+    }
+
+    private sealed class ReplayHandler : HttpMessageHandler
+    {
+        internal int Resets { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri!.AbsolutePath == "/chat/reset")
+            {
+                Resets++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            }
+            Assert.Equal("/chat/stream", request.RequestUri.AbsolutePath);
+            FlowEvent[] events =
+            [
+                Event(1, "llm-request", 1) with
+                { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
+                Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
+            ];
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(string.Concat(events.Select(stage => $"event: flow\ndata: {JsonSerializer.Serialize(stage)}\n\n"))),
+            });
+        }
+    }
+
+    private sealed class ReplayEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "TheSeries.Web.Tests";
+        public string EnvironmentName { get; set; } = "Testing";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+        public string WebRootPath { get; set; } = AppContext.BaseDirectory;
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+    }
+
+    /// <summary>Eviction removes whole oldest exchanges, leaving retained captures intact.</summary>
+    [Fact]
+    public void Retention_KeepsNewestWholeExchanges()
+    {
+        using var history = new ReplayHistory(new() { MaxArchivedExchanges = 2 });
+        var first = new ConversationTurn("one", "first", "Chat", "reply", null, [Event(1, "final", 1)]);
+        var second = first with { Id = "two" };
+        var third = first with { Id = "three" };
+        history.Add(first);
+        history.Add(second);
+        history.Add(third);
+
+        Assert.Equal(["two", "three"], history.Turns.Select(turn => turn.Id));
+        Assert.Same(second, history.Turns[0]);
+        Assert.Same(third, history.Turns[1]);
+        Assert.Equal(1, history.EvictedExchanges);
+        Assert.Equal(2, history.EventCount);
+        Assert.Equal(ReplayHistory.EstimatePayloadBytes(second) + ReplayHistory.EstimatePayloadBytes(third), history.PayloadBytes);
+    }
+
+    /// <summary>The byte budget includes structured arguments and permits an exact-boundary capture.</summary>
+    [Fact]
+    public void Retention_EnforcesPayloadBudgetAndDropsOversizedArchive()
+    {
+        var turn = new ConversationTurn("one", "hello", "Chat", "reply", null,
+            [Delegation(1, "call", "research", new string('x', 100))]);
+        var bytes = ReplayHistory.EstimatePayloadBytes(turn);
+        Assert.True(bytes > 200);
+        using var history = new ReplayHistory(new() { MaxArchivedPayloadBytes = bytes });
+        history.Add(turn);
+        Assert.Single(history.Turns);
+        history.Add(turn with { Id = "two" });
+        Assert.Equal("two", Assert.Single(history.Turns).Id);
+        history.Add(turn with { Message = new string('x', (int)bytes) });
+        Assert.Empty(history.Turns);
+        Assert.Equal(0, history.PayloadBytes);
+        Assert.Equal(0, history.EventCount);
+        Assert.Equal(3, history.EvictedExchanges);
+    }
+
+    /// <summary>New conversation and disposal release retained data and reset the local eviction count.</summary>
+    [Fact]
+    public void Retention_ClearAndDisposeReleaseArchives()
+    {
+        using var history = new ReplayHistory(new() { MaxArchivedExchanges = 1 });
+        var turn = new ConversationTurn("one", "hello", "Chat", "reply", null, []);
+        history.Add(turn);
+        history.Add(turn with { Id = "two" });
+        history.Clear();
+        Assert.Empty(history.Turns);
+        Assert.Equal(0, history.EvictedExchanges);
+        Assert.Equal(0, history.PayloadBytes);
+        history.Add(turn);
+        history.Dispose();
+        Assert.Empty(history.Turns);
+        Assert.Equal(0, history.PayloadBytes);
+        Assert.Throws<ObjectDisposedException>(() => history.Add(turn));
+    }
+
     /// <summary>Each result answers its own call, including repeated and interleaved targets.</summary>
     [Fact]
     public void A2A_PairsCallsAndDoesNotRevealFutureResults()

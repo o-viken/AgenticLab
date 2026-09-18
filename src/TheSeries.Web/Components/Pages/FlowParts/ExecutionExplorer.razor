@@ -15,6 +15,14 @@
 }
 
 <section class="execution">
+    @if (Run.EvictedExchanges > 0)
+    {
+        <p class="retention-notice" role="status">
+            @Run.EvictedExchanges older exchange(s) removed by the local replay limit.
+            Transcript, context history and prompt comparisons cover retained exchanges only.
+            AI service conversation memory is unchanged.
+        </p>
+    }
     @if (exchanges.Count == 0)
     {
         <p class="empty">Nothing has run yet. Send a message and every step it takes is captured here.</p>

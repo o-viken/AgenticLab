@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using TheSeries.Web.Flow;
 
@@ -24,6 +25,9 @@ public partial class Flow : IDisposable
     private ConceptCatalog Concepts { get; set; } = default!;
 
     [Inject]
+    private IOptions<ReplayRetentionOptions> Retention { get; set; } = default!;
+
+    [Inject]
     private IJSRuntime JS { get; set; } = default!;
 
     private FlowViewState _view = default!;
@@ -45,7 +49,7 @@ public partial class Flow : IDisposable
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);
-        _run = new FlowRunController(Ai, _view);
+        _run = new FlowRunController(Ai, _view, Retention.Value);
         _view.Changed += OnViewChanged;
         _view.WorkspacePrefsChanged += OnWorkspacePrefsChanged;
         _run.Changed += OnRunChangedAsync;
