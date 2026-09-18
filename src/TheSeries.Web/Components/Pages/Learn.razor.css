@@ -107,9 +107,6 @@ figcaption { margin-top: .85rem; font-size: 12px; line-height: 1.5; color: var(-
 .node-loop-execute.highlighted { border-left-color: var(--app); }
 .node-loop-answer.highlighted { border-left-color: var(--agent); }
 .takeaway { margin: 1.25rem 0; padding: .2rem 0 .2rem 1rem; border-left: 3px solid var(--accent); font: 500 19px/1.5 Cambria, Georgia, serif; }
-.reality-note { padding: .9rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.6; }
-.reality-note p { margin: .2rem 0; }
-.reality-note a { display: inline-block; margin-top: .35rem; }
 .related-topics { padding-top: 1rem; }
 .related-topics h3 { margin: 0; font-size: 14px; }
 .concept-links { display: flex; flex-wrap: wrap; gap: .3rem 1rem; margin-top: .55rem; }

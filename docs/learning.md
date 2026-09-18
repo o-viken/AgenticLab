@@ -52,8 +52,9 @@ and opens existing `ConceptCatalog` content inline. It does not depend on `FlowV
 in Learn.razor: model-plus-harness composition, five agent host responsibilities, the per-turn
 decision/execution/observation loop, MCP versus A2A connections, a three-row Foundry capability
 mapping, and the Run/Observe/Evaluate/Improve operating cycle. Only `map-to-foundry` has
-`PlatformMap` set, controlling its conceptual badge and external documentation link; the lifecycle
-is platform-neutral. Copy and node definitions live in `AgentLearningJourney`; scoped CSS owns
+`PlatformMap` set, controlling its conceptual badge; the lifecycle
+is platform-neutral. Lessons move from the takeaway directly to related concepts, without a
+product-specific "In TheSeries" note. Copy and node definitions live in `AgentLearningJourney`; scoped CSS owns
 the responsive layouts. Focused tests protect stage node selection and references, alongside
 browser checks for rendered diagrams and connectors. These diagrams are not live telemetry or
 deployment/security maps. Current execution traces are distinguished from future Foundry hosting
