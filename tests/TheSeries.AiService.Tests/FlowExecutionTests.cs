@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.AI;
-using TheSeries.AiService.Application;
+using TheSeries.AiService.Application.Flow;
 using Xunit;
 
 namespace TheSeries.AiService.Tests;

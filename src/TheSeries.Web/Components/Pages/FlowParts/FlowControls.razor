@@ -5,29 +5,29 @@
 
 <section class="controls settings-controls">
     <div class="control">
-        <label for="delay">Auto step delay <span>@View.StepDelayMs ms</span></label>
+        <label for="delay">Auto step delay <span>@View.Options.StepDelayMs ms</span></label>
         <input id="delay" type="range" min="0" max="3000" step="50"
-               @bind="View.StepDelayMs" @bind:event="oninput" @bind:after="Run.SetDelayAsync"
-               disabled="@(View.Mode == FlowMode.Manual)" />
+               @bind="View.Options.StepDelayMs" @bind:event="oninput" @bind:after="Run.SetDelayAsync"
+               disabled="@(View.Options.Mode == FlowMode.Manual)" />
     </div>
 
     <div class="control">
         <label>Stepping</label>
         <div class="mode-toggle">
-            <button type="button" class="@(View.Mode == FlowMode.Auto ? "selected" : "")"
-                    disabled="@Run.Running" @onclick="@(() => View.Mode = FlowMode.Auto)">Auto</button>
-            <button type="button" class="@(View.Mode == FlowMode.Manual ? "selected" : "")"
-                    disabled="@Run.Running" @onclick="@(() => View.Mode = FlowMode.Manual)">Manual</button>
+            <button type="button" class="@(View.Options.Mode == FlowMode.Auto ? "selected" : "")"
+                    disabled="@Run.Running" @onclick="@(() => View.Options.Mode = FlowMode.Auto)">Auto</button>
+            <button type="button" class="@(View.Options.Mode == FlowMode.Manual ? "selected" : "")"
+                    disabled="@Run.Running" @onclick="@(() => View.Options.Mode = FlowMode.Manual)">Manual</button>
         </div>
     </div>
 
     <fieldset class="control breakpoints-control">
         <legend>Breakpoints</legend>
         <div class="breakpoint-grid">
-            @foreach (var option in FlowViewState.BreakpointOptions)
+            @foreach (var option in RunOptions.BreakpointOptions)
             {
                 <label class="check">
-                    <input type="checkbox" checked="@View.IsBreakpointEnabled(option.Kind)"
+                    <input type="checkbox" checked="@View.Options.IsBreakpointEnabled(option.Kind)"
                            disabled="@Run.BreakpointSettingsPending"
                            @onchange="@(args => Run.SetBreakpointAsync(option.Kind, args.Value is true))" />
                     <span>@option.Label</span>
@@ -41,14 +41,14 @@
        has none) so switching agents never reflows the primary controls above. *@
     <div class="control tools-control">
         <label>Tools</label>
-        @if (View.SelectedAgentToolNames.Count > 0)
+        @if (View.Agent.ToolNames.Count > 0)
         {
             <div class="tool-toggles">
-                @foreach (var tool in View.SelectedAgentToolNames)
+                @foreach (var tool in View.Agent.ToolNames)
                 {
-                    <label class="check tool-check @View.ToolRiskClass(tool)" title="@View.ToolRiskTitle(tool)">
-                        <input type="checkbox" checked="@View.IsToolEnabled(tool)" disabled="@Run.Running"
-                               @onchange="@(e => View.SetToolEnabled(tool, (bool)e.Value!))" />
+                    <label class="check tool-check @View.Agent.ToolRiskClass(tool)" title="@View.Agent.ToolRiskTitle(tool)">
+                        <input type="checkbox" checked="@View.Options.IsToolEnabled(tool)" disabled="@Run.Running"
+                               @onchange="@(e => View.Options.SetToolEnabled(tool, (bool)e.Value!))" />
                         @tool
                     </label>
                 }
@@ -58,12 +58,12 @@
         {
             <p class="tools-empty">No tools for this agent</p>
         }
-        @if (View.ToolMappingLines.Count > 0)
+        @if (View.Agent.ToolMappingLines.Count > 0)
         {
             <div class="tool-mappings">
                 <span class="tool-mappings-title">Declared in agent file → mapped tool</span>
                 <ul>
-                    @foreach (var line in View.ToolMappingLines)
+                    @foreach (var line in View.Agent.ToolMappingLines)
                     {
                         <li class="@(line.Dropped ? "dropped" : "")">
                             <span class="declared">
@@ -88,15 +88,15 @@
         }
     </div>
 
-    @if (View.SelectedAgentRequiresWorkspace)
+    @if (View.Agent.RequiresWorkspace)
     {
         <div class="control message workspace-control">
             <label for="workspace">Workspace</label>
             <div class="workspace-picker">
-                <input id="workspace" class="workspace-input" @bind="View.Workspace" @bind:event="oninput" @onblur="Run.RefreshWorkspaceContextAsync"
+                <input id="workspace" class="workspace-input" @bind="View.Workspace" @bind:event="oninput" @onblur="Run.Catalogs.RefreshWorkspaceContextAsync"
                        placeholder="Absolute path to a folder the agent may edit, e.g. C:\code\my-app"
                        disabled="@Run.Running" />
-                @if (View.WorkspaceSuggestions.Count > 0)
+                @if (View.WorkspacePrefs.Suggestions.Count > 0)
                 {
                     <button type="button" class="picker-toggle @(_pickerOpen ? "open" : "")" @onclick="TogglePicker"
                             disabled="@Run.Running" title="Browse repos from your base folders">
@@ -108,7 +108,7 @@
                 {
                     var filtered = FilteredSuggestions();
                     <div class="picker-panel">
-                        <input class="picker-filter" placeholder="Filter @View.WorkspaceSuggestions.Count repos…"
+                        <input class="picker-filter" placeholder="Filter @View.WorkspacePrefs.Suggestions.Count repos…"
                                @bind="_pickerFilter" @bind:event="oninput" @onkeydown="OnPickerKeyDown" />
                         <ul class="picker-list">
                             @foreach (var suggestion in filtered)
@@ -138,39 +138,39 @@
             </div>
 
             <label for="workspace-bases" class="bases-label">Repo base folders — one per line, to suggest repos above</label>
-            <textarea id="workspace-bases" class="bases-input" rows="2" @bind="View.WorkspaceBases"
-                      @bind:after="Run.RefreshWorkspaceSuggestionsAsync"
+            <textarea id="workspace-bases" class="bases-input" rows="2" @bind="View.WorkspacePrefs.Bases"
+                      @bind:after="Run.Catalogs.RefreshWorkspaceSuggestionsAsync"
                       placeholder="e.g. C:\Users\me\Documents\GitHub" disabled="@Run.Running"></textarea>
-            @if (View.WorkspaceSuggestions.Count > 0)
+            @if (View.WorkspacePrefs.Suggestions.Count > 0)
             {
-                <span class="bases-hint">@View.WorkspaceSuggestions.Count repo(s) found — click ▾ to browse</span>
+                <span class="bases-hint">@View.WorkspacePrefs.Suggestions.Count repo(s) found — click ▾ to browse</span>
             }
         </div>
     }
 
     @* Skills discovered in the workspace — a compact list (name only) that expands per item, each with an
        on/off toggle (skills default on). Disabling one removes it from the run. *@
-    @if (View.SelectedAgentSupportsSkills)
+    @if (View.Agent.SupportsSkills)
     {
         <div class="control resource-control">
-            <label>Skills <span>@Run.KnownSkills.Count found</span></label>
-            @if (Run.KnownSkills.Count == 0)
+            <label>Skills <span>@Run.Catalogs.KnownSkills.Count found</span></label>
+            @if (Run.Catalogs.KnownSkills.Count == 0)
             {
                 <p class="resource-empty">No skills in this workspace (add a skills/&lt;name&gt;/SKILL.md, .github/prompts/*.prompt.md or .claude/commands/*.md).</p>
             }
             else
             {
                 <ul class="resource-list">
-                    @foreach (var skill in Run.KnownSkills)
+                    @foreach (var skill in Run.Catalogs.KnownSkills)
                     {
                         var expanded = _expandedSkills.Contains(skill.Name);
-                        <li class="resource-item @(View.IsSkillEnabled(skill.Name) ? "" : "off")" @key="skill.Name">
+                        <li class="resource-item @(View.Options.IsSkillEnabled(skill.Name) ? "" : "off")" @key="skill.Name">
                             <div class="resource-row">
-                                <input type="checkbox" checked="@View.IsSkillEnabled(skill.Name)" disabled="@Run.Running"
-                                       @onchange="@(e => View.SetSkillEnabled(skill.Name, (bool)e.Value!))" />
+                                <input type="checkbox" checked="@View.Options.IsSkillEnabled(skill.Name)" disabled="@Run.Running"
+                                       @onchange="@(e => View.Options.SetSkillEnabled(skill.Name, (bool)e.Value!))" />
                                 <button type="button" class="resource-name" @onclick="@(() => ToggleSkill(skill.Name))">
                                     <span class="resource-caret @(expanded ? "open" : "")">▸</span>
-                                    <span class="resource-title">⬡ @skill.Name@(Run.IsSkillLoaded(skill.Name) ? " · loaded" : "")</span>
+                                    <span class="resource-title">⬡ @skill.Name@(Run.Catalogs.IsSkillLoaded(skill.Name) ? " · loaded" : "")</span>
                                 </button>
                             </div>
                             @if (expanded)
@@ -186,11 +186,11 @@
 
     @* Custom instructions discovered in the workspace — a compact expandable list. Instructions default
        OFF (opt-in); enable the ones this run should follow. Covers .github, .claude and AGENTS.md/CLAUDE.md. *@
-    @if (View.SelectedAgentSupportsInstructions)
+    @if (View.Agent.SupportsInstructions)
     {
         <div class="control resource-control">
-            <label>Custom instructions <span>@Run.KnownInstructions.Count found</span></label>
-            @if (Run.KnownInstructions.Count == 0)
+            <label>Custom instructions <span>@Run.Catalogs.KnownInstructions.Count found</span></label>
+            @if (Run.Catalogs.KnownInstructions.Count == 0)
             {
                 <p class="resource-empty">No custom instructions (add an instructions/*.instructions.md, .github/copilot-instructions.md, CLAUDE.md or AGENTS.md).</p>
             }
@@ -198,13 +198,13 @@
             {
                 <p class="resource-note">Off by default — tick the ones this run should follow.</p>
                 <ul class="resource-list">
-                    @foreach (var instruction in Run.KnownInstructions)
+                    @foreach (var instruction in Run.Catalogs.KnownInstructions)
                     {
                         var expanded = _expandedInstructions.Contains(instruction.Name);
-                        <li class="resource-item @(View.IsInstructionEnabled(instruction.Name) ? "on" : "")" @key="instruction.Name">
+                        <li class="resource-item @(View.Options.IsInstructionEnabled(instruction.Name) ? "on" : "")" @key="instruction.Name">
                             <div class="resource-row">
-                                <input type="checkbox" checked="@View.IsInstructionEnabled(instruction.Name)" disabled="@Run.Running"
-                                       @onchange="@(e => View.SetInstructionEnabled(instruction.Name, (bool)e.Value!))" />
+                                <input type="checkbox" checked="@View.Options.IsInstructionEnabled(instruction.Name)" disabled="@Run.Running"
+                                       @onchange="@(e => View.Options.SetInstructionEnabled(instruction.Name, (bool)e.Value!))" />
                                 <button type="button" class="resource-name" @onclick="@(() => ToggleInstruction(instruction.Name))">
                                     <span class="resource-caret @(expanded ? "open" : "")">▸</span>
                                     <span class="resource-title">▤ @instruction.Name</span>
@@ -222,88 +222,3 @@
     }
 </section>
 
-@code {
-    [CascadingParameter]
-    private FlowViewState View { get; set; } = default!;
-
-    [CascadingParameter]
-    private FlowRunController Run { get; set; } = default!;
-
-    // Local UI state for the workspace repo picker (a filterable dropdown of discovered/recent repos).
-    private bool _pickerOpen;
-    private string _pickerFilter = string.Empty;
-
-    // Which skill/instruction rows are expanded to show their details (compact list, expand on demand).
-    private readonly HashSet<string> _expandedSkills = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _expandedInstructions = new(StringComparer.OrdinalIgnoreCase);
-
-    private void ToggleSkill(string name)
-    {
-        if (!_expandedSkills.Remove(name))
-        {
-            _expandedSkills.Add(name);
-        }
-    }
-
-    private void ToggleInstruction(string name)
-    {
-        if (!_expandedInstructions.Remove(name))
-        {
-            _expandedInstructions.Add(name);
-        }
-    }
-
-    private void TogglePicker()
-    {
-        _pickerOpen = !_pickerOpen;
-        if (!_pickerOpen)
-        {
-            _pickerFilter = string.Empty;
-        }
-    }
-
-    // Selects a repo as the workspace and refreshes everything that depends on the workspace path.
-    private async Task SelectWorkspace(string path)
-    {
-        View.Workspace = path;
-        _pickerOpen = false;
-        _pickerFilter = string.Empty;
-        await Run.RefreshWorkspaceContextAsync();
-    }
-
-    // The suggestions matching the picker's filter (by repo name or full path); all of them when blank.
-    private IReadOnlyList<WorkspaceSuggestion> FilteredSuggestions()
-    {
-        var all = View.WorkspaceSuggestions;
-        if (string.IsNullOrWhiteSpace(_pickerFilter))
-        {
-            return all;
-        }
-
-        var query = _pickerFilter.Trim();
-        return all
-            .Where(s => s.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
-                     || s.Path.Contains(query, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-    }
-
-    // Enter picks the first filtered repo; Escape closes the picker.
-    private async Task OnPickerKeyDown(KeyboardEventArgs args)
-    {
-        if (args.Key == "Escape")
-        {
-            _pickerOpen = false;
-            _pickerFilter = string.Empty;
-            return;
-        }
-
-        if (args.Key == "Enter")
-        {
-            var first = FilteredSuggestions().FirstOrDefault();
-            if (first is not null)
-            {
-                await SelectWorkspace(first.Path);
-            }
-        }
-    }
-}

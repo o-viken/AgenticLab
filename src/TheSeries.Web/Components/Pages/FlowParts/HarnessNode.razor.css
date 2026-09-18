@@ -1,0 +1,129 @@
+/* The compact Harness node: the Tools box and risk-tinted tool chips, the workspace path, and the Skills /
+   MCP / A2A catalogue boxes with their chips. Rules are anchored on .node.harness so they keep precedence
+   over the diagram's shared .node / .node-inner base styles. */
+.node.harness .node-inner.tools {
+    margin-top: .75rem;
+    padding: .5rem .8rem;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    border-top: 1px solid var(--panel-border);
+    border-left: 3px solid var(--workspace-text);
+}
+
+.node.harness .node-inner.tools.active {
+    border-color: var(--accent-soft);
+    background: var(--tools-active-bg);
+    animation: live-node-pulse 1s ease-in-out infinite;
+}
+
+/* Workspace path shown inside the harness box ------------------------- */
+.node.harness .subtitle.workspace-path {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--workspace-text);
+}
+
+/* Skills catalogue inside the harness box ----------------------------- */
+.node.harness .node-inner.skills {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: var(--skills-bg);
+    border: 1px solid var(--skills-border);
+}
+
+/* MCP-discovered tools box, mirrors the skills catalogue styling. */
+.node.harness .node-inner.mcp {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: var(--skills-bg);
+    border: 1px solid var(--skills-border);
+}
+
+/* A2A sub-agents box, mirrors the skills/MCP catalogue styling. */
+.node.harness .node-inner.a2a {
+    margin-top: .55rem;
+    padding: .5rem .8rem;
+    border-radius: 10px;
+    background: var(--skills-bg);
+    border: 1px solid var(--skills-border);
+}
+
+.node.harness .skill-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .3rem;
+    margin-top: .35rem;
+}
+
+.node.harness .skill-chip {
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    color: var(--skill-chip-text);
+    background: var(--skill-chip-bg);
+    border: 1px solid var(--skill-chip-border);
+    transition: background .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+
+.node.harness .skill-chip.loaded {
+    color: var(--accent-ink);
+    background: var(--accent-weak);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .25);
+}
+
+/* Tool chips in the compact harness Tools box, tinted by each tool's risk tier (read-only vs.
+   side-effecting vs. writes/runs) so capabilities aren't shown as a flat count. Colours reuse the
+    shared risk palette across all vendors. */
+.node.harness .tool-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .3rem;
+    margin-top: .4rem;
+}
+
+.node.harness .tool-chip {
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.node.harness .tool-chip.risk-low {
+    color: var(--risk-low-text);
+    background: var(--risk-low-bg);
+    border-color: var(--risk-low-text);
+}
+
+.node.harness .tool-chip.risk-medium {
+    color: var(--risk-medium-text);
+    background: var(--risk-medium-bg);
+    border-color: var(--risk-medium-text);
+}
+
+.node.harness .tool-chip.risk-high {
+    color: var(--risk-high-text);
+    background: var(--risk-high-bg);
+    border-color: var(--risk-high-text);
+}
+
+/* A tool toggled off for the run is dimmed and struck through. */
+.node.harness .tool-chip.off {
+    opacity: .45;
+    text-decoration: line-through;
+}
+
+/* Anchor the concept-info badge to the tools/skills boxes. */
+.node.harness .node-inner.tools,
+.node.harness .node-inner.skills {
+    position: relative;
+}

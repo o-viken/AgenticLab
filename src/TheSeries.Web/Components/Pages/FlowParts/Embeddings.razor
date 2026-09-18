@@ -28,8 +28,8 @@
             <div class="emb-vectors">
                 @foreach (var token in Emb.Tokens)
                 {
-                    <div class="emb-vrow clickable @(View.IsTokenSelected(token.Text) ? "selected" : null)"
-                         title="@token.Text" @onclick="@(() => View.SelectToken(token.Text))">
+                    <div class="emb-vrow clickable @(View.Diagram.IsTokenSelected(token.Text) ? "selected" : null)"
+                         title="@token.Text" @onclick="@(() => View.Diagram.SelectToken(token.Text))">
                         <span class="emb-vlabel">@token.Text.Trim()</span>
                         <div class="emb-strip">
                             @foreach (var value in token.Vector)
@@ -78,9 +78,9 @@
                 {
                     var left = (token.X * 100).ToString("0.##", Inv);
                     var top = ((1 - token.Y) * 100).ToString("0.##", Inv);
-                    <span class="emb-point clickable @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                    <span class="emb-point clickable @(View.Diagram.IsTokenSelected(token.Text) ? "selected" : null)"
                           style="left:@(left)%;top:@(top)%" title="@token.Text.Trim()"
-                          @onclick="@(() => View.SelectToken(token.Text))">
+                          @onclick="@(() => View.Diagram.SelectToken(token.Text))">
                         <span class="emb-dot"></span>
                         <span class="emb-plabel">@token.Text.Trim()</span>
                     </span>
@@ -97,21 +97,21 @@
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
 
-    private EmbeddingsView Emb => Run.Embeddings;
+    private EmbeddingsView Emb => Run.Projections.Embeddings;
 
     /// <summary>The pinned token's embedding, when the selected token is one of this view's tokens.</summary>
     private EmbeddingToken? Selected
     {
         get
         {
-            if (View.SelectedToken is null)
+            if (View.Diagram.SelectedToken is null)
             {
                 return null;
             }
 
             foreach (var token in Emb.Tokens)
             {
-                if (View.IsTokenSelected(token.Text))
+                if (View.Diagram.IsTokenSelected(token.Text))
                 {
                     return token;
                 }

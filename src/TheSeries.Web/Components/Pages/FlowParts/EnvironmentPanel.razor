@@ -1,48 +1,48 @@
 @* The risk meter + guardrails box shown on the merged node when the environment & risk view is on.
    Renders nothing when the view is off. Used by both the compact and the anatomy harness node. *@
 
-@if (View.ShowEnvironment)
+@if (View.Diagram.ShowEnvironment)
 {
     <div class="env-panel">
-        <div class="risk-meter @View.RiskLevelClass">
+        <div class="risk-meter @View.Agent.RiskLevelClass">
             <ConceptInfoButton Id="agent-risk" Title="Learn about agent risk" />
             <span class="risk-title">Risk</span>
             <div class="risk-bar">
                 @for (var i = 0; i < 3; i++)
                 {
-                    <span class="risk-seg @(i < View.RiskFilledSegments ? "filled" : "")"></span>
+                    <span class="risk-seg @(i < View.Agent.RiskFilledSegments ? "filled" : "")"></span>
                 }
             </div>
-            <span class="risk-level">@View.SelectedAgentRiskLevel</span>
+            <span class="risk-level">@View.Agent.RiskLevel</span>
         </div>
         <div class="guardrails node-inner">
             <ConceptInfoButton Id="guardrails" Title="Learn about guardrails" />
             <span class="title">Guardrails</span>
-            @if (View.SelectedAgentGuardrails.Count == 0)
+            @if (View.Agent.Guardrails.Count == 0)
             {
                 <span class="subtitle">no extra guardrails — model reasoning only</span>
             }
             else
             {
                 <ul class="guardrail-list">
-                    @foreach (var g in View.SelectedAgentGuardrails)
+                    @foreach (var g in View.Agent.Guardrails)
                     {
                         <li class="guardrail-chip">@g</li>
                     }
                 </ul>
             }
         </div>
-        @if (View.ShowConcepts)
+        @if (View.Concepts.ShowConcepts)
         {
             <div class="env-learn">
                 <button type="button" class="concept-mcp" title="Learn where agents run"
-                        @onclick="@(() => View.OpenConcept("where-agents-run"))" @onclick:stopPropagation="true">Where it runs</button>
+                        @onclick="@(() => View.Concepts.OpenConcept("where-agents-run"))" @onclick:stopPropagation="true">Where it runs</button>
                 <button type="button" class="concept-mcp" title="Learn about the environment"
-                        @onclick="@(() => View.OpenConcept("environment"))" @onclick:stopPropagation="true">Environment</button>
+                        @onclick="@(() => View.Concepts.OpenConcept("environment"))" @onclick:stopPropagation="true">Environment</button>
                 <button type="button" class="concept-mcp" title="Learn about sandboxing"
-                        @onclick="@(() => View.OpenConcept("sandbox"))" @onclick:stopPropagation="true">Sandbox</button>
+                        @onclick="@(() => View.Concepts.OpenConcept("sandbox"))" @onclick:stopPropagation="true">Sandbox</button>
                 <button type="button" class="concept-mcp" title="Learn how to protect against agent risks"
-                        @onclick="@(() => View.OpenConcept("securing-agents"))" @onclick:stopPropagation="true">Protect</button>
+                        @onclick="@(() => View.Concepts.OpenConcept("securing-agents"))" @onclick:stopPropagation="true">Protect</button>
             </div>
         }
     </div>

@@ -2,7 +2,7 @@
    Default emoji), label/subtitle, optional workspace path and environment badge, and — in Expert —
    the Tools box and (for skill-using agents) the Skills catalogue. *@
 
-<div class="node harness @Run.NodeClass("harness")">
+<div class="node harness @Run.Focus.NodeClass("harness")">
     <ConceptInfoButton Id="harness" Title="Learn about the harness" />
     <span class="icon">
         @if (View.Vendor == Vendor.Default)
@@ -14,29 +14,29 @@
             <VendorIcon Vendor="View.Vendor" />
         }
     </span>
-    <span class="title">@View.HarnessLabel</span>
-    <span class="subtitle">@View.HarnessSubtitle</span>
-    @if (View.SelectedAgentRequiresWorkspace && !string.IsNullOrWhiteSpace(View.Workspace))
+    <span class="title">@View.Harness.Label</span>
+    <span class="subtitle">@View.Harness.Subtitle</span>
+    @if (View.Agent.RequiresWorkspace && !string.IsNullOrWhiteSpace(View.Workspace))
     {
         <span class="subtitle workspace-path" title="@View.Workspace">📁 @View.Workspace</span>
     }
-    @if (View.ShowEnvironment)
+    @if (View.Diagram.ShowEnvironment)
     {
-        <span class="env-badge @View.EnvBadgeClass" title="@View.HarnessEnvTitle">@View.HarnessEnvLabel</span>
+        <span class="env-badge @View.Agent.EnvBadgeClass" title="@View.Agent.EnvTitle">@View.Agent.EnvLabel</span>
     }
     <EnvironmentPanel />
     @if (View.Perspective == Perspective.Expert)
     {
-        <div class="tools node-inner @Run.NodeClass("tools")">
+        <div class="tools node-inner @Run.Focus.NodeClass("tools")">
             <ConceptInfoButton Id="tools" Title="Learn about tools" />
             <span class="title">Tools</span>
-            <span class="subtitle">@View.SelectedAgentTools</span>
-            @if (View.SelectedAgentToolNames.Count > 0)
+            <span class="subtitle">@View.Agent.ToolsSummary</span>
+            @if (View.Agent.ToolNames.Count > 0)
             {
                 <div class="tool-chips">
-                    @foreach (var tool in View.SelectedAgentToolNames)
+                    @foreach (var tool in View.Agent.ToolNames)
                     {
-                        <span class="tool-chip @View.ToolRiskClass(tool) @(View.IsToolEnabled(tool) ? "" : "off")"
+                        <span class="tool-chip @View.Agent.ToolRiskClass(tool) @(View.Options.IsToolEnabled(tool) ? "" : "off")"
                               title="@ChipTitle(tool)">
                             @tool
                         </span>
@@ -44,21 +44,21 @@
                 </div>
             }
         </div>
-        @if (View.SelectedAgentSupportsSkills)
+        @if (View.Agent.SupportsSkills)
         {
             <div class="skills node-inner">
                 <ConceptInfoButton Id="skills" Title="Learn about skills" />
                 <span class="title">Skills</span>
-                @if (Run.KnownSkills.Count == 0)
+                @if (Run.Catalogs.KnownSkills.Count == 0)
                 {
                     <span class="subtitle">@(string.IsNullOrWhiteSpace(View.Workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
                 }
                 else
                 {
                     <div class="skill-chips">
-                        @foreach (var skill in Run.KnownSkills)
+                        @foreach (var skill in Run.Catalogs.KnownSkills)
                         {
-                            <span class="skill-chip @(Run.IsSkillLoaded(skill.Name) ? "loaded" : "")"
+                            <span class="skill-chip @(Run.Catalogs.IsSkillLoaded(skill.Name) ? "loaded" : "")"
                                   title="@skill.Description">
                                 @skill.Name
                             </span>
@@ -67,19 +67,19 @@
                 }
             </div>
         }
-        @if (View.SelectedAgentSupportsMcp)
+        @if (View.Agent.SupportsMcp)
         {
             <div class="mcp node-inner">
                 <ConceptInfoButton Id="mcp" Title="Learn about MCP" />
                 <span class="title">MCP servers</span>
-                @if (Run.KnownMcp.Count == 0)
+                @if (Run.Catalogs.KnownMcp.Count == 0)
                 {
                     <span class="subtitle">no MCP server connected</span>
                 }
                 else
                 {
                     <div class="skill-chips">
-                        @foreach (var tool in Run.KnownMcp)
+                        @foreach (var tool in Run.Catalogs.KnownMcp)
                         {
                             <span class="skill-chip" title="@tool.Description">@tool.Name</span>
                         }
@@ -87,19 +87,19 @@
                 }
             </div>
         }
-        @if (View.SelectedAgentSupportsA2A)
+        @if (View.Agent.SupportsA2A)
         {
             <div class="a2a node-inner">
                 <ConceptInfoButton Id="a2a" Title="Learn about A2A" />
                 <span class="title">A2A agents</span>
-                @if (Run.KnownA2A.Count == 0)
+                @if (Run.Catalogs.KnownA2A.Count == 0)
                 {
                     <span class="subtitle">no A2A agent connected</span>
                 }
                 else
                 {
                     <div class="skill-chips">
-                        @foreach (var agent in Run.KnownA2A)
+                        @foreach (var agent in Run.Catalogs.KnownA2A)
                         {
                             <span class="skill-chip" title="@agent.Description">@agent.Name</span>
                         }
@@ -121,8 +121,8 @@
     // was mapped from, so it's visible that a VS Code-style token became this app's backend tool.
     private string ChipTitle(string tool)
     {
-        var title = View.ToolRiskTitle(tool);
-        var mappedFrom = View.ToolMappedFrom(tool);
+        var title = View.Agent.ToolRiskTitle(tool);
+        var mappedFrom = View.Agent.ToolMappedFrom(tool);
         return mappedFrom is null ? title : $"{title} · mapped from {mappedFrom}";
     }
 }

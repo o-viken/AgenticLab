@@ -1,11 +1,11 @@
 @{
-    var display = Run.DisplayA2A;
-    var sectionClass = "a2a-flow" + (View.ShowAgentBoundary ? " show-agent-boundaries" : "")
-        + (Run.AnimateA2A ? " animate" : "");
+    var display = Run.Replay.DisplayA2A;
+    var sectionClass = "a2a-flow" + (View.Diagram.ShowAgentBoundary ? " show-agent-boundaries" : "")
+        + (Run.Focus.AnimateA2A ? " animate" : "");
 }
 <section class="@sectionClass" aria-label="Remote A2A agents">
     <div class="a2a-entry">
-        <span>@Run.A2ACaller harness <span class="a2a-protocol">A2A</span></span>
+        <span>@Run.Focus.A2ACaller harness <span class="a2a-protocol">A2A</span></span>
     </div>
     <header class="a2a-heading">
         <h3>Remote agents</h3>
@@ -13,7 +13,7 @@
         <ConceptInfoButton Id="a2a" Title="Learn about agent-to-agent communication" />
     </header>
     <div class="a2a-grid">
-        @if (View.ShowEnvironment)
+        @if (View.Diagram.ShowEnvironment)
         {
             <div class="a2a-host-boundary" style="grid-row: 1 / span @(display.Agents.Count + 1)"></div>
         }
@@ -35,7 +35,7 @@
                 <div class="a2a-harness">
                     <div class="a2a-agent-title"><span class="diagram-icon icon-harness" aria-hidden="true"></span><h4>@item.Agent.Name</h4></div>
                     <span class="a2a-role">Harness</span>
-                    @if (View.ShowEnvironment)
+                    @if (View.Diagram.ShowEnvironment)
                     {
                         <span class="a2a-location">A2A service · shared process</span>
                     }

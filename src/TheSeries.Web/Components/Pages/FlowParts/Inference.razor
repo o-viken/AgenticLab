@@ -29,14 +29,14 @@
                 @foreach (var token in Inf.PromptTokens)
                 {
                     var ws = IsWhitespace(token.Text);
-                        <button type="button" disabled="@ws" aria-pressed="@(View.IsTokenSelected(token.Text) ? "true" : "false")"
-                            class="inf-tok prompt @(ws ? "ws" : "clickable") @(View.IsTokenSelected(token.Text) ? "selected" : null)"
+                        <button type="button" disabled="@ws" aria-pressed="@(View.Diagram.IsTokenSelected(token.Text) ? "true" : "false")"
+                            class="inf-tok prompt @(ws ? "ws" : "clickable") @(View.Diagram.IsTokenSelected(token.Text) ? "selected" : null)"
                             @onclick="@(() => OnTokenClick(token.Text, ws))">@Display(token.Text)</button>
                 }
             </div>
-            @if (View.SelectedToken is not null)
+            @if (View.Diagram.SelectedToken is not null)
             {
-                <span class="inf-hint">pinned <b>@View.SelectedToken</b> — see its vector &amp; network input in <b>Embeddings &amp; network</b> (click again to unpin)</span>
+                <span class="inf-hint">pinned <b>@View.Diagram.SelectedToken</b> — see its vector &amp; network input in <b>Embeddings &amp; network</b> (click again to unpin)</span>
             }
             else
             {
@@ -105,13 +105,13 @@
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
 
-    private InferenceView Inf => Run.Inference;
+    private InferenceView Inf => Run.Projections.Inference;
 
     private void OnTokenClick(string text, bool whitespace)
     {
         if (!whitespace)
         {
-            View.SelectToken(text);
+            View.Diagram.SelectToken(text);
         }
     }
 

@@ -2,7 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using TheSeries.AiService.Application;
+using TheSeries.AiService.Application.Conversations;
 using Xunit;
 
 namespace TheSeries.AiService.Tests;

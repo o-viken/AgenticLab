@@ -3,9 +3,9 @@
     first as dimmed chips. During replay only content through the cursor is shown. *@
 
 @{
-     var context = Run.DisplayContext;
+     var context = Run.Replay.DisplayContext;
 }
-<div class="context-stack @(Run.Replaying ? "replay" : null)">
+<div class="context-stack @(Run.Replay.Replaying ? "replay" : null)">
     <div class="context-head">
         <span class="context-title-group">
             <ConceptInfoButton Id="context" Title="Learn about the context" />
@@ -13,11 +13,11 @@
         </span>
         <span class="context-meta">@context.Count content entr@(context.Count == 1 ? "y" : "ies") · @(context.Chars is int chars ? $"~{chars:N0} chars" : "size not captured")</span>
     </div>
-    @if (Run.Replaying)
+    @if (Run.Replay.Replaying)
     {
         <div class="context-position">
-            <span class="context-mode">Replay · exchange @(Run.SelectedExchange?.Number)</span>
-            @if (Run.SelectedStage is { } stage)
+            <span class="context-mode">Replay · exchange @(Run.Replay.SelectedExchange?.Number)</span>
+            @if (Run.Replay.SelectedStage is { } stage)
             {
                 <span>@(stage.Turn > 0 ? $"T{stage.Turn} · " : null)@ExecutionReplayBuilder.StageTitle(stage)</span>
             }
@@ -26,7 +26,7 @@
     <div class="context-bar" aria-hidden="true"><span style="width:@(context.BarWidth)%"></span></div>
     @if (context.Count == 0)
     {
-        <span class="context-empty">@(Run.Replaying ? "No content captured at this stage." : "Content grows as the agent runs.")</span>
+        <span class="context-empty">@(Run.Replay.Replaying ? "No content captured at this stage." : "Content grows as the agent runs.")</span>
     }
     else
     {

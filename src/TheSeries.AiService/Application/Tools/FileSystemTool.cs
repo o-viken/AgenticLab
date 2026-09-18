@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.AI;
-using TheSeries.AiService.Application;
 
 namespace TheSeries.AiService.Application.Tools;
 

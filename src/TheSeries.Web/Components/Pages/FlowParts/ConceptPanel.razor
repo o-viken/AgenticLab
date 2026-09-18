@@ -3,12 +3,12 @@
 
 @* The right "Learn" panel's content. Shows the selected concept, or — when none is selected —
    a short hint plus an index of every concept as clickable entry points. Reads the cascaded view. *@
-@if (View.ActiveConcept is { } concept)
+@if (View.Concepts.ActiveConcept is { } concept)
 {
     <article class="concept-content">
         <div class="concept-eyebrow-row">
             <span class="concept-eyebrow">@CategoryLabel(concept.Category)</span>
-            <button type="button" class="concept-back" @onclick="View.CloseConcept"
+            <button type="button" class="concept-back" @onclick="View.Concepts.CloseConcept"
                     title="Back to all topics">← All topics</button>
         </div>
         <h2 class="concept-h2">@concept.Title</h2>
@@ -46,19 +46,19 @@ else
         <div class="concept-filter">
             <input type="text" class="concept-filter-input" placeholder="Filter topics…"
                    aria-label="Filter topics"
-                   @bind="View.ConceptFilter" @bind:event="oninput" />
-            @if (!string.IsNullOrWhiteSpace(View.ConceptFilter))
+                   @bind="View.Concepts.ConceptFilter" @bind:event="oninput" />
+            @if (!string.IsNullOrWhiteSpace(View.Concepts.ConceptFilter))
             {
                 <button type="button" class="concept-filter-clear" title="Clear filter"
-                        aria-label="Clear filter" @onclick="@(() => View.ConceptFilter = string.Empty)">✕</button>
+                        aria-label="Clear filter" @onclick="@(() => View.Concepts.ConceptFilter = string.Empty)">✕</button>
             }
         </div>
         @{
-            var matches = FilterConcepts(Concepts.All, View.ConceptFilter);
+            var matches = FilterConcepts(Concepts.All, View.Concepts.ConceptFilter);
         }
         @if (matches.Count == 0)
         {
-            <p class="concept-empty">No topics match “@View.ConceptFilter”.</p>
+            <p class="concept-empty">No topics match “@View.Concepts.ConceptFilter”.</p>
         }
         else
         {
@@ -70,7 +70,7 @@ else
                         @foreach (var item in group)
                         {
                             <li>
-                                <button type="button" class="concept-link-btn" @onclick="@(() => View.OpenConcept(item.Id))">
+                                <button type="button" class="concept-link-btn" @onclick="@(() => View.Concepts.OpenConcept(item.Id))">
                                     <span class="cl-title">@item.Title</span>
                                     @if (!string.IsNullOrWhiteSpace(item.Summary))
                                     {

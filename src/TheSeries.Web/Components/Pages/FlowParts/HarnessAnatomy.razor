@@ -1,12 +1,12 @@
 @* The expanded "anatomy" of the harness node (Expert · Expand harness): colour-coded layers showing
    who contributes each part of the context, plus the environment panel and the growing context stack. *@
 
-<div class="node harness anatomy @Run.NodeClass("harness")">
-    <span class="anatomy-heading">@View.HarnessLabel anatomy</span>
+<div class="node harness anatomy @Run.Focus.NodeClass("harness")">
+    <span class="anatomy-heading">@View.Harness.Label anatomy</span>
 
-    @if (View.ShowEnvironment)
+    @if (View.Diagram.ShowEnvironment)
     {
-        <span class="env-badge @View.EnvBadgeClass" title="@View.HarnessEnvTitle">@View.HarnessEnvLabel</span>
+        <span class="env-badge @View.Agent.EnvBadgeClass" title="@View.Agent.EnvTitle">@View.Agent.EnvLabel</span>
     }
     <EnvironmentPanel />
 
@@ -20,28 +20,28 @@
     <div class="layer app">
         <ConceptInfoButton Id="system-prompt" Title="Learn about the system prompt" />
         <span class="layer-title">System Prompt</span>
-        <span class="layer-body system-prompt-body">@View.HarnessPromptDisplay</span>
-        @if (View.HasHarnessPromptText)
+        <span class="layer-body system-prompt-body">@View.Harness.PromptDisplay</span>
+        @if (View.Harness.HasPromptText)
         {
             <button type="button"
-                    class="prompt-toggle @(View.ShowFullHarnessPrompt ? "expanded" : null)"
-                    title="@(View.ShowFullHarnessPrompt ? "Collapse system prompt" : "Show full system prompt")"
-                    aria-label="@(View.ShowFullHarnessPrompt ? "Collapse system prompt" : "Show full system prompt")"
-                    aria-expanded="@(View.ShowFullHarnessPrompt ? "true" : "false")"
-                    @onclick="() => View.ShowFullHarnessPrompt = !View.ShowFullHarnessPrompt">
+                    class="prompt-toggle @(View.Harness.ShowFullPrompt ? "expanded" : null)"
+                    title="@(View.Harness.ShowFullPrompt ? "Collapse system prompt" : "Show full system prompt")"
+                    aria-label="@(View.Harness.ShowFullPrompt ? "Collapse system prompt" : "Show full system prompt")"
+                    aria-expanded="@(View.Harness.ShowFullPrompt ? "true" : "false")"
+                    @onclick="() => View.Harness.ShowFullPrompt = !View.Harness.ShowFullPrompt">
                 <span class="chevron" aria-hidden="true">⌄</span>
             </button>
         }
         <span class="set-by">Set by application</span>
     </div>
 
-    @if (View.SelectedAgentSupportsInstructions && Run.KnownInstructions.Count > 0)
+    @if (View.Agent.SupportsInstructions && Run.Catalogs.KnownInstructions.Count > 0)
     {
         <div class="layer user instructions">
             <ConceptInfoButton Id="custom-instructions" Title="Learn about custom instructions" />
             <span class="layer-title">Custom Instructions</span>
             <ul class="instruction-list">
-                @foreach (var instruction in Run.KnownInstructions)
+                @foreach (var instruction in Run.Catalogs.KnownInstructions)
                 {
                     <li title="@instruction.Description">✓ @instruction.Name</li>
                 }
@@ -53,37 +53,37 @@
     <div class="layer agent">
         <ConceptInfoButton Id="persona" Title="Learn about the agent persona" />
         <span class="layer-title">Agent Persona</span>
-        <span class="layer-body">@View.SelectedAgent — @View.SelectedAgentDescription</span>
-        @if (Run.PersonaChars > 0)
+        <span class="layer-body">@View.SelectedAgent — @View.Agent.Description</span>
+        @if (Run.Projections.PersonaChars > 0)
         {
-            <span class="layer-size" title="The agent prompt (persona) sent to the model">@Run.PersonaCharsLabel</span>
+            <span class="layer-size" title="The agent prompt (persona) sent to the model">@Run.Projections.PersonaCharsLabel</span>
         }
         <span class="set-by">Set per agent</span>
     </div>
 
 
-    <div class="layer agent tools @Run.NodeClass("tools")">
+    <div class="layer agent tools @Run.Focus.NodeClass("tools")">
         <ConceptInfoButton Id="tools" Title="Learn about tools" />
         <span class="layer-title">Tools / MCP</span>
-        @if (View.SelectedAgentToolNames.Count == 0)
+        @if (View.Agent.ToolNames.Count == 0)
         {
             <span class="layer-body">none</span>
         }
         else
         {
             <ul class="tool-checks">
-                @foreach (var tool in View.SelectedAgentToolNames)
+                @foreach (var tool in View.Agent.ToolNames)
                 {
-                    <li class="@View.ToolRiskClass(tool)" title="@ChipTitle(tool)">
+                    <li class="@View.Agent.ToolRiskClass(tool)" title="@ChipTitle(tool)">
                         <span class="risk-dot" aria-hidden="true"></span>
-                        @(View.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool
+                        @(View.Options.IsToolEnabled(tool) ? "[x]" : "[ ]") @tool
                     </li>
                 }
             </ul>
         }
-        @if (Run.ToolsChars > 0)
+        @if (Run.Projections.ToolsChars > 0)
         {
-            <span class="layer-size" title="The tool definitions (catalogue) sent to the model">@Run.ToolsCharsLabel</span>
+            <span class="layer-size" title="The tool definitions (catalogue) sent to the model">@Run.Projections.ToolsCharsLabel</span>
         }
         <span class="set-by">Set per agent</span>
     </div>
@@ -91,14 +91,14 @@
     <div class="layer agent">
         <ConceptInfoButton Id="settings" Title="Learn about settings" />
         <span class="layer-title">Settings</span>
-        <span class="layer-body">model: Azure OpenAI · stepping: @View.Mode</span>
+        <span class="layer-body">model: Azure OpenAI · stepping: @View.Options.Mode</span>
         <span class="set-by">Set per agent</span>
     </div>
 
     <div class="layer user">
         <ConceptInfoButton Id="user-prompt" Title="Learn about the user prompt" />
         <span class="layer-title">User prompt</span>
-        <span class="layer-body">@Run.CurrentUserPrompt</span>
+        <span class="layer-body">@Run.Status.CurrentUserPrompt</span>
         <span class="set-by">Set by user</span>
     </div>
 
@@ -115,8 +115,8 @@
     // The tool's risk explanation, plus (for a workspace agent) the declared token it was mapped from.
     private string ChipTitle(string tool)
     {
-        var title = View.ToolRiskTitle(tool);
-        var mappedFrom = View.ToolMappedFrom(tool);
+        var title = View.Agent.ToolRiskTitle(tool);
+        var mappedFrom = View.Agent.ToolMappedFrom(tool);
         return mappedFrom is null ? title : $"{title} · mapped from {mappedFrom}";
     }
 }

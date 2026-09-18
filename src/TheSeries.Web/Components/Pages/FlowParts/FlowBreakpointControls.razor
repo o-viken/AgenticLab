@@ -3,7 +3,7 @@
     <div class="breakpoint-status @(ShowReason ? "" : "bare")">
         @if (ShowReason)
         {
-            <p role="status">Paused: @Run.BreakpointReason</p>
+            <p role="status">Paused: @Run.Status.BreakpointReason</p>
         }
         <div class="bp-actions">
             <button type="button" class="chip" @onclick="Run.ContinueAsync" disabled="@Run.BreakpointControlPending"

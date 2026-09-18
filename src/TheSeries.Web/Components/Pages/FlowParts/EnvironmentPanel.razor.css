@@ -1,0 +1,102 @@
+/* The Environment & risk panel under the harness node: the three-segment risk meter, the guardrails box
+   and the learn pills. Rules are anchored on .env-panel so they keep precedence over the diagram's
+   shared .node-inner / .concept-mcp base styles. */
+/* Risk meter + guardrails panel inside the merged node. */
+.env-panel {
+    width: 100%;
+    margin-top: .6rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.env-panel .risk-meter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .4rem .6rem;
+    border-radius: 10px;
+    background: var(--risk-none-bg);
+    color: var(--risk-none-text);
+}
+
+.env-panel .risk-meter.risk-low {
+    background: var(--risk-low-bg);
+    color: var(--risk-low-text);
+}
+
+.env-panel .risk-meter.risk-medium {
+    background: var(--risk-medium-bg);
+    color: var(--risk-medium-text);
+}
+
+.env-panel .risk-meter.risk-high {
+    background: var(--risk-high-bg);
+    color: var(--risk-high-text);
+}
+
+.env-panel .risk-meter .risk-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.env-panel .risk-bar {
+    display: flex;
+    gap: .2rem;
+    margin-left: auto;
+}
+
+.env-panel .risk-seg {
+    width: 16px;
+    height: 6px;
+    border-radius: 3px;
+    background: currentColor;
+    opacity: .25;
+}
+
+.env-panel .risk-seg.filled {
+    opacity: 1;
+}
+
+.env-panel .risk-meter .risk-level {
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.env-panel .node-inner.guardrails {
+    background: var(--guardrails-bg);
+    border: 1px solid var(--guardrails-border);
+}
+
+.env-panel .guardrail-list {
+    list-style: none;
+    margin: .35rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.env-panel .guardrail-chip {
+    padding: .25rem .45rem;
+    border-radius: 8px;
+    font-size: .66rem;
+    line-height: 1.35;
+    background: var(--guardrail-chip-bg);
+    color: var(--guardrail-chip-text);
+    border: 1px solid var(--guardrail-chip-border);
+}
+
+.env-panel .env-learn {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    justify-content: center;
+}
+
+.env-panel .env-learn .concept-mcp {
+    margin-top: 0;
+}

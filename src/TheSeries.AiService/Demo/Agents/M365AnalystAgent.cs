@@ -1,5 +1,4 @@
 using Microsoft.Extensions.AI;
-using TheSeries.AiService.Application;
 using TheSeries.AiService.Demo.Tools;
 
 namespace TheSeries.AiService.Demo.Agents;

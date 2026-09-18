@@ -1,4 +1,4 @@
-using TheSeries.AiService.Application;
+using TheSeries.AiService.Application.Flow;
 using Xunit;
 
 namespace TheSeries.AiService.Tests;

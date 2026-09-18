@@ -26,7 +26,7 @@
         <div class="diagram-control">
             <label>Where it runs</label>
             <div class="boundary-toggles">
-                <label class="check"><input type="checkbox" @bind="View.ShowEnvironment" /> Environment &amp; risk</label>
+                <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEnvironment" /> Environment &amp; risk</label>
             </div>
         </div>
 
@@ -35,63 +35,63 @@
             <div class="diagram-control boundaries-control">
                 <label>Boundaries</label>
                 <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="View.ShowAgentBoundary" /> Agent</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowAgentBoundary" /> Agent</label>
                 </div>
             </div>
 
             <div class="diagram-control boundaries-control">
                 <label>Anatomy</label>
                 <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="View.ExpandHarness" /> Expand harness</label>
-                    <label class="check"><input type="checkbox" @bind="View.ShowPromptSignature" /> Prompt signature</label>
-                    <label class="check"><input type="checkbox" @bind="View.ShowInferenceView" /> Inference</label>
-                    <label class="check"><input type="checkbox" @bind="View.ShowEmbeddingsView" /> Embeddings</label>
-                    <label class="check"><input type="checkbox" @bind="View.ShowNetworkView" /> Neural network</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand harness</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowPromptSignature" /> Prompt signature</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowInferenceView" /> Inference</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEmbeddingsView" /> Embeddings</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowNetworkView" /> Neural network</label>
                 </div>
             </div>
         }
     </div>
 
-    @if (View.Perspective == Perspective.Expert && View.ShowHarnessBoundary)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowHarnessBoundary)
     {
         <div class="boundary harness-b">
             <span class="boundary-label">Harness</span>
         </div>
     }
-    @if (View.Perspective == Perspective.Expert && View.ShowAgentBoundary)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowAgentBoundary)
     {
         <div class="boundary agent-b">
             <span class="boundary-label">Agent = model + harness</span>
         </div>
     }
-    @if (View.ShowEnvironment)
+    @if (View.Diagram.ShowEnvironment)
     {
         <div class="boundary env-b">
             <span class="boundary-label">🔒 Your environment</span>
         </div>
     }
 
-    <div class="node user @Run.NodeClass("user")">
+    <div class="node user @Run.Focus.NodeClass("user")">
         <span class="icon diagram-icon icon-user" aria-hidden="true"></span>
         <span class="title">User</span>
         <span class="subtitle">Human</span>
-        @if (View.ShowEnvironment)
+        @if (View.Diagram.ShowEnvironment)
         {
             <span class="env-badge env-yours" title="The browser on your own device">🖥️ Your browser</span>
         }
     </div>
 
     <div class="connector-group user-node">
-        <div class="connector horizontal send @Run.ArrowClass("user-node-send")">
+        <div class="connector horizontal send @Run.Focus.ArrowClass("user-node-send")">
             <span class="flow-label">Input</span>
         </div>
-        <div class="connector horizontal recv @Run.ArrowClass("user-node-recv")">
+        <div class="connector horizontal recv @Run.Focus.ArrowClass("user-node-recv")">
             <span class="flow-label">Reply</span>
         </div>
     </div>
 
     <div class="column center">
-        @if (View.Perspective == Perspective.Expert && View.ExpandHarness)
+        @if (View.Perspective == Perspective.Expert && View.Diagram.ExpandHarness)
         {
             <HarnessAnatomy />
         }
@@ -100,8 +100,8 @@
             <HarnessNode />
         }
 
-        @if (View.Perspective == Perspective.Expert && Run.ActiveResourceInfo is { } resource
-            && !(resource.Key == "a2a" && Run.DisplayA2A.ActiveAgent is not null))
+        @if (View.Perspective == Perspective.Expert && Run.Focus.ActiveResourceInfo is { } resource
+            && !(resource.Key == "a2a" && Run.Replay.DisplayA2A.ActiveAgent is not null))
         {
             <div class="connector vertical active"></div>
             <div class="resources">
@@ -109,17 +109,17 @@
                     <span class="icon">@resource.Icon</span>
                     <span class="title">@resource.Title</span>
                     <span class="subtitle">@resource.Transport</span>
-                    @if (!string.IsNullOrEmpty(Run.ActiveToolName))
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolName))
                     {
-                        <span class="resource-tool">🔧 @Run.ActiveToolName</span>
+                        <span class="resource-tool">🔧 @Run.Focus.ActiveToolName</span>
                     }
-                    @if (!string.IsNullOrEmpty(Run.ActiveToolArgs))
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolArgs))
                     {
-                        <span class="resource-detail args" title="@Run.ActiveToolArgs">▶ @Run.ActiveToolArgs</span>
+                        <span class="resource-detail args" title="@Run.Focus.ActiveToolArgs">▶ @Run.Focus.ActiveToolArgs</span>
                     }
-                    @if (!string.IsNullOrEmpty(Run.ActiveToolResult))
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolResult))
                     {
-                        <span class="resource-detail result" title="@Run.ActiveToolResult">◀ @Run.ActiveToolResult</span>
+                        <span class="resource-detail result" title="@Run.Focus.ActiveToolResult">◀ @Run.Focus.ActiveToolResult</span>
                     }
                 </div>
             </div>
@@ -131,71 +131,71 @@
         <div class="connector-group loop">
             @if (View.Perspective != Perspective.NonTechnical)
             {
-                <div class="loop-badge @(Run.LoopActive ? "active" : "")" title="Model round trips">
+                <div class="loop-badge @(Run.Focus.LoopActive ? "active" : "")" title="Model round trips">
                     <span class="loop-icon" aria-hidden="true">&#8635;</span>
-                    <span class="loop-count">@Run.LoopLabel</span>
+                    <span class="loop-count">@Run.Focus.LoopLabel</span>
                 </div>
             }
-            <div class="connector horizontal send @Run.ArrowClass("node-llm-send")">
+            <div class="connector horizontal send @Run.Focus.ArrowClass("node-llm-send")">
                 <span class="flow-label">Prompt + tools</span>
             </div>
-            <div class="connector horizontal recv @Run.ArrowClass("node-llm-recv")">
+            <div class="connector horizontal recv @Run.Focus.ArrowClass("node-llm-recv")">
                 <span class="flow-label">Response</span>
-                @if (Run.ActiveArrow == "node-llm-recv" && !string.IsNullOrEmpty(Run.ResponseHint))
+                @if (Run.Focus.ActiveArrow == "node-llm-recv" && !string.IsNullOrEmpty(Run.Focus.ResponseHint))
                 {
-                    <span class="response-hint">@Run.ResponseHint</span>
+                    <span class="response-hint">@Run.Focus.ResponseHint</span>
                 }
             </div>
         </div>
 
         <div class="column right">
-            <div class="node llm @Run.NodeClass("llm")">
+            <div class="node llm @Run.Focus.NodeClass("llm")">
                 <ConceptInfoButton Id="llm" Title="Learn about LLMs" />
                 <span class="icon diagram-icon icon-model" aria-hidden="true"></span>
                 <span class="title">LLM</span>
-                <span class="subtitle">@View.LlmModelLabel</span>
-                @if (View.ShowEnvironment)
+                <span class="subtitle">@View.Harness.LlmModelLabel</span>
+                @if (View.Diagram.ShowEnvironment)
                 {
                     <span class="env-badge env-cloud" title="A model hosted by a cloud provider, outside your environment">☁️ Cloud service</span>
                 }
-                @if (View.ShowConcepts && View.Perspective == Perspective.Expert)
+                @if (View.Concepts.ShowConcepts && View.Perspective == Perspective.Expert)
                 {
                     <button type="button" class="concept-mcp" title="Learn about MCP"
-                            @onclick="@(() => View.OpenConcept("mcp"))" @onclick:stopPropagation="true">What is MCP?</button>
+                            @onclick="@(() => View.Concepts.OpenConcept("mcp"))" @onclick:stopPropagation="true">What is MCP?</button>
                 }
             </div>
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && Run.DisplayA2A.Agents.Count > 0)
+    @if (View.Perspective == Perspective.Expert && Run.Replay.DisplayA2A.Agents.Count > 0)
     {
         <div class="a2a-row">
             <A2AAgents />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.ShowPromptSignature)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowPromptSignature)
     {
         <div class="signature-row">
             <PromptSignature />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.ShowInferenceView)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowInferenceView)
     {
         <div class="inference-row">
             <Inference />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.ShowEmbeddingsView)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowEmbeddingsView)
     {
         <div class="embeddings-row">
             <Embeddings />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.ShowNetworkView)
+    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowNetworkView)
     {
         <div class="network-row">
             <Network />

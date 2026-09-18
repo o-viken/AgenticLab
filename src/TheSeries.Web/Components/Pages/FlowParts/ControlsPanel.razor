@@ -70,7 +70,7 @@
     /// <summary>A small count badge on a tab when it has live content to surface, or null when empty.</summary>
     private int? Badge(ControlsTab tab) => tab switch
     {
-        ControlsTab.Settings => Run.KnownSkills.Count + Run.KnownInstructions.Count is var n and > 0 ? n : null,
+        ControlsTab.Settings => Run.Catalogs.KnownSkills.Count + Run.Catalogs.KnownInstructions.Count is var n and > 0 ? n : null,
         _ => null,
     };
 }

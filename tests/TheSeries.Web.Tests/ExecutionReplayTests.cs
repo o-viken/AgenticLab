@@ -44,9 +44,9 @@ public sealed class ExecutionReplayTests
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         run.Changed += () =>
         {
-            _ = run.Exchanges;
-            _ = run.DisplayContext;
-            _ = run.DisplayPromptSignature;
+            _ = run.Projections.Exchanges;
+            _ = run.Replay.DisplayContext;
+            _ = run.Replay.DisplayPromptSignature;
             if (!run.Running)
             {
                 finished.TrySetResult();
@@ -62,21 +62,21 @@ public sealed class ExecutionReplayTests
         }
 
         await SendAsync("first");
-        var firstId = Assert.Single(run.Exchanges).Id;
+        var firstId = Assert.Single(run.Projections.Exchanges).Id;
         await SendAsync("second");
-        view.SelectStage(firstId, 2);
-        Assert.True(run.Replaying);
-        _ = run.DisplayPromptSignature;
-        _ = run.DisplayContext;
+        view.Cursor.SelectStage(firstId, 2);
+        Assert.True(run.Replay.Replaying);
+        _ = run.Replay.DisplayPromptSignature;
+        _ = run.Replay.DisplayContext;
         await SendAsync("third");
 
-        Assert.False(run.Replaying);
-        Assert.Equal([2, 3], run.Exchanges.Select(exchange => exchange.Number));
-        Assert.DoesNotContain(run.Exchanges, exchange => exchange.Id == firstId);
+        Assert.False(run.Replay.Replaying);
+        Assert.Equal([2, 3], run.Projections.Exchanges.Select(exchange => exchange.Number));
+        Assert.DoesNotContain(run.Projections.Exchanges, exchange => exchange.Id == firstId);
         Assert.Equal("second", Assert.Single(run.Turns).Message);
         Assert.Equal(1, run.EvictedExchanges);
         Assert.Equal(2, run.Events.Count);
-        Assert.Equal(run.DisplayPromptSignature.CurrentChars, run.DisplayContext.Chars);
+        Assert.Equal(run.Replay.DisplayPromptSignature.CurrentChars, run.Replay.DisplayContext.Chars);
         Assert.Equal(0, handler.Resets);
         Assert.Equal(1, totals["replay.archived.exchanges"]);
         Assert.Equal(2, totals["replay.archived.events"]);
@@ -86,13 +86,13 @@ public sealed class ExecutionReplayTests
 
         await run.NewConversationAsync();
         Assert.Equal(1, handler.Resets);
-        Assert.Empty(run.Exchanges);
+        Assert.Empty(run.Projections.Exchanges);
         Assert.Empty(run.Turns);
-        Assert.False(run.DisplayPromptSignature.HasCurrent);
+        Assert.False(run.Replay.DisplayPromptSignature.HasCurrent);
         Assert.Equal(0, run.EvictedExchanges);
         Assert.Equal(0, totals["replay.archived.payload_bytes"]);
         await SendAsync("new first");
-        Assert.Equal(1, Assert.Single(run.Exchanges).Number);
+        Assert.Equal(1, Assert.Single(run.Projections.Exchanges).Number);
         await SendAsync("new second");
         run.Dispose();
         run.Dispose();

@@ -6,12 +6,12 @@
    advances real execution (that stays with the composer's controls). *@
 
 @{
-    var exchanges = Run.Exchanges;
-    var selected = Run.SelectedExchange;
-    var stage = Run.SelectedStage;
-    var liveClass = Run.Replaying ? "chip" : "chip on";
-    var dataTabClass = View.ShowRawStage ? "" : "selected";
-    var rawTabClass = View.ShowRawStage ? "selected" : "";
+    var exchanges = Run.Projections.Exchanges;
+    var selected = Run.Replay.SelectedExchange;
+    var stage = Run.Replay.SelectedStage;
+    var liveClass = Run.Replay.Replaying ? "chip" : "chip on";
+    var dataTabClass = View.Cursor.ShowRawStage ? "" : "selected";
+    var rawTabClass = View.Cursor.ShowRawStage ? "selected" : "";
 }
 
 <section class="execution">
@@ -47,19 +47,19 @@
                 }
             </div>
             <div class="exec-actions">
-                @if (Run.Replaying)
+                @if (Run.Replay.Replaying)
                 {
                     <span class="replay-badge" title="Showing a captured stage, not the live run">Replay</span>
                 }
-                <button type="button" class="chip" disabled="@(!Run.CanStepBack)" @onclick="Run.StepBack"
+                <button type="button" class="chip" disabled="@(!Run.Replay.CanStepBack)" @onclick="Run.Replay.StepBack"
                         title="Show the previous captured stage" aria-label="Previous stage">
                     <MiniIcon Name="prev" /> Previous
                 </button>
-                <button type="button" class="chip" disabled="@(!Run.CanStepForward)" @onclick="Run.StepForward"
+                <button type="button" class="chip" disabled="@(!Run.Replay.CanStepForward)" @onclick="Run.Replay.StepForward"
                         title="Show the next captured stage" aria-label="Next stage">
                     <MiniIcon Name="next" /> Next
                 </button>
-                <button type="button" class="@liveClass" @onclick="View.FollowLive"
+                <button type="button" class="@liveClass" @onclick="View.Cursor.FollowLive"
                         title="Follow the newest stage of the current run" aria-label="Follow the live run">
                     <MiniIcon Name="live" /> Live
                 </button>
@@ -79,7 +79,7 @@
                         var statusClass = "status status-" + statusLabel;
                         <li @key="exchange.Id">
                             <button type="button" class="@rowClass" aria-current="@current"
-                                    @onclick="@(() => View.SelectExchange(exchange.Id))">
+                                    @onclick="@(() => View.Cursor.SelectExchange(exchange.Id))">
                                 <span class="exchange-head">
                                     <span class="exchange-num">@exchange.Number</span>
                                     <span class="@statusClass">@statusLabel</span>
@@ -148,19 +148,19 @@
                             <p class="inspector-route">@ExecutionReplayBuilder.StageRoute(stage)</p>
                         </div>
                         <div class="inspector-tabs" role="tablist" aria-label="How to show the captured data">
-                            <button type="button" role="tab" class="@dataTabClass" aria-selected="@(!View.ShowRawStage)"
-                                    @onclick="@(() => View.ShowRawStage = false)">Data</button>
-                            <button type="button" role="tab" class="@rawTabClass" aria-selected="@View.ShowRawStage"
-                                    @onclick="@(() => View.ShowRawStage = true)">Raw</button>
+                            <button type="button" role="tab" class="@dataTabClass" aria-selected="@(!View.Cursor.ShowRawStage)"
+                                    @onclick="@(() => View.Cursor.ShowRawStage = false)">Data</button>
+                            <button type="button" role="tab" class="@rawTabClass" aria-selected="@View.Cursor.ShowRawStage"
+                                    @onclick="@(() => View.Cursor.ShowRawStage = true)">Raw</button>
                         </div>
                     </header>
 
-                    @if (stage.Kind == "tool-result" && Run.CallFor(stage) is { } call)
+                    @if (stage.Kind == "tool-result" && Run.Replay.CallFor(stage) is { } call)
                     {
                         <p class="inspector-note">Answers the call the model made at <em>@ExecutionReplayBuilder.StageTitle(call)</em>.</p>
                     }
 
-                    @if (View.ShowRawStage)
+                    @if (View.Cursor.ShowRawStage)
                     {
                         <pre class="stage-raw">@RawOf(stage)</pre>
                     }
@@ -198,11 +198,11 @@
 
     private RenderFragment StageRow(ExecutionExchange exchange, FlowEvent item)
     {
-        var isSelected = Run.SelectedExchange?.Id == exchange.Id && Run.SelectedStage?.Sequence == item.Sequence;
+        var isSelected = Run.Replay.SelectedExchange?.Id == exchange.Id && Run.Replay.SelectedStage?.Sequence == item.Sequence;
         var rowClass = "stage-row kind-" + item.Kind + (isSelected ? " selected" : "");
         var current = isSelected ? "true" : null;
         return @<button type="button" class="@rowClass" aria-current="@current"
-                        @onclick="@(() => View.SelectStage(exchange.Id, item.Sequence))">
+                        @onclick="@(() => View.Cursor.SelectStage(exchange.Id, item.Sequence))">
             <span class="stage-kind">@item.Kind</span>
             <span class="stage-name">@ExecutionReplayBuilder.StageTitle(item)</span>
         </button>;

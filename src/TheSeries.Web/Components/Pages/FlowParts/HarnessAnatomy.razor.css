@@ -1,0 +1,163 @@
+/* The expanded harness anatomy: the contributor-coloured layer boxes (application / agent / user), the
+   system-prompt preview toggle, the per-tool risk dots, the instruction list and the char-count badges.
+   Rules are anchored on .node.anatomy so they keep precedence over the diagram's shared .node styles. */
+.node.anatomy .anatomy-heading {
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--anatomy-heading);
+    text-align: left;
+    margin-bottom: .15rem;
+}
+
+.node.anatomy .layer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: .55rem .65rem;
+    border-radius: 0;
+    background: transparent;
+    border: 0;
+    color: var(--text);
+}
+
+.node.anatomy .layer-title {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.node.anatomy .layer-body {
+    font-size: .72rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* The fetched system prompt: keep its original line breaks and let long text wrap; cap the height when
+   expanded so a long prompt scrolls inside the box rather than stretching the whole anatomy. */
+.node.anatomy .system-prompt-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.node.anatomy .prompt-toggle {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0;
+    margin-top: .05rem;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.node.anatomy .prompt-toggle .chevron {
+    font-size: .85rem;
+    transition: transform .15s ease;
+}
+
+.node.anatomy .prompt-toggle.expanded .chevron {
+    transform: rotate(180deg);
+}
+
+.node.anatomy .prompt-toggle:hover {
+    color: var(--text);
+    background: var(--surface-2);
+}
+
+/* Colour-coded by who sets the layer (matches the anatomy concept): a coloured top accent on a
+   light card (v4 look), rather than a fully saturated fill. */
+.node.anatomy .layer.app { border-left: 3px solid var(--contrib-app); }
+.node.anatomy .layer.agent { border-left: 3px solid var(--contrib-agent); }
+.node.anatomy .layer.user { border-left: 3px solid var(--contrib-user); }
+
+.node.anatomy .set-by {
+    align-self: flex-start;
+    font-size: .66rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: .12rem .45rem;
+    margin-top: .15rem;
+}
+
+/* A separate char-count badge on the Agent Persona (agent prompt) and Tools / MCP (tools available) boxes,
+   so each part's size in the latest request reads as its own number. */
+.node.anatomy .layer-size {
+    align-self: flex-start;
+    font-size: .64rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: .08rem .45rem;
+}
+
+.node.anatomy .tool-checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: .74rem;
+    color: var(--text);
+}
+
+/* Each tool in the anatomy list carries a coloured dot marking its risk tier (read-only vs.
+    side-effecting vs. writes/runs), reusing the shared risk palette. */
+.node.anatomy .tool-checks li {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.node.anatomy .tool-checks .risk-dot {
+    width: .45rem;
+    height: .45rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--text-dim);
+}
+
+.node.anatomy .tool-checks li.risk-low .risk-dot {
+    background: var(--risk-low-text);
+}
+
+.node.anatomy .tool-checks li.risk-medium .risk-dot {
+    background: var(--risk-medium-text);
+}
+
+.node.anatomy .tool-checks li.risk-high .risk-dot {
+    background: var(--risk-high-text);
+}
+
+/* Custom instruction files always injected into the agent's context (anatomy "Custom Instructions" box). */
+.node.anatomy .instruction-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    font-size: .74rem;
+    color: var(--text);
+}
+
+.node.anatomy .instruction-list li {
+    font-weight: 600;
+}
+
+.node.anatomy .layer.tools.active {
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .55), 0 0 16px 2px rgba(var(--accent-rgb), .5);
+    animation: pulse 1s ease-in-out infinite;
+}

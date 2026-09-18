@@ -1,7 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 
-<PageTitle>Agentic AI — @_view.VendorName</PageTitle>
+<PageTitle>Agentic AI — @_view.Roster.VendorName</PageTitle>
 
 <div class="flow-app">
     <CascadingValue Value="_view">
@@ -16,7 +16,7 @@
                        title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
                     <a class="discovery-link" href="/discovery" title="View MCP and A2A discovery">Discovery</a>
                     <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
-                        <input type="checkbox" @bind="_view.ShowConcepts" /> Learn
+                        <input type="checkbox" @bind="_view.Concepts.ShowConcepts" /> Learn
                     </label>
                 </div>
             </header>
@@ -24,9 +24,9 @@
             <div class="flow-shell">
                 <VendorRail OnSelectVendor="SetVendorAsync" />
 
-                <div class="flow-body" style="@_view.BodyStyle">
+                <div class="flow-body" style="@_view.Layout.BodyStyle">
                     <SidePanel Side="PanelSide.Left" Title="Controls"
-                               Collapsed="_view.LeftPanelCollapsed"
+                               Collapsed="_view.Layout.LeftPanelCollapsed"
                                OnToggleCollapse="ToggleLeftPanelAsync"
                                OnResize="SetLeftWidthAsync">
                         <ControlsPanel />
@@ -34,22 +34,22 @@
 
                     <section class="flow-main-col" aria-label="Main">
                         <header class="main-panel-head">
-                            <span class="main-panel-title">Agent flow · @_view.VendorName</span>
+                            <span class="main-panel-title">Agent flow · @_view.Roster.VendorName</span>
                         </header>
-                        <div class="@_view.MainBodyClass">
+                        <div class="@_view.Layout.MainBodyClass">
                             <div class="flow-main-panel">
                                 <FlowDiagram />
                             </div>
 
                             <SidePanel Side="PanelSide.Bottom" Title="Execution"
-                                       Collapsed="_view.BottomPanelCollapsed"
+                                       Collapsed="_view.Layout.BottomPanelCollapsed"
                                        OnToggleCollapse="ToggleBottomPanelAsync"
                                        OnResize="SetBottomHeightAsync">
                                 <HeaderActions>
                                     <span class="panel-meta">@ExecutionMeta</span>
-                                    <button type="button" class="panel-max" @onclick="_view.ToggleBottomMaximized"
+                                    <button type="button" class="panel-max" @onclick="_view.Layout.ToggleBottomMaximized"
                                             title="@MaximizeTitle" aria-label="@MaximizeTitle"
-                                            aria-pressed="@_view.BottomPanelMaximized">
+                                            aria-pressed="@_view.Layout.BottomPanelMaximized">
                                         <MiniIcon Name="expand" />
                                     </button>
                                 </HeaderActions>
@@ -60,10 +60,10 @@
                         </div>
                     </section>
 
-                    @if (_view.RightPanelVisible)
+                    @if (_view.Layout.RightPanelVisible)
                     {
                         <SidePanel Side="PanelSide.Right" Title="Learn"
-                                   Collapsed="_view.RightPanelCollapsed"
+                                   Collapsed="_view.Layout.RightPanelCollapsed"
                                    OnToggleCollapse="ToggleRightPanelAsync"
                                    OnResize="SetRightWidthAsync">
                             <ConceptPanel />

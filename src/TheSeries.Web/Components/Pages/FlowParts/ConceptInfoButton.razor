@@ -3,7 +3,7 @@
    <span class="theme-info"> nested inside a theme button (where a <button> cannot nest).
    Renders nothing when the learning UI is switched off. *@
 
-@if (View.ShowConcepts)
+@if (View.Concepts.ShowConcepts)
 {
     if (Inline)
     {
@@ -33,5 +33,5 @@
     [Parameter]
     public bool Inline { get; set; }
 
-    private void Open() => View.OpenConcept(Id);
+    private void Open() => View.Concepts.OpenConcept(Id);
 }

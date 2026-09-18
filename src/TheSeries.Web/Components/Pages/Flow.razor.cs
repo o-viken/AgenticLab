@@ -38,20 +38,20 @@ public partial class Flow : IDisposable
     {
         get
         {
-            var count = _run.Exchanges.Count;
+            var count = _run.Projections.Exchanges.Count;
             return count == 0 ? "nothing captured yet" : $"{count} exchange{(count == 1 ? "" : "s")}";
         }
     }
 
     private string MaximizeTitle =>
-        _view.BottomPanelMaximized ? "Restore the Execution panel" : "Expand the Execution panel";
+        _view.Layout.BottomPanelMaximized ? "Restore the Execution panel" : "Expand the Execution panel";
 
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);
         _run = new FlowRunController(Ai, _view, Retention.Value);
         _view.Changed += OnViewChanged;
-        _view.WorkspacePrefsChanged += OnWorkspacePrefsChanged;
+        _view.WorkspacePrefs.Changed += OnWorkspacePrefsChanged;
         _run.Changed += OnRunChangedAsync;
     }
 
@@ -62,18 +62,18 @@ public partial class Flow : IDisposable
             var vendors = await Ai.GetVendorsAsync();
             if (vendors is not null)
             {
-                _view.SetVendors(vendors.Vendors);
+                _view.Roster.SetVendors(vendors.Vendors);
             }
 
             var response = await Ai.GetAgentsAsync();
             if (response is not null)
             {
-                _view.SetAgents(response.Agents);
-                _view.InitSelectedAgent(_view.VendorDefaultAgent ?? response.Default);
+                _view.Roster.SetAgents(response.Agents);
+                _view.InitSelectedAgent(_view.Roster.VendorDefaultAgent ?? response.Default);
             }
 
-            await _run.RefreshHarnessPromptAsync();
-            await _run.RefreshKnownA2AAsync();
+            await _run.Catalogs.RefreshHarnessPromptAsync();
+            await _run.Catalogs.RefreshKnownA2AAsync();
         }
         catch (Exception ex)
         {
@@ -96,16 +96,16 @@ public partial class Flow : IDisposable
                 && vendor != _view.Vendor)
             {
                 _view.Vendor = vendor;
-                _view.SelectedAgent = _view.VendorDefaultAgent ?? _view.SelectedAgent;
-                await _run.RefreshWorkspaceContextAsync();
-                await _run.RefreshKnownA2AAsync();
+                _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;
+                await _run.Catalogs.RefreshWorkspaceContextAsync();
+                await _run.Catalogs.RefreshKnownA2AAsync();
                 StateHasChanged();
             }
 
             var storedPanels = await JS.InvokeAsync<string?>("localStorage.getItem", PanelStorageKey);
             if (!string.IsNullOrEmpty(storedPanels) && PanelState.TryParse(storedPanels, out var panels))
             {
-                _view.InitPanels(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
+                _view.Layout.Init(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
                     panels.LeftWidth, panels.RightWidth, panels.BottomHeight);
                 StateHasChanged();
             }
@@ -117,10 +117,10 @@ public partial class Flow : IDisposable
                 var recent = string.IsNullOrEmpty(storedRecent)
                     ? Array.Empty<string>()
                     : storedRecent.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                _view.InitWorkspacePrefs(storedBases, recent);
-                if (_view.WorkspaceBasePaths.Count > 0)
+                _view.WorkspacePrefs.Init(storedBases, recent);
+                if (_view.WorkspacePrefs.BasePaths.Count > 0)
                 {
-                    await _run.RefreshWorkspaceSuggestionsAsync();
+                    await _run.Catalogs.RefreshWorkspaceSuggestionsAsync();
                 }
 
                 StateHasChanged();
@@ -135,7 +135,7 @@ public partial class Flow : IDisposable
     private async Task SetVendorAsync(Vendor vendor)
     {
         _view.Vendor = vendor;
-        _view.SelectedAgent = _view.VendorDefaultAgent ?? _view.SelectedAgent;
+        _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;
         try
         {
             await JS.InvokeVoidAsync("localStorage.setItem", VendorStorageKey, vendor.ToString());
@@ -145,55 +145,55 @@ public partial class Flow : IDisposable
             // Persisting the vendor is best-effort.
         }
 
-        await _run.RefreshWorkspaceContextAsync();
-        await _run.RefreshKnownA2AAsync();
+        await _run.Catalogs.RefreshWorkspaceContextAsync();
+        await _run.Catalogs.RefreshKnownA2AAsync();
     }
 
     private Task ToggleLeftPanelAsync()
     {
-        _view.ToggleLeftPanel();
+        _view.Layout.ToggleLeftPanel();
         return SavePanelsAsync();
     }
 
     private Task ToggleRightPanelAsync()
     {
-        _view.ToggleRightPanel();
+        _view.Layout.ToggleRightPanel();
         return SavePanelsAsync();
     }
 
     private Task SetLeftWidthAsync(int width)
     {
-        _view.LeftPanelWidth = width;
+        _view.Layout.LeftPanelWidth = width;
         return SavePanelsAsync();
     }
 
     private Task SetRightWidthAsync(int width)
     {
-        _view.RightPanelWidth = width;
+        _view.Layout.RightPanelWidth = width;
         return SavePanelsAsync();
     }
 
     private Task ToggleBottomPanelAsync()
     {
-        _view.ToggleBottomPanel();
+        _view.Layout.ToggleBottomPanel();
         return SavePanelsAsync();
     }
 
     private Task SetBottomHeightAsync(int height)
     {
-        _view.BottomPanelHeight = height;
+        _view.Layout.BottomPanelHeight = height;
         return SavePanelsAsync();
     }
 
     private async Task SavePanelsAsync()
     {
         var state = new PanelState(
-            _view.LeftPanelCollapsed,
-            _view.RightPanelCollapsed,
-            _view.BottomPanelCollapsed,
-            _view.LeftPanelWidth,
-            _view.RightPanelWidth,
-            _view.BottomPanelHeight);
+            _view.Layout.LeftPanelCollapsed,
+            _view.Layout.RightPanelCollapsed,
+            _view.Layout.BottomPanelCollapsed,
+            _view.Layout.LeftPanelWidth,
+            _view.Layout.RightPanelWidth,
+            _view.Layout.BottomPanelHeight);
         try
         {
             await JS.InvokeVoidAsync("localStorage.setItem", PanelStorageKey, state.Serialize());
@@ -213,8 +213,8 @@ public partial class Flow : IDisposable
     {
         try
         {
-            await JS.InvokeVoidAsync("localStorage.setItem", WorkspaceBasesStorageKey, _view.WorkspaceBases);
-            await JS.InvokeVoidAsync("localStorage.setItem", RecentWorkspacesStorageKey, string.Join('\n', _view.RecentWorkspaces));
+            await JS.InvokeVoidAsync("localStorage.setItem", WorkspaceBasesStorageKey, _view.WorkspacePrefs.Bases);
+            await JS.InvokeVoidAsync("localStorage.setItem", RecentWorkspacesStorageKey, string.Join('\n', _view.WorkspacePrefs.Recent));
         }
         catch
         {
@@ -227,7 +227,7 @@ public partial class Flow : IDisposable
     public void Dispose()
     {
         _view.Changed -= OnViewChanged;
-        _view.WorkspacePrefsChanged -= OnWorkspacePrefsChanged;
+        _view.WorkspacePrefs.Changed -= OnWorkspacePrefsChanged;
         _run.Changed -= OnRunChangedAsync;
         _run.Dispose();
     }

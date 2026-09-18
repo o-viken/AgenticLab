@@ -9,26 +9,26 @@
 
         <dl class="telemetry-grid">
             <dt>Turns</dt>
-            <dd>@Run.TotalTurns</dd>
+            <dd>@Run.Projections.TotalTurns</dd>
 
             <dt>Context</dt>
-            <dd>~@Run.ContextSize.ToString("N0") chars</dd>
+            <dd>~@Run.Projections.ContextSize.ToString("N0") chars</dd>
 
             <dt>Persona</dt>
-            <dd>@Run.PersonaCharsLabel</dd>
+            <dd>@Run.Projections.PersonaCharsLabel</dd>
 
             <dt>Tools</dt>
-            <dd>@Run.ToolsCharsLabel</dd>
+            <dd>@Run.Projections.ToolsCharsLabel</dd>
 
             <dt>Events</dt>
             <dd>@Run.Events.Count</dd>
         </dl>
 
         <div class="telemetry-bar" title="Conversation content carried into the model's latest request">
-            <div class="telemetry-bar-fill" style="width:@(Run.ContextBarWidth)%"></div>
+            <div class="telemetry-bar-fill" style="width:@(Run.Projections.ContextBarWidth)%"></div>
         </div>
 
-        @if (Run.TotalTurns == 0 && !Run.Running)
+        @if (Run.Projections.TotalTurns == 0 && !Run.Running)
         {
             <p class="empty">No run yet — send a message to see live telemetry.</p>
         }

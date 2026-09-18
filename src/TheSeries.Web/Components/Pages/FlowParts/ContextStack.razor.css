@@ -1,0 +1,178 @@
+/* The growing Context visualization inside the harness anatomy: header, accent growth bar and the
+   contributor-coloured content chips (dimmed history + live current turn). The ctx-in keyframe lives
+   in Flow.razor.css. */
+/* Growing context visualization (KISS: a bar + an appended chip per step). */
+.context-stack {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    min-width: 0;
+    padding: .75rem 0 0;
+    background: var(--surface);
+    border-top: 1px solid var(--panel-border);
+}
+
+.context-stack .context-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: .35rem .75rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+/* Inline (not absolute) so it sits beside the title without covering the meta text. */
+.context-stack .context-head .context-title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.context-stack .context-head ::deep .concept-info {
+    position: static;
+    align-self: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    font-size: .75rem;
+}
+
+.context-stack .context-title {
+    font-weight: 700;
+    color: var(--anatomy-heading);
+    font-size: .82rem;
+}
+
+.context-stack .context-meta {
+    font-size: .66rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.context-stack .context-position {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .35rem .75rem;
+    font-size: .68rem;
+    color: var(--text-dim);
+}
+
+.context-stack .context-mode {
+    color: var(--accent-ink);
+    font-weight: 600;
+}
+
+.context-stack .context-bar {
+    height: 4px;
+    background: var(--surface-2);
+    overflow: hidden;
+}
+
+.context-stack .context-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width .4s ease;
+}
+
+.context-stack .context-empty {
+    font-size: .7rem;
+    color: var(--text-dim);
+    font-style: normal;
+}
+
+.context-stack .context-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 0;
+    scrollbar-gutter: stable;
+}
+
+.context-stack .context-chips .ctx {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .15rem;
+    font-size: .7rem;
+    padding: .4rem .55rem;
+    min-width: 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-soft);
+    border-left: 3px solid transparent;
+    background: var(--surface);
+    color: var(--text);
+    animation: ctx-in .3s ease;
+}
+
+.context-stack .context-chips .ctx-row {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex-wrap: wrap;
+    font-weight: 600;
+}
+
+.context-stack .context-chips .ctx-preview {
+    font-size: .7rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+    font-style: normal;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.context-stack .context-chips .ctx.app { border-left-color: var(--contrib-app); }
+.context-stack .context-chips .ctx.agent { border-left-color: var(--contrib-agent); }
+.context-stack .context-chips .ctx.user { border-left-color: var(--contrib-user); }
+
+/* Conversation-history chips re-sent into the model's context each turn — dimmed so the current
+   run reads as the focus, while still showing that earlier turns are carried along. */
+.context-stack .context-chips .ctx.history {
+    background: var(--surface-2);
+    color: var(--text-dim);
+}
+
+/* Small muted label separating the carried-over history from the current turn's content. */
+.context-stack .context-chips .ctx-divider {
+    list-style: none;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: .5rem .1rem .25rem;
+}
+
+.context-stack .context-chips .ctx-turn {
+    font-size: .6rem;
+    font-weight: 700;
+    color: var(--node-subtitle);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 .3rem;
+}
+
+.context-stack.replay .ctx {
+    animation: none;
+}
+
+.context-stack.replay .context-bar > span {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .context-stack .context-chips .ctx {
+        animation: none;
+    }
+
+    .context-stack .context-bar > span {
+        transition: none;
+    }
+}

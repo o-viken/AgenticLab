@@ -43,18 +43,18 @@
                         <header class="entry-head"><span class="role">You</span></header>
                         <p>@Run.RunMessage</p>
                     </article>
-                    <article class="entry agent @(Run.Activity == AgentActivity.Failed ? "failed" : "")">
+                    <article class="entry agent @(Run.Status.Activity == AgentActivity.Failed ? "failed" : "")">
                         <header class="entry-head">
                             <span class="role">@(View.SelectedAgent ?? "Agent")</span>
-                            @if (Run.AgentStatusLabel is { } status)
+                            @if (Run.Status.AgentStatusLabel is { } status)
                             {
                                 <span class="status @StatusClass" role="status">
                                     <span class="status-mark" aria-hidden="true"></span>@status
                                 </span>
                             }
-                            @if (Run.TurnMeta is { } meta)
+                            @if (Run.Status.TurnMeta is { } meta)
                             {
-                                <span class="turn-meta @(Run.LoopActive ? "live" : "")">@meta</span>
+                                <span class="turn-meta @(Run.Focus.LoopActive ? "live" : "")">@meta</span>
                             }
                         </header>
                         @if (!string.IsNullOrWhiteSpace(Run.Error))
@@ -65,7 +65,7 @@
                         {
                             <p>@Run.Reply</p>
                         }
-                        @if (Run.AgentStatusNote is { } note)
+                        @if (Run.Status.AgentStatusNote is { } note)
                         {
                             <p class="status-note">@note</p>
                         }
@@ -99,15 +99,15 @@
 
         <div class="control agent-select">
             <label for="agent">Agent</label>
-            <select id="agent" aria-label="Agent" title="Agent" @bind="View.SelectedAgent" @bind:after="Run.OnAgentChangedAsync" disabled="@Run.Running">
-                @foreach (var agent in View.AvailableAgents)
+            <select id="agent" aria-label="Agent" title="Agent" @bind="View.SelectedAgent" @bind:after="Run.Catalogs.OnAgentChangedAsync" disabled="@Run.Running">
+                @foreach (var agent in View.Roster.AvailableAgents)
                 {
                     <option value="@agent.Name">@agent.Label</option>
                 }
-                @if (View.WorkspaceAgentChoices.Count > 0)
+                @if (View.Roster.WorkspaceAgentChoices.Count > 0)
                 {
                     <option disabled>──────────</option>
-                    @foreach (var agent in View.WorkspaceAgentChoices)
+                    @foreach (var agent in View.Roster.WorkspaceAgentChoices)
                     {
                         <option value="@agent.Name">@agent.Label</option>
                     }
@@ -126,7 +126,7 @@
                         <MiniIcon Name="new" />New conversation
                     </button>
                 }
-                else if (View.Mode == FlowMode.Manual)
+                else if (View.Options.Mode == FlowMode.Manual)
                 {
                     <button class="chip" @onclick="Run.NextAsync" disabled="@Run.AwaitingStep">
                         <MiniIcon Name="next" />@(Run.AwaitingStep ? "Waiting…" : "Next")
@@ -143,12 +143,12 @@
             }
 
             <button class="send-icon" @onclick="Run.SendAsync" title="Send" aria-label="Send"
-                    disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.SelectedAgentRequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">
+                    disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))">
                 <MiniIcon Name="send" />
             </button>
         </div>
 
-        @if (Run.ComposerHint is { } hint)
+        @if (Run.Status.ComposerHint is { } hint)
         {
             <p class="composer-hint">@hint</p>
         }
@@ -165,7 +165,7 @@
     private FlowRunController Run { get; set; } = default!;
 
     // A held run still reads as "in progress", so the chip keeps its mark but stops spinning (.held).
-    private string StatusClass => Run.Activity switch
+    private string StatusClass => Run.Status.Activity switch
     {
         AgentActivity.Failed => "failed",
         AgentActivity.AwaitingAnswer => "waiting",
