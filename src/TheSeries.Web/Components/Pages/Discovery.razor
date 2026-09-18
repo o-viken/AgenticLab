@@ -1,9 +1,6 @@
-@page "/discovery"
-@rendermode InteractiveServer
-
-<PageTitle>Agentic AI — Discovery</PageTitle>
-
-<div class="discovery-app">
+<div class="discovery-app @(Embedded ? "embedded" : "")">
+    @if (!Embedded)
+    {
     <header class="discovery-header">
         <div class="discovery-header-text">
             <h1>Agentic AI</h1>
@@ -15,9 +12,11 @@
             <a class="back-link" href="/">Live flow</a>
         </div>
     </header>
+    }
 
     <div class="discovery-toolbar">
-        <button class="rediscover" @onclick="() => RediscoverAsync(null)" disabled="@_running">
+        <button class="rediscover" @onclick="() => RediscoverAsync(null)" disabled="@(_running || !AllowRediscovery)"
+                title="@RediscoveryTitle">
             @(_running ? "Discovering…" : "↻ Re-discover all")
         </button>
 
@@ -74,7 +73,8 @@
                     </div>
                     <p class="source-subtitle">@SourceSubtitle(source)</p>
                     <div class="source-head-actions">
-                        <button class="rediscover small" @onclick="() => RediscoverAsync(source)" disabled="@_running">
+                        <button class="rediscover small" @onclick="() => RediscoverAsync(source)" disabled="@(_running || !AllowRediscovery)"
+                            title="@RediscoveryTitle">
                             @(IsRunningSource(source) ? "Discovering…" : $"↻ Re-discover {SourceTitle(source).Split(' ')[0]}")
                         </button>
                     </div>
@@ -90,10 +90,10 @@
 
                         <div class="disc-conns">
                             <div class="disc-conn send @SendArrowClass(source)">
-                                <span class="disc-flow-label">connect / list ▶</span>
+                                <span class="disc-flow-label">connect / list</span>
                             </div>
                             <div class="disc-conn recv @RecvArrowClass(source)">
-                                <span class="disc-flow-label">◀ @(source == "mcp" ? "tools" : "agents")</span>
+                                <span class="disc-flow-label">@(source == "mcp" ? "tools" : "agents")</span>
                             </div>
                         </div>
 

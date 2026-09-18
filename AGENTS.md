@@ -27,6 +27,12 @@ Key flow: Console/Web → `POST /chat` or `POST /chat/stream` (with an optional 
 
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/TheSeries.Web/Flow](src/TheSeries.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
+Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
+`/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
+disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.
+Learn has no Discovery entry. Overlay re-discovery is disabled during the parent chat run, and
+closing cancels only Discovery's stream. See [docs/protocols.md](docs/protocols.md).
+
 ## Documentation map
 
 The detailed design notes live under [docs/](docs) — read the page for the area you are changing and keep it in sync:

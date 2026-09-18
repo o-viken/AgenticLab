@@ -20,6 +20,21 @@ public sealed partial class Discovery : ComponentBase, IDisposable
     [Inject]
     private AiServiceClient Ai { get; set; } = default!;
 
+    /// <summary>Omits the standalone header when hosted inside the live Flow dialog.</summary>
+    [Parameter] public bool Embedded { get; set; }
+
+    /// <summary>Prevents reconnecting shared tool clients while the parent conversation is running.</summary>
+    [Parameter] public bool AllowRediscovery { get; set; } = true;
+
+    /// <summary>Whether this view started a discovery pass that may have changed the shared catalog.</summary>
+    public bool HasRediscovered { get; private set; }
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private TaskCompletionSource? _completion;
+    private bool _disposed;
+    private bool _closing;
+    private string RediscoveryTitle => AllowRediscovery ? "Re-discover tools and agents" : "Wait for the conversation run to finish before re-discovering";
+
     private bool _discoverOnStartup = true;
     private bool _running;
     private bool _paused;
@@ -72,10 +87,15 @@ public sealed partial class Discovery : ComponentBase, IDisposable
         DiscoverySnapshotResponse? snapshot;
         try
         {
-            snapshot = await Ai.GetDiscoveryAsync();
+            snapshot = await Ai.GetDiscoveryAsync(_lifetime.Token);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception ex)
         {
+            if (_disposed || _closing) return;
             // The AI service being unreachable is a state to show, not a reason to fail the page.
             foreach (var source in Sources)
             {
@@ -87,7 +107,7 @@ public sealed partial class Discovery : ComponentBase, IDisposable
             return;
         }
 
-        if (snapshot is null)
+        if (snapshot is null || _disposed || _closing)
         {
             return;
         }
@@ -123,16 +143,19 @@ public sealed partial class Discovery : ComponentBase, IDisposable
     // Starts a run for a single source ("mcp"/"a2a") or both (null/"all").
     private async Task RediscoverAsync(string? source)
     {
-        if (_running)
+        if (_running || !AllowRediscovery || _disposed || _closing)
         {
             return;
         }
 
         _running = true;
+        HasRediscovered = true;
         _paused = false;
         _runningSource = string.IsNullOrWhiteSpace(source) ? "all" : source;
         _sessionId = Guid.NewGuid().ToString("N");
-        _cts = new CancellationTokenSource();
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _completion = completion;
 
         // Reset the sources this run covers so the flow animates from a clean slate.
         foreach (var s in Sources)
@@ -153,6 +176,7 @@ public sealed partial class Discovery : ComponentBase, IDisposable
         {
             await foreach (var evt in Ai.StreamDiscoveryAsync(_sessionId, source, _manual, _stepDelayMs, _cts.Token))
             {
+                if (_disposed || _closing) break;
                 Apply(evt);
                 StateHasChanged();
             }
@@ -161,15 +185,30 @@ public sealed partial class Discovery : ComponentBase, IDisposable
         {
             // Stopped by the user; leave the partial state as-is.
         }
+        catch (Exception ex)
+        {
+            foreach (var affected in Sources.Where(candidate => _runningSource == "all" || _runningSource == candidate))
+            {
+                _state[affected] = "Failed";
+                _error[affected] = ex.Message;
+            }
+        }
         finally
         {
-            _running = false;
             _paused = false;
             _runningSource = null;
             _cts?.Dispose();
             _cts = null;
             _lastRunUtc = DateTimeOffset.UtcNow;
-            await LoadSnapshotAsync();
+            try
+            {
+                if (!_disposed && !_closing) await LoadSnapshotAsync();
+            }
+            finally
+            {
+                _running = false;
+                completion.TrySetResult();
+            }
         }
     }
 
@@ -265,9 +304,21 @@ public sealed partial class Discovery : ComponentBase, IDisposable
         await Ai.SendControlAsync(_sessionId, action);
     }
 
+    /// <summary>Cancels only this discovery stream and waits for its reader to finish before dismissing the dialog.</summary>
+    public async Task CancelAsync()
+    {
+        _closing = true;
+        _lifetime.Cancel();
+        _cts?.Cancel();
+        if (_completion is not null) await _completion.Task;
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 }

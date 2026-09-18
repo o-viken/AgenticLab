@@ -36,4 +36,20 @@ Both the MCP tool discovery ([Application/Discovery/McpToolProvider.cs](../src/T
 
 **Discover on startup flag.** Whether discovery runs automatically at startup is gated by the **`Discovery:OnStartup`** config flag (default `true`, in [appsettings.json](../src/TheSeries.AiService/appsettings.json)); when `false`, the two startup `ConnectAsync` calls in [Program.cs](../src/TheSeries.AiService/Program.cs) are skipped and discovery is left to a manual run (after which the agents are refreshed, so `TimeKeeper`/`Orchestrator` work without a service restart). Two endpoints back the UI: `GET /discovery` returns a `DiscoverySnapshot { DiscoverOnStartup, Sources: [DiscoverySourceStatus] }`, and `POST /discovery/stream` (`DiscoveryStreamRequest { SessionId, Source?, Manual, StepDelayMs }`) runs a re-discovery for the requested source and streams the `DiscoveryEvent`s as Server-Sent Events (POST because it has side effects). The existing `GET /mcp` and `GET /a2a` endpoints are unchanged.
 
-**Web page.** [Components/Pages/Discovery.razor](../src/TheSeries.Web/Components/Pages/Discovery.razor) (route `/discovery`, linked from the Flow page header) shows one card per source (MCP tools, A2A agents), each with a **client↔server flow diagram** — an `AiService` (discovery client) node and the `mcpserver`/`a2aserver` node with **directional send/recv arrows** that light up (animated marching dashes, mirroring the agent flow view) as the run moves through `Connecting`/`Listing` (send) and `Item`/`Done` (receive) — plus a state badge, the discovered-item chips and an animated per-step log. A top toolbar has **Auto/Step** mode, an auto-pace **Delay** slider, live **Next / Pause / Resume / Stop** controls (via `AiServiceClient.SendControlAsync` → `POST /chat/control`) and a **Re-discover all** button; each card also has its own **Re-discover** button so MCP and A2A can be run independently. The run streams via `AiServiceClient.StreamDiscoveryAsync(sessionId, source, manual, stepDelayMs)` (mirroring the flow SSE pattern); the page loads the last-known status from `GET /discovery` (`AiServiceClient.GetDiscoveryAsync`) on init and reconciles with it after a run. The `Discovery:OnStartup` flag is shown read-only.
+**Web view.** [Components/Pages/Discovery.razor](../src/TheSeries.Web/Components/Pages/Discovery.razor)
+is shared by the Flow header's modal overlay and the standalone `/discovery` route through
+`DiscoveryPage.razor`. Learn has no Discovery navigation entry. The overlay leaves Flow mounted,
+preserving conversation state and live streaming. It loads only the last-known snapshot when opened;
+re-discovery remains an explicit command and is disabled while the parent chat runs. This is a local
+UI guard, not cross-client locking. Closing cancels Discovery's own request/stream and waits for its
+reader to exit, without sending controls to the chat session or resetting its conversation. Snapshot
+and stream completions after disposal do not update the removed view.
+
+The shared view shows one card per source (MCP tools, A2A agents), each with a client/server flow
+diagram, directional send/receive arrows, state badge, expandable discovered definitions and step log.
+Its toolbar retains Auto/Step mode, Delay, Next / Pause / Resume / Stop and Re-discover all; each card
+also has an independent Re-discover command. Controls use Discovery's own session ID with
+`POST /chat/control`. Runs use `AiServiceClient.StreamDiscoveryAsync`; snapshot loading and post-run
+reconciliation use `GetDiscoveryAsync`. `Discovery:OnStartup` remains read-only. After a modal that
+started re-discovery closes, Flow refreshes live agent/MCP/A2A catalogs without changing historical
+exchange rosters, conversation identity, draft or replay selection.

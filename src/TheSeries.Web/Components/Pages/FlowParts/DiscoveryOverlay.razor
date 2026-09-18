@@ -1,0 +1,14 @@
+@using TheSeries.Web.Components.Pages
+
+<dialog @ref="_dialog" class="discovery-dialog" aria-labelledby="discovery-title">
+    <header class="dialog-header">
+        <h2 id="discovery-title">Discovery</h2>
+        <button type="button" class="close-button" title="Close Discovery" aria-label="Close Discovery"
+                autofocus disabled="@_closing" @onclick="CloseAsync">
+            <MiniIcon Name="close" />
+        </button>
+    </header>
+    <div class="dialog-content">
+        <Discovery @ref="_discovery" Embedded="true" AllowRediscovery="@(AllowRediscovery && !_closing)" />
+    </div>
+</dialog>

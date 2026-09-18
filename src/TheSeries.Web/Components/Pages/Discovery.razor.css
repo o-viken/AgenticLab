@@ -20,6 +20,11 @@
     letter-spacing: 0;
 }
 
+.discovery-app.embedded {
+    min-height: 0;
+    padding-top: 1px;
+}
+
 .discovery-header {
     display: flex;
     justify-content: space-between;
@@ -221,6 +226,7 @@
 }
 
 .source-card {
+    container-type: inline-size;
     border: 1px solid var(--border);
     border-radius: 4px;
     background: var(--surface);
@@ -331,7 +337,7 @@
 
 .source-body {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     padding: 1rem 1.1rem 1.15rem;
 }
@@ -377,6 +383,30 @@
 
 .disc-node.server {
     background: #f6f7f9;
+}
+
+@container (max-width: 460px) {
+    .source-title-row { flex-wrap: wrap; }
+    .disc-flow { flex-direction: column; align-items: center; }
+    .disc-node { width: 100%; min-width: 0; }
+    .disc-flow .disc-conns { width: 100%; min-width: 0; flex-direction: row; gap: 8px; }
+    .disc-flow .disc-conn { flex: 1; height: 76px; min-width: 0; }
+    .disc-flow .disc-conn::before { left: 50%; right: auto; top: 0; width: 2px; height: 100%; transform: none; background: repeating-linear-gradient(0deg, var(--connector) 0 7px, transparent 7px 14px); }
+    .disc-flow .disc-conn.send::after { top: auto; bottom: 0; left: calc(50% - 5px); right: auto; transform: none; border: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 9px solid var(--connector); }
+    .disc-flow .disc-conn.recv::after { top: 0; left: calc(50% - 5px); transform: none; border: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid var(--connector); }
+    .disc-flow .disc-conn.send.active::after { border-left-color: transparent; border-top-color: var(--accent-flow); }
+    .disc-flow .disc-conn.recv.active::after { border-right-color: transparent; border-bottom-color: var(--accent-flow); }
+    .disc-flow .disc-conn.active::before { background: repeating-linear-gradient(0deg, var(--accent-flow) 0 7px, transparent 7px 14px); background-size: 100% 14px; animation: disc-dash-down .5s linear infinite; }
+    .disc-flow .disc-conn.recv.active::before { animation-direction: reverse; }
+    .disc-flow-label { text-align: center; overflow-wrap: anywhere; }
+}
+
+@keyframes disc-dash-down {
+    to { background-position: 0 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .discovery-app .disc-flow .disc-conn.active::before { animation: none; }
 }
 
 .disc-node.active {

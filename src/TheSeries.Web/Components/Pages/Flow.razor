@@ -14,7 +14,8 @@
                 <div class="flow-header-actions">
                     <a class="discovery-link" href="/learn" target="_blank" rel="noopener noreferrer"
                        title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
-                    <a class="discovery-link" href="/discovery" title="View MCP and A2A discovery">Discovery</a>
+                        <button type="button" class="discovery-link" aria-haspopup="dialog"
+                            @onclick="() => _view.Layout.DiscoveryOpen = true" title="View MCP and A2A discovery">Discovery</button>
                     <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
                         <input type="checkbox" @bind="_view.Concepts.ShowConcepts" /> Learn
                     </label>
@@ -74,3 +75,8 @@
         </CascadingValue>
     </CascadingValue>
 </div>
+
+@if (_view.Layout.DiscoveryOpen)
+{
+    <DiscoveryOverlay AllowRediscovery="@(!_run.Running)" OnClose="CloseDiscoveryAsync" />
+}

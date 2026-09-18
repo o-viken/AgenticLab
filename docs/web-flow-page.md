@@ -4,6 +4,14 @@ Part of the [TheSeries architecture notes](../AGENTS.md). How the Blazor flow pa
 
 ## Live flow visualization
 
+**Discovery overlay.** The Discovery button appears on `/`, not in the `/learn` header or stage
+actions. It opens a native modal dialog without navigating or replacing Flow's view/run state:
+the conversation, draft, settings and Execution replay remain intact. Close, Escape and backdrop
+clicks dismiss it and restore focus to the trigger. The background is inert while the dialog is open,
+but an active chat continues; re-discovery is disabled until that chat run ends because it reconnects
+shared tool clients. Closing cancels only the Discovery stream. After re-discovery, live catalogs
+refresh without resetting chat or historical captures. Direct `/discovery` visits remain supported.
+
 **Naming.** Flow and Learn use **Agent = Agent host + Model**. The default merged Client +
 AiService node is **Agent host**, the inference node is **Model**, and the anatomy control is
 **Expand agent host**. Vendor names remain the node title when selected; subtitles identify the

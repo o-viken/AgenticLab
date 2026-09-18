@@ -33,6 +33,14 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     // The Execution dock is the main way to read a run, so it opens tall enough for its three panes.
     private int _bottomHeight = 380;
     private bool _bottomMaximized;
+    private bool _discoveryOpen;
+
+    /// <summary>Transient modal visibility; changing it never replaces the page or its conversation.</summary>
+    public bool DiscoveryOpen
+    {
+        get => _discoveryOpen;
+        set { _discoveryOpen = value; notify(); }
+    }
 
     /// <summary>Whether the left (run controls) panel is collapsed to a thin rail.</summary>
     public bool LeftPanelCollapsed

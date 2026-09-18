@@ -188,6 +188,11 @@
 }
 
 .discovery-link {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
     flex: 0 0 auto;
     color: #167052;
     text-decoration: none;

@@ -190,8 +190,11 @@ this operating cycle is separate from the agent's per-turn execution loop.
 Stage URLs such as `/learn?stage=agent-loop` support bookmarks, reload and browser Back/Forward.
 The product-specific **Map to Microsoft Foundry** stage is retained in code but hidden from the guide.
 Previous/Next skip it, and **Run and improve** is stage 08. Hidden or unknown stage IDs fall back
-to the first stage. Live-flow and discovery links navigate only; they
-never send a prompt or start discovery automatically.
+to the first stage. Live-flow links navigate only; they never send a prompt.
+Discovery is available from the live Flow header, not from the guide. It opens as a modal overlay
+that keeps the conversation, draft and execution history intact. Close, Escape or a backdrop click
+returns to the same conversation. Opening only reads the discovery snapshot; re-discovery is explicit
+and unavailable while the current chat runs. The standalone `/discovery` URL remains available.
 
 The diagrams are explanations, not live telemetry. Landscape and environment comparisons are
 illustrative, not product or deployment guarantees. The final stage distinguishes today's execution traces from future

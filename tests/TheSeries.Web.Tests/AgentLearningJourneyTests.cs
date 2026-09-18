@@ -112,7 +112,7 @@ public sealed class AgentLearningJourneyTests
         {
             if (stage.ActionHref is not null)
             {
-                Assert.Contains(stage.ActionHref, new[] { "/", "/discovery" });
+                Assert.Equal("/", stage.ActionHref);
                 Assert.False(string.IsNullOrWhiteSpace(stage.ActionLabel));
             }
 

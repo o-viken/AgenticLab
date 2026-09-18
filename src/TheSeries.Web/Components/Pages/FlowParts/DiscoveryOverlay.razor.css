@@ -1,0 +1,30 @@
+.discovery-dialog {
+    width: min(1200px, calc(100% - 48px));
+    max-width: none;
+    max-height: calc(100dvh - 48px);
+    padding: 0;
+    border: 1px solid #d9ded9;
+    border-radius: 4px;
+    background: #f7f8f6;
+    color: #1b211d;
+    font-family: Bahnschrift, "Segoe UI Variable", sans-serif;
+    letter-spacing: 0;
+    overflow: hidden;
+    box-shadow: 0 16px 64px #0003;
+}
+
+.discovery-dialog[open] { display: flex; flex-direction: column; }
+.discovery-dialog::backdrop { background: #1b211d80; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; border-bottom: 1px solid #d9ded9; }
+.dialog-header h2 { margin: 0; font-family: Cambria, Georgia, serif; font-size: 24px; font-weight: 500; }
+.dialog-content { overflow: auto; min-height: 0; overscroll-behavior: contain; }
+.close-button { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border: 1px solid #d9ded9; border-radius: 4px; background: #fff; color: #1b211d; cursor: pointer; }
+.close-button ::deep svg { width: 18px; height: 18px; }
+.close-button:hover { background: #e8ece8; }
+.close-button:focus-visible { outline: 2px solid #167052; outline-offset: 2px; }
+.close-button:disabled { opacity: .5; cursor: wait; }
+
+@media (max-width: 600px) {
+    .discovery-dialog { width: calc(100% - 16px); max-height: calc(100dvh - 16px); }
+    .dialog-header { padding: 8px 16px; }
+}

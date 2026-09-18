@@ -16,6 +16,46 @@ namespace TheSeries.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    /// <summary>Opening Discovery is a transient layout change, not a new conversation or replay selection.</summary>
+    [Fact]
+    public async Task DiscoveryOverlay_PreservesConversationDraftAndReplay()
+    {
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var catalog = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(catalog);
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        view.Message = "first";
+        await run.SendAsync();
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var exchange = Assert.Single(run.Projections.Exchanges);
+        view.Cursor.SelectStage(exchange.Id, 2);
+        view.Message = "unsent draft";
+        view.Workspace = "test workspace";
+        var conversationId = Assert.Single(handler.ConversationIds);
+        var selectedStage = run.Replay.SelectedStage;
+        view.Layout.DiscoveryOpen = true;
+        Assert.True(view.Layout.DiscoveryOpen);
+        view.Layout.DiscoveryOpen = false;
+        Assert.False(view.Layout.DiscoveryOpen);
+        Assert.Equal("unsent draft", view.Message);
+        Assert.Equal("test workspace", view.Workspace);
+        Assert.Equal(exchange.Id, Assert.Single(run.Projections.Exchanges).Id);
+        Assert.Equal(selectedStage, run.Replay.SelectedStage);
+        Assert.Equal(0, handler.Resets);
+        finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await run.SendAsync();
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(2, handler.ConversationIds.Count);
+        Assert.All(handler.ConversationIds, actual => Assert.Equal(conversationId, actual));
+    }
+
     /// <summary>Streaming, replay caches, numbering and telemetry remain consistent when archives are evicted.</summary>
     [Fact]
     public async Task Retention_ControllerEvictsWithoutChangingCurrentCaptureOrServerMemory()
@@ -137,25 +177,28 @@ public sealed class ExecutionReplayTests
     private sealed class ReplayHandler : HttpMessageHandler
     {
         internal int Resets { get; private set; }
+        internal List<string> ConversationIds { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.RequestUri!.AbsolutePath == "/chat/reset")
             {
                 Resets++;
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
             }
             Assert.Equal("/chat/stream", request.RequestUri.AbsolutePath);
+            using var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            ConversationIds.Add(payload.RootElement.GetProperty("conversationId").GetString()!);
             FlowEvent[] events =
             [
                 Event(1, "llm-request", 1) with
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
                 Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
             ];
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(string.Concat(events.Select(stage => $"event: flow\ndata: {JsonSerializer.Serialize(stage)}\n\n"))),
-            });
+            };
         }
     }
 

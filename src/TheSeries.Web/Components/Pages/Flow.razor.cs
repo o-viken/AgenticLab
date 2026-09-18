@@ -132,6 +132,25 @@ public partial class Flow : IDisposable
         }
     }
 
+    private async Task CloseDiscoveryAsync(bool refreshCatalogs)
+    {
+        _view.Layout.DiscoveryOpen = false;
+        if (!refreshCatalogs) return;
+        try
+        {
+            var response = await Ai.GetAgentsAsync();
+            if (response is not null) _view.Roster.SetAgents(response.Agents);
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        await _run.Catalogs.RefreshKnownMcpAsync();
+        await _run.Catalogs.RefreshKnownA2AAsync();
+    }
+
     private async Task SetVendorAsync(Vendor vendor)
     {
         _view.Vendor = vendor;
