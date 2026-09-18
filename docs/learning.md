@@ -40,10 +40,17 @@ document overflow. Below 760px navigation becomes a horizontally scrolling strip
 Foundation and Hosting reveal toolbars are sticky within their lesson, with opaque backgrounds.
 These layout rules do not change reveal state or chapter navigation.
 
-[AgentLearningJourney](../src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains ten stage definitions
+[AgentLearningJourney](../src/TheSeries.Web/Learning/AgentLearningJourney.cs) retains eleven stage definitions
 in `AllStages`, with stable IDs, diagram nodes, concept references and optional local demo links.
 Its `Stages` list excludes definitions marked `Hidden`; the product-specific `map-to-foundry`
-stage is hidden, leaving nine visible stages. All navigation, numbering and URL resolution use
+stage is hidden, leaving ten visible stages. The opening `why-agents` stage is titled **Demystify**.
+Its three short sections demystify agents: why understanding them matters, what they are, and how a
+task moves through the system. `IntroductionSteps` owns this copy. Learn's local step index shows
+one part at a time using bounded Previous/Next controls, a counter and Restart. Inactive parts
+reserve layout space but are hidden visually and from assistive technology; the current part is
+announced politely. Stage changes reset to Why; related-topic rerenders preserve the current step.
+No diagram or backend calls are needed. The introduction's controls and text share the other lessons' bordered
+24-pixel grid surface. All navigation, numbering and URL resolution use
 that filtered list, so Previous/Next skip hidden stages and hidden URLs fall back to the first stage.
 The page code-behind
 resolves `?stage=` case-insensitively with a first-stage fallback, handles focus after navigation,
@@ -60,7 +67,7 @@ browser checks for rendered diagrams and connectors. These diagrams are not live
 deployment/security maps. Current execution traces are distinguished from future Foundry hosting
 and managed evaluations. No Foundry integration is added by this page.
 
-The opening `model-to-agent`, second `agent-landscape`, fourth `anatomy-of-agent`, and post-loop `agents-everywhere`
+The `model-to-agent`, `agent-landscape`, `anatomy-of-agent`, and post-loop `agents-everywhere`
 lessons render [FoundationLesson](../src/TheSeries.Web/Components/Pages/LearningParts/FoundationLesson.razor)
 with its own scoped CSS. The pure local [FoundationStory](../src/TheSeries.Web/Learning/FoundationStory.cs)
 owns bounded reveal progression, captions and illustrative task/environment examples. Chapter changes
@@ -74,9 +81,12 @@ context, tools and permissions, not automatic portability, real scheduling or de
 keep the landscape to two reveals: purposes, then the shared host/model foundation. It has no agent-loop
 diagram; execution remains in the dedicated `agent-loop` chapter. These lessons
 do not reference live Flow state or call backend APIs. Existing stage permalinks remain valid; `/learn`
-now starts at Agent. See README for the nine-stage order and presentation controls.
+now starts at Demystify. See README for the ten-stage order and presentation controls.
 
-The `where-to-run` lesson follows `agents-everywhere` and precedes `wider-ecosystem`.
+The `wider-ecosystem` lesson follows `agents-everywhere`, introducing optional MCP tool connections
+and A2A delegation before hosting choices. The `where-to-run` lesson follows `wider-ecosystem`
+and precedes `run-and-improve`: tools, data and connections inform hosting, then operational
+responsibilities lead into the improvement cycle. Stage IDs and bookmarks remain unchanged.
 [HostingLesson](../src/TheSeries.Web/Components/Pages/LearningParts/HostingLesson.razor) and its scoped CSS
 render the four-part hosting comparison and three manual reveals. The pure
 [HostingStory](../src/TheSeries.Web/Learning/HostingStory.cs) owns platform-neutral option content,

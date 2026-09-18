@@ -92,10 +92,14 @@ The guide fits the viewport: the header and stage navigation stay visible while 
 scrolls independently. Navigation scrolls separately when needed and becomes a horizontal strip
 on narrow screens. Reveal controls stay pinned at the top of the pane while scrolling their lesson.
 
-Nine stages connect the ideas: **Agent**, **The Agentic Landscape**, **Inside the agent host**,
-**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **Where should your agent run?**, **The wider ecosystem**, and
-**Run and improve**. Each stage has a
-concept diagram and related topics from the same concept catalog as the contextual panel.
+Ten stages connect the ideas: **Demystify**, **Agent**, **The Agentic Landscape**, **Inside the agent host**,
+**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **The wider ecosystem**, **Where should your agent run?**, and
+**Run and improve**. The short **Demystify** introduction demystifies agents: why understanding
+them matters, what they are, and how a task moves through the system. It is the default opening at
+`/learn` and retains the `why-agents` permalink. Each subsequent stage has a concept diagram,
+and all stages link to related topics from the same concept catalog as the contextual panel.
+The introduction shows **Why**, **What**, then **How**, one at a time, with Previous/Next step
+controls, a counter and Restart. Returning to the stage starts at Why.
 **The Agentic Landscape** connects chat, coding, office and custom purposes to one shared
 agentic foundation. These overlapping examples are not a vendor taxonomy.
 It has two reveals: the agent purposes, then their shared **Agent host + Model** foundation.

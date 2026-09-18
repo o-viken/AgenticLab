@@ -48,6 +48,33 @@
             </header>
             <p class="stage-summary">@_stage.Summary</p>
 
+            @if (_stage.Id == "why-agents")
+            {
+                <div class="architecture intro-lesson">
+                <div class="intro-toolbar" role="group" aria-label="Introduction steps">
+                    <button type="button" title="Previous step" aria-label="Previous step"
+                            disabled="@(_introStep == 0)" @onclick="() => MoveIntroduction(-1)"><MiniIcon Name="prev" /></button>
+                    <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
+                    <button type="button" title="Next step" aria-label="Next step"
+                            disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" @onclick="() => MoveIntroduction(1)"><MiniIcon Name="next" /></button>
+                    <button type="button" class="intro-restart" disabled="@(_introStep == 0)" @onclick="() => _introStep = 0">Restart</button>
+                </div>
+                <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
+                    @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
+                    {
+                        var step = AgentLearningJourney.IntroductionSteps[index];
+                        var current = index == _introStep;
+                        <div class="@(current ? "intro-step current" : "intro-step")" aria-hidden="@(current ? "false" : "true")">
+                            <dt>@step.Title</dt>
+                            <dd>@step.Detail</dd>
+                        </div>
+                    }
+                </dl>
+                </div>
+            }
+
+            @if (_stage.HighlightedNodes.Count > 0)
+            {
             <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
                 @if (_stage.Id is "agent-landscape" or "model-to-agent" or "agents-everywhere" or "anatomy-of-agent")
                 {
@@ -130,6 +157,7 @@
                     <figcaption>Release the tested version, then repeat.</figcaption>
                 }
             </figure>
+            }
 
             <blockquote class="takeaway">@_stage.Takeaway</blockquote>
 

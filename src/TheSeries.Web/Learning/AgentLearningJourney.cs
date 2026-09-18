@@ -17,6 +17,13 @@ internal sealed record LearningStage(
 
 internal static class AgentLearningJourney
 {
+    internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
+    [
+        new("why", "Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),
+        new("what", "What", "An agent combines a model with software that manages context, tools and controls."),
+        new("how", "How", "Follow a task from request to model decision, tool use and result."),
+    ]);
+
     internal static IReadOnlyList<LearningNode> Nodes { get; } = Array.AsReadOnly<LearningNode>(
     [
         new("harness", "Agent host", "Manages context, instructions, tools, memory and execution controls"),
@@ -55,6 +62,11 @@ internal static class AgentLearningJourney
 
     private static IReadOnlyList<LearningStage> AllStages { get; } = Array.AsReadOnly<LearningStage>(
     [
+        new("why-agents", "Demystify",
+            "AI agents, explained.",
+            "Understand the parts. See the possibilities and limits.",
+            "Introduction", false,
+            ["agent", "guardrails"], []),
         new("model-to-agent", "Agent",
             "An agent is a system, not just a model. Its agent host manages context, instructions, tools, memory and execution controls; the model reasons over that input and chooses the next step or final answer.",
             "Agent = Agent host + Model. The model reasons. The agent host acts. Together, they form an agent.",
@@ -88,19 +100,19 @@ internal static class AgentLearningJourney
             "Tools and permissions change with the environment. A local agent host does not mean a local model.",
             "Illustrative", false,
             ["where-agents-run", "environment", "tools", "guardrails"], ["harness", "model"]),
-        new("where-to-run", "Where should your agent run?",
-            "Compare operating models: a personal runtime, an existing product, your own service, or a managed agent platform.",
-            "Production is a change in responsibilities, not just a change of address. Staying local can be the right choice.",
-            "Illustrative", false,
-            ["where-agents-run", "environment", "guardrails", "securing-agents"],
-            ["hosting-runtime", "hosting-model", "hosting-access", "hosting-owner"]),
         new("wider-ecosystem", "The wider ecosystem",
-            "Agents can call external tools or delegate work to other agents. MCP and A2A standardize these two kinds of connection.",
+            "Agents can call external tools or delegate work to other agents when needed. MCP and A2A standardize these optional connections.",
             "A protocol standardizes a connection. It does not, by itself, make that connection safe.",
             "Available today", false,
             ["mcp", "a2a", "environment"],
             ["connected-agent", "mcp-tools", "a2a-agent"],
             "Open discovery", "/discovery"),
+        new("where-to-run", "Where should your agent run?",
+            "Tools, data and connections inform where the agent host should run. Compare operating models: a personal runtime, an existing product, your own service, or a managed agent platform.",
+            "Production is a change in responsibilities, not just a change of address. Staying local can be the right choice.",
+            "Illustrative", false,
+            ["where-agents-run", "environment", "guardrails", "securing-agents"],
+            ["hosting-runtime", "hosting-model", "hosting-access", "hosting-owner"]),
         new("map-to-foundry", "Map to Microsoft Foundry",
             "A Foundry project organizes agents and connected resources. The familiar concepts map to managed platform capabilities.",
             "Hosting an agent and providing its model are different responsibilities.",

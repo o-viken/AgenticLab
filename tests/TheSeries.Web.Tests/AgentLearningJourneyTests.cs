@@ -29,8 +29,23 @@ public sealed class AgentLearningJourneyTests
     public void Stages_PreserveOrderedPermalinks()
     {
         Assert.Equal(
-            ["model-to-agent", "agent-landscape", "inside-the-harness", "anatomy-of-agent", "agent-loop", "agents-everywhere", "where-to-run", "wider-ecosystem", "run-and-improve"],
+                ["why-agents", "model-to-agent", "agent-landscape", "inside-the-harness", "anatomy-of-agent", "agent-loop", "agents-everywhere", "wider-ecosystem", "where-to-run", "run-and-improve"],
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
+    }
+
+    /// <summary>The concise Why, What and How introduction precedes Agent without adding a diagram.</summary>
+    [Fact]
+    public void Introduction_SetsTheSceneBeforeAgent()
+    {
+        var introduction = AgentLearningJourney.Resolve(null);
+        Assert.Equal("why-agents", introduction.Id);
+        Assert.Equal("Demystify", introduction.Title);
+        Assert.Empty(introduction.HighlightedNodes);
+        Assert.Equal(["Why", "What", "How"], AgentLearningJourney.IntroductionSteps.Select(step => step.Title).ToArray());
+        var copy = $"{introduction.Summary} {introduction.Takeaway} {string.Join(' ', AgentLearningJourney.IntroductionSteps.Select(step => step.Detail))}";
+        Assert.True(copy.Split(' ').Length <= 65);
+        Assert.Equal("model-to-agent", AgentLearningJourney.Move(introduction.Id, 1).Id);
+        Assert.Same(introduction, AgentLearningJourney.Move("model-to-agent", -1));
     }
 
     /// <summary>Missing and retired links always resolve to a usable first stage.</summary>
@@ -78,7 +93,7 @@ public sealed class AgentLearningJourneyTests
         foreach (var stage in AgentLearningJourney.Stages)
         {
             Assert.NotEmpty(stage.ConceptIds);
-            Assert.NotEmpty(stage.HighlightedNodes);
+            if (stage.Id != "why-agents") Assert.NotEmpty(stage.HighlightedNodes);
             Assert.All(stage.ConceptIds, id =>
             {
                 var concept = catalog.Get(id);
@@ -143,9 +158,9 @@ public sealed class AgentLearningJourneyTests
     [Fact]
     public void Navigation_SkipsHiddenFoundryStage()
     {
-        Assert.Equal("run-and-improve", AgentLearningJourney.Move("wider-ecosystem", 1).Id);
-        Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("run-and-improve", -1).Id);
-        Assert.Equal(8, AgentLearningJourney.IndexOf("run-and-improve"));
+        Assert.Equal("run-and-improve", AgentLearningJourney.Move("where-to-run", 1).Id);
+        Assert.Equal("where-to-run", AgentLearningJourney.Move("run-and-improve", -1).Id);
+        Assert.Equal(9, AgentLearningJourney.IndexOf("run-and-improve"));
         Assert.All(AgentLearningJourney.Stages, stage => Assert.False(stage.Hidden));
     }
 
@@ -169,13 +184,15 @@ public sealed class AgentLearningJourneyTests
         Assert.InRange(stage.ConceptIds.Count, 1, 4);
     }
 
-    /// <summary>Hosting has a stable address between environment and protocol lessons.</summary>
+    /// <summary>Connections inform hosting choices before the final operating cycle, with stable permalinks.</summary>
     [Fact]
     public void HostingStage_HasStablePlacementAndPermalink()
     {
-        Assert.Equal("where-to-run", AgentLearningJourney.Move("agents-everywhere", 1).Id);
-        Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("where-to-run", 1).Id);
-        Assert.Equal("where-to-run", AgentLearningJourney.Move("wider-ecosystem", -1).Id);
+        Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("agents-everywhere", 1).Id);
+        Assert.Equal("agents-everywhere", AgentLearningJourney.Move("wider-ecosystem", -1).Id);
+        Assert.Equal("where-to-run", AgentLearningJourney.Move("wider-ecosystem", 1).Id);
+        Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("where-to-run", -1).Id);
+        Assert.Equal("run-and-improve", AgentLearningJourney.Move("where-to-run", 1).Id);
         Assert.Equal("/learn?stage=where-to-run", AgentLearningJourney.Href(AgentLearningJourney.Resolve("WHERE-TO-RUN").Id));
         Assert.Null(AgentLearningJourney.Resolve("where-to-run").ActionHref);
     }

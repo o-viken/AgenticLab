@@ -16,6 +16,7 @@ public partial class Learn
     private static IReadOnlyList<LearningStage> Stages => AgentLearningJourney.Stages;
     private LearningStage _stage = Stages[0];
     private int _stageIndex;
+    private int _introStep;
     private bool _initialized;
     private Concept? _activeConcept;
     private ElementReference _stageHeading;
@@ -30,6 +31,7 @@ public partial class Learn
         if (_initialized && next.Id != _stage.Id)
         {
             _pendingFocus = FocusTarget.Stage;
+            _introStep = 0;
         }
 
         _activeConcept = null;
@@ -54,6 +56,9 @@ public partial class Learn
             await element.FocusAsync();
         }
     }
+
+    private void MoveIntroduction(int offset) =>
+        _introStep = Math.Clamp(_introStep + offset, 0, AgentLearningJourney.IntroductionSteps.Count - 1);
 
     private void OpenConcept(Concept concept)
     {

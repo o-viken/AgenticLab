@@ -49,6 +49,18 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .reality.today { color: var(--accent); background: #edf6f0; border-color: #b7d1c2; }
 .reality.conceptual { color: var(--blue); background: #edf2f9; border-color: #bdcde1; }
 .stage-summary { max-width: 90ch; line-height: 1.65; margin: 1rem 0 1.4rem; }
+.intro-toolbar { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.intro-toolbar button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: .45rem; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); }
+.intro-toolbar button:disabled { opacity: .45; cursor: default; }
+.intro-toolbar .intro-restart { width: auto; padding-inline: .75rem; }
+.intro-toolbar ::deep svg { width: 16px; height: 16px; }
+.intro-count { min-width: 3rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+.intro-steps { display: grid; margin: 0; max-width: 75ch; }
+.intro-step { grid-area: 1 / 1; }
+.intro-step:not(.current) { visibility: hidden; }
+.intro-steps > div { padding: 1rem 0; border-top: 1px solid var(--line); }
+.intro-steps dt { font-weight: 600; color: var(--accent); }
+.intro-steps dd { margin: .4rem 0 0; line-height: 1.65; }
 .architecture { margin: 0; padding: 1.25rem; border: 1px solid var(--line); background-color: var(--surface); background-image: linear-gradient(#f1f4f1 1px, transparent 1px), linear-gradient(90deg, #f1f4f1 1px, transparent 1px); background-size: 24px 24px; }
 .boundary-label { color: var(--muted); font-size: 11px; font-weight: 600; margin: 0 0 .8rem; line-height: 1.5; text-transform: uppercase; }
 .ecosystem-connections { display: grid; grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr); row-gap: 1rem; max-width: 700px; margin: 0 auto; }
