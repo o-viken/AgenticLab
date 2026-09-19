@@ -6,7 +6,7 @@
     <div class="env-panel">
         <div class="risk-meter @View.Agent.RiskLevelClass">
             <ConceptInfoButton Id="agent-risk" Title="Learn about agent risk" />
-            <span class="risk-title">Risk</span>
+            <span class="risk-title"><HostSection Section="HostDetailSection.Environment" Label="Risk" /></span>
             <div class="risk-bar">
                 @for (var i = 0; i < 3; i++)
                 {

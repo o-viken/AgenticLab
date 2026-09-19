@@ -25,6 +25,7 @@ internal sealed class FlowViewState
         // The drawer and the layout reference each other (open concept reveals the panel; the panel is
         // hidden while the drawer is off), so both take callbacks that are only invoked after construction.
         var layout = new PanelLayout(Notify, () => Concepts!.ShowConcepts);
+        Details = new HostDetailsSelection(() => { }, Notify);
         Concepts = new ConceptDrawer(concepts, layout.RevealRight, Notify);
         Layout = layout;
         Options = new RunOptions(Notify);
@@ -51,6 +52,12 @@ internal sealed class FlowViewState
     public SelectedAgentView Agent { get; }
     public HarnessView Harness { get; }
 
+    /// <summary>The single read-only host section in its own dock, independent of Learn.</summary>
+    public HostDetailsSelection Details { get; }
+
+    /// <summary>Invalidates selection-dependent fetches immediately, including switches away and back.</summary>
+    public int ConfigurationVersion { get; private set; }
+
     /// <summary>The message the user is composing for the next run.</summary>
     public string Message
     {
@@ -70,19 +77,30 @@ internal sealed class FlowViewState
             }
 
             _selectedAgent = value;
+            ConfigurationVersion++;
             Options.ResetForAgent();
             Notify();
         }
     }
 
     /// <summary>Sets the selected agent without raising change side effects (used during initial load).</summary>
-    public void InitSelectedAgent(string? agent) => _selectedAgent = agent;
+    public void InitSelectedAgent(string? agent)
+    {
+        _selectedAgent = agent;
+        ConfigurationVersion++;
+    }
 
     /// <summary>The workspace path for agents that require one.</summary>
     public string Workspace
     {
         get => _workspace;
-        set { _workspace = value; Notify(); }
+        set
+        {
+            if (_workspace == value) return;
+            _workspace = value;
+            ConfigurationVersion++;
+            Notify();
+        }
     }
 
     /// <summary>Which tab is active in the left Controls panel.</summary>
@@ -99,7 +117,13 @@ internal sealed class FlowViewState
     public Vendor Vendor
     {
         get => _vendor;
-        set { _vendor = value; Notify(); }
+        set
+        {
+            if (_vendor == value) return;
+            _vendor = value;
+            ConfigurationVersion++;
+            Notify();
+        }
     }
 
     /// <summary>

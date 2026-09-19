@@ -25,7 +25,7 @@
     {
         <div class="tools node-inner @Run.Focus.NodeClass("tools")">
             <ConceptInfoButton Id="tools" Title="Learn about tools" />
-            <span class="title">Tools</span>
+            <span class="title"><HostSection Section="HostDetailSection.Tools" /></span>
             <span class="subtitle">@View.Agent.ToolsSummary</span>
             @if (View.Agent.ToolNames.Count > 0)
             {

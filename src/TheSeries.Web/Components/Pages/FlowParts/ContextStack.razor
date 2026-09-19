@@ -9,7 +9,7 @@
     <div class="context-head">
         <span class="context-title-group">
             <ConceptInfoButton Id="context" Title="Learn about the context" />
-            <span class="context-title">Context</span>
+            <span class="context-title"><HostSection Section="HostDetailSection.Context" /></span>
         </span>
         <span class="context-meta">@context.Count content entr@(context.Count == 1 ? "y" : "ies") · @(context.Chars is int chars ? $"~{chars:N0} chars" : "size not captured")</span>
     </div>

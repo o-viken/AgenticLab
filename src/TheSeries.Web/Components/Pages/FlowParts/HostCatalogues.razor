@@ -2,7 +2,7 @@
 {
     <div class="skills node-inner">
         <ConceptInfoButton Id="skills" Title="Learn about skills" />
-        <span class="title">Skills</span>
+        <span class="title"><HostSection Section="HostDetailSection.Skills" /></span>
         @if (Run.Catalogs.KnownSkills.Count == 0)
         {
             <span class="subtitle">@(string.IsNullOrWhiteSpace(View.Workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
@@ -22,7 +22,7 @@
 {
     <div class="mcp node-inner">
         <ConceptInfoButton Id="mcp" Title="Learn about MCP" />
-        <span class="title">MCP servers</span>
+        <span class="title"><HostSection Section="HostDetailSection.Mcp" /></span>
         @if (Run.Catalogs.KnownMcp.Count == 0)
         {
             <span class="subtitle">no MCP server connected</span>
@@ -42,7 +42,7 @@
 {
     <div class="a2a node-inner">
         <ConceptInfoButton Id="a2a" Title="Learn about A2A" />
-        <span class="title">A2A agents</span>
+        <span class="title"><HostSection Section="HostDetailSection.A2A" /></span>
         @if (Run.Catalogs.KnownA2A.Count == 0)
         {
             <span class="subtitle">no A2A agent connected</span>

@@ -16,6 +16,205 @@ namespace TheSeries.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("Coder", "Selected persona description", [], RequiresWorkspace: true, SupportsSkills: true, ModelId: "test-model")]);
+        view.SelectedAgent = "Coder";
+        view.Harness.SetPrompt("Exact host prompt");
+        view.Message = "Unsubmitted draft";
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var settings = Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run));
+        Assert.Equal("Provider: Azure OpenAI\nDeployment: test-model", settings.Text);
+        Assert.Equal("Exact host prompt", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.SystemPrompt, view, run)).Text);
+        Assert.Equal("Selected persona description", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Persona, view, run)).Text);
+        Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Skills, view, run));
+        Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Instructions, view, run));
+        Assert.Equal("No message submitted.", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.UserPrompt, view, run)).Text);
+    }
+
+    [Fact]
+    public void HostDetails_CaptureUsesMatchingExchangeAndCausalPrefix()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.SelectedAgent = "Chat";
+        var first = new FlowEvent(2, "llm-request", "first", null, 1, "{\"instructions\":\"<agentMode>Exact persona</agentMode>\",\"tools\":[]}");
+        var later = new FlowEvent(4, "llm-request", "later", null, 2, "{\"instructions\":\"future\"}");
+        var exchange = ExecutionReplayBuilder.Build([new ConversationTurn("capture", "hello", "Chat", "", null,
+            [new FlowEvent(1, "received", "received", null), first, later], view.VendorKey)], -1)[0];
+        Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 1, true));
+        Assert.Same(first, HostDetailsBuilder.RequestFor(view, exchange, 2, true));
+        Assert.Same(later, HostDetailsBuilder.RequestFor(view, exchange, 1, false));
+        Assert.Equal("Exact persona", PromptSignatureBuilder.AgentModeText(HostDetailsBuilder.CapturedField(first.Data, "instructions")));
+        Assert.Equal("[]", HostDetailsBuilder.CapturedField(first.Data, "tools"));
+        Assert.Null(HostDetailsBuilder.CapturedField("not json", "tools"));
+        Assert.Null(HostDetailsBuilder.CapturedField("[]", "tools"));
+        view.Workspace = "remembered workspace";
+        Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 2, true));
+        Assert.Same(first, HostDetailsBuilder.RequestFor(view, exchange with { Workspace = view.Workspace }, 2, true));
+        view.Workspace = "";
+        view.SelectedAgent = "Other";
+        Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 2, true));
+        view.SelectedAgent = "Chat";
+        view.Vendor = Vendor.Default;
+        Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 2, true));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HostDetails_StalePromptSuccessOrFailureCannotOverwriteNewSelection(bool oldFails)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        using var handler = new InspectorHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var catalogs = new WorkspaceCatalogs(new AiServiceClient(http), view, () => Task.CompletedTask);
+        view.SelectedAgent = "First";
+        var older = catalogs.RefreshHarnessPromptAsync();
+        view.SelectedAgent = "Second";
+        Assert.False(view.Harness.HasPromptText);
+        var newer = catalogs.RefreshHarnessPromptAsync();
+        handler.Pending[1].SetResult(new(HttpStatusCode.OK) { Content = new StringContent("{\"prompt\":\"new prompt\"}") });
+        await newer;
+        handler.Pending[0].SetResult(new(oldFails ? HttpStatusCode.InternalServerError : HttpStatusCode.OK)
+            { Content = new StringContent("{\"prompt\":\"old prompt\"}") });
+        await older;
+        Assert.Equal("new prompt", view.Harness.PromptText);
+        var repeatedOlder = catalogs.RefreshHarnessPromptAsync();
+        var repeatedNewer = catalogs.RefreshHarnessPromptAsync();
+        handler.Pending[3].SetResult(new(HttpStatusCode.OK) { Content = new StringContent("{\"prompt\":\"latest\"}") });
+        await repeatedNewer;
+        handler.Pending[2].SetResult(new(HttpStatusCode.OK) { Content = new StringContent("{\"prompt\":\"stale\"}") });
+        await repeatedOlder;
+        Assert.Equal("latest", view.Harness.PromptText);
+        view.Workspace = "different workspace";
+        Assert.False(view.Harness.HasPromptText);
+    }
+
+    private sealed class InspectorHandler : HttpMessageHandler
+    {
+        public List<TaskCompletionSource<HttpResponseMessage>> Pending { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var completion = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Pending.Add(completion);
+            return completion.Task;
+        }
+    }
+
+    [Fact]
+    public async Task HostDetails_CataloguesHideOldWorkspaceAndIgnoreLateResults()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("Coder", "description", ["ReadFile"], RequiresWorkspace: true, SupportsSkills: true)]);
+        view.SelectedAgent = "Coder";
+        view.Workspace = "first";
+        using var handler = new InspectorHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var catalogs = new WorkspaceCatalogs(new AiServiceClient(http), view, () => Task.CompletedTask);
+        var oldRequest = catalogs.RefreshKnownSkillsAsync();
+        view.Workspace = "second";
+        Assert.Empty(catalogs.KnownSkills);
+        var currentRequest = catalogs.RefreshKnownSkillsAsync();
+        handler.Pending[1].SetResult(new(HttpStatusCode.OK) { Content = new StringContent("{\"skills\":[{\"name\":\"current\",\"description\":\"new\"}]}") });
+        await currentRequest;
+        handler.Pending[0].SetResult(new(HttpStatusCode.OK) { Content = new StringContent("{\"skills\":[{\"name\":\"stale\",\"description\":\"old\"}]}") });
+        await oldRequest;
+        Assert.Equal("current", Assert.Single(catalogs.KnownSkills).Name);
+        view.Workspace = "third";
+        Assert.Empty(catalogs.KnownSkills);
+    }
+
+    [Fact]
+    public async Task HostDetails_InspectionPreservesConversationAndClearsCapturesOnReset()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        view.Message = "sent message";
+        await run.SendAsync();
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var exchange = Assert.Single(run.Projections.Exchanges);
+        view.Cursor.SelectStage(exchange.Id, 1);
+        view.Message = "draft";
+        view.Details.Open(HostDetailSection.Context);
+        var blocks = HostDetailsBuilder.Build(HostDetailSection.Context, view, run);
+        Assert.Contains(blocks, block => block.Title == "Messages sent to the model" && block.Text.Contains("hello"));
+        Assert.DoesNotContain(blocks, block => block.Text == "answer");
+        view.Details.Open(HostDetailSection.Tools);
+        view.Concepts.OpenConcept("tools");
+        Assert.True(view.Details.Active);
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        Assert.Equal("draft", view.Message);
+        Assert.Equal(exchange.Id, view.Cursor.ExchangeId);
+        Assert.Single(handler.ConversationIds);
+        view.Details.Open(HostDetailSection.Context);
+        await run.NewConversationAsync();
+        Assert.Equal(HostDetailSection.Context, view.Details.Section);
+        Assert.DoesNotContain(HostDetailsBuilder.Build(HostDetailSection.Context, view, run), block => block.Text.Contains("hello"));
+    }
+
+    [Fact]
+    public void HostDetails_ReplacesSelectionIndependentlyOfLearnWithoutChangingRunInputs()
+    {
+        var catalog = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(catalog);
+        view.Message = "unsent draft";
+        view.Cursor.SelectStage("exchange", 3);
+        view.Options.SetToolEnabled("test", false);
+        view.Layout.RightPanelCollapsed = true;
+        view.Details.Open(HostDetailSection.SystemPrompt);
+        Assert.False(view.Layout.RightPanelVisible);
+        Assert.True(view.Layout.RightPanelCollapsed);
+        Assert.False(view.Details.Collapsed);
+        view.Details.Open(HostDetailSection.Tools);
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        view.Concepts.ShowConcepts = true;
+        Assert.True(view.Details.Active);
+        Assert.True(view.Layout.RightPanelVisible);
+        view.Details.Width = 420;
+        Assert.Equal(260, view.Layout.RightPanelWidth);
+        view.Layout.RightPanelWidth = 300;
+        Assert.Equal(420, view.Details.Width);
+        view.Details.Collapsed = true;
+        Assert.False(view.Layout.RightPanelCollapsed);
+        Assert.Contains("44px", view.Details.PanelStyle);
+        view.Concepts.OpenConcept("tools");
+        Assert.True(view.Details.Collapsed);
+        view.Details.Open(HostDetailSection.Tools);
+        Assert.False(view.Details.Collapsed);
+        view.Concepts.ShowConcepts = false;
+        Assert.True(view.Details.Active);
+        view.Layout.ToggleRightPanel();
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        Assert.Equal("unsent draft", view.Message);
+        Assert.Equal("exchange", view.Cursor.ExchangeId);
+        Assert.Equal(3, view.Cursor.Sequence);
+        Assert.False(view.Options.IsToolEnabled("test"));
+        view.SelectedAgent = "another agent";
+        view.Vendor = Vendor.Default;
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        view.Details.Close();
+        Assert.False(view.Layout.RightPanelVisible);
+        view.Concepts.ShowConcepts = true;
+        view.Details.Open(HostDetailSection.Persona);
+        view.Details.Close();
+        Assert.True(view.Layout.RightPanelVisible);
+        Assert.False(view.Details.Active);
+        Assert.Contains("0px", view.Details.PanelStyle);
+    }
+
     [Theory]
     [InlineData(nameof(DiagramOptions.ShowModel))]
     [InlineData(nameof(DiagramOptions.ShowLoop))]

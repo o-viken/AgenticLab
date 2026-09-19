@@ -9,14 +9,14 @@
 
     <div class="layer app">
         <ConceptInfoButton Id="client" Title="Learn about the client" />
-        <span class="layer-title">Client</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.Client" /></span>
         <span class="layer-body">Blazor web app · sends the prompt, renders the reply</span>
         <span class="set-by">Set by application</span>
     </div>
 
     <div class="layer app">
         <ConceptInfoButton Id="system-prompt" Title="Learn about the system prompt" />
-        <span class="layer-title">System Prompt</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.SystemPrompt" /></span>
         <span class="layer-body system-prompt-body">@View.Harness.PromptDisplay</span>
         @if (View.Harness.HasPromptText)
         {
@@ -36,11 +36,11 @@
     {
         <div class="layer user instructions">
             <ConceptInfoButton Id="custom-instructions" Title="Learn about custom instructions" />
-            <span class="layer-title">Custom Instructions</span>
+            <span class="layer-title"><HostSection Section="HostDetailSection.Instructions" /></span>
             <ul class="instruction-list">
                 @foreach (var instruction in Run.Catalogs.KnownInstructions)
                 {
-                    <li title="@instruction.Description">✓ @instruction.Name</li>
+                    <li title="@instruction.Description">@(View.Options.IsInstructionEnabled(instruction.Name) ? "[x]" : "[ ]") @instruction.Name</li>
                 }
             </ul>
             <span class="set-by">Set by workspace</span>
@@ -49,7 +49,7 @@
 
     <div class="layer agent">
         <ConceptInfoButton Id="persona" Title="Learn about the agent persona" />
-        <span class="layer-title">Agent Persona</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.Persona" /></span>
         <span class="layer-body">@View.SelectedAgent — @View.Agent.Description</span>
         @if (Run.Projections.PersonaChars > 0)
         {
@@ -63,7 +63,7 @@
     {
     <div class="layer agent tools @Run.Focus.NodeClass("tools")">
         <ConceptInfoButton Id="tools" Title="Learn about tools" />
-        <span class="layer-title">Tools / MCP</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.Tools" Label="Tools / MCP" /></span>
         @if (View.Agent.ToolNames.Count == 0)
         {
             <span class="layer-body">none</span>
@@ -90,14 +90,14 @@
     }
     <div class="layer agent">
         <ConceptInfoButton Id="settings" Title="Learn about settings" />
-        <span class="layer-title">Settings</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.Settings" /></span>
         <span class="layer-body">model: Azure OpenAI · stepping: @View.Options.Mode</span>
         <span class="set-by">Set per agent</span>
     </div>
 
     <div class="layer user">
         <ConceptInfoButton Id="user-prompt" Title="Learn about the user prompt" />
-        <span class="layer-title">User prompt</span>
+        <span class="layer-title"><HostSection Section="HostDetailSection.UserPrompt" /></span>
         <span class="layer-body">@Run.Status.CurrentUserPrompt</span>
         <span class="set-by">Set by user</span>
     </div>

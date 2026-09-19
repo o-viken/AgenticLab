@@ -4,6 +4,49 @@ Part of the [TheSeries architecture notes](../AGENTS.md). How the Blazor flow pa
 
 ## Live flow visualization
 
+**Host inspector.** Enable **Expand agent host** under **View options** to make the anatomy's
+section headings clickable and open one read-only **Details** pane in its own dock beside the flow.
+The compact host stays quiet: no extra prompt/persona/settings rows or inspect buttons, and visible
+tool, catalogue and risk headings remain plain text. The expanded anatomy exposes System prompt,
+Agent persona, Settings, Client, Custom instructions, User prompt and Context, plus enabled catalogue
+and risk sections. Collapsing the host leaves an already-open Details pane and its selection intact.
+Details shows only the part selected in the anatomy, with one title and its content. There is no
+section picker, repeated agent heading or visible ownership/source badge. Contributor rails and
+titles are shared with the anatomy; selection styling is separate from execution activity.
+
+Details and Learn are separate panels that can remain visible together: Details beside the flow,
+Learn on the far right. Each has independent width, scrolling and collapse controls. Details starts
+at 320px; its width, collapse state and section selection last for the page lifetime. Learn retains its
+existing persisted panel layout. The splitters use separate `--details-w` and `--right-w` grid tracks.
+Opening another section replaces the current detail, and switching agent, vendor or workspace keeps
+that section selected while its content updates. Opening a concept reveals only Learn; disabling Learn
+does not affect Details. Closing Details removes only its dock. Collapse retains selection, and clicking
+another anatomy heading expands only Details.
+These actions never change the draft, conversation, execution options, display preset or replay cursor.
+On narrow screens both panels stack separately below the main view; explicit section activation brings
+Details into view. Native buttons support keyboard activation, and Close/Escape inside Details restores
+focus to the invoking heading (or View options when the host has been collapsed).
+Background updates do not move focus.
+
+Content stays limited to the selected part: Settings shows the provider and deployment, not execution
+controls or a duplicate display label; System prompt shows only the host prompt, not the composed
+model request. Persona shows its captured text when available, otherwise the agent description.
+Tools shows captured definitions when available, otherwise configured names and enablement.
+Skills/instructions show their catalogue descriptions and enablement, not unrelated instruction or
+message payloads. User prompt shows the submitted message, not the unsent draft. Context contains the
+captured conversation content, without a statistics summary. Current/captured provenance (including
+the description fallback) remains in each block's hover title; captured content includes exchange,
+agent, vendor, workspace and request turn. Editing and execution controls remain in Controls. No
+additional workspace file reads, model calls or discovery runs are triggered by inspection.
+
+Configuration-specific captures must match the displayed exchange's agent/vendor/workspace to the
+current selections. Replay uses only the causal prefix through the selected stage, never a later
+request or a request from another exchange. User prompt and Context are explicitly run-derived and
+retain their exchange provenance even after configuration changes. Missing/malformed captures show an
+unavailable state, not invented text. Selection changes immediately invalidate old prompt/catalogue
+display, and versioned fetches ignore late successes and failures, including overlapping reloads for
+the same selection. Details holds no extra capture archive; reset and existing eviction release history.
+
 **Discovery overlay.** The Discovery button appears on `/`, not in the `/learn` header or stage
 actions. It opens a native modal dialog without navigating or replacing Flow's view/run state:
 the conversation, draft, settings and Execution replay remain intact. Close, Escape and backdrop

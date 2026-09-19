@@ -224,10 +224,20 @@
     min-height: 0;
     overflow: hidden;
     display: grid;
-    grid-template-columns: var(--left-w, 320px) minmax(0, 1fr) var(--right-w, 0px);
+    grid-template-columns: var(--left-w, 320px) minmax(0, 1fr) var(--details-w, 0px) var(--right-w, 0px);
     gap: 0;
     align-items: stretch;
 }
+
+.details-dock,
+.learn-dock {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.details-dock { grid-column: 3; }
+.learn-dock { grid-column: 4; }
 
 /* The centre column is its own "Main" panel (header + border), matching the side panels' chrome.
    It stacks a main panel (the flow) over the bottom (conversation) panel inside its body. */

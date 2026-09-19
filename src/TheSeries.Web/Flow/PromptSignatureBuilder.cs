@@ -136,7 +136,7 @@ internal static class PromptSignatureBuilder
 
             if (root.TryGetProperty("instructions", out var instructions) && instructions.ValueKind == JsonValueKind.String)
             {
-                persona = AgentModeLength(instructions.GetString());
+                persona = AgentModeText(instructions.GetString()).Length;
             }
 
             if (root.TryGetProperty("tools", out var toolsEl) && toolsEl.ValueKind == JsonValueKind.Array)
@@ -155,12 +155,12 @@ internal static class PromptSignatureBuilder
         return new AnatomySizes(persona, tools);
     }
 
-    /// <summary>The character length of the persona — the content between the instructions' agentMode tags.</summary>
-    private static int AgentModeLength(string? instructions)
+    /// <summary>The persona inside agentMode tags, shared by anatomy counts and the read-only inspector.</summary>
+    internal static string AgentModeText(string? instructions)
     {
         if (string.IsNullOrEmpty(instructions))
         {
-            return 0;
+            return string.Empty;
         }
 
         const string open = "<agentMode>";
@@ -168,13 +168,13 @@ internal static class PromptSignatureBuilder
         var start = instructions.IndexOf(open, StringComparison.OrdinalIgnoreCase);
         if (start < 0)
         {
-            return 0;
+            return string.Empty;
         }
 
         start += open.Length;
         var end = instructions.IndexOf(close, start, StringComparison.OrdinalIgnoreCase);
         var inner = end < 0 ? instructions[start..] : instructions[start..end];
-        return inner.Trim().Length;
+        return inner.Trim();
     }
 
     /// <summary>The character length one tool contributes to the catalogue: name + description + parameters.</summary>

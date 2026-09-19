@@ -9,6 +9,8 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
 {
     private string _promptText = string.Empty;
     private bool _showFullPrompt;
+    private int _promptVersion = -1;
+    private bool _loading;
 
     /// <summary>The merged node's title: the vendor name when selected, otherwise Agent host.</summary>
     public string Label => owner.Vendor == Vendor.Default
@@ -44,9 +46,23 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
         : $"{owner.Roster.VendorName} system prompt: replaces the shared host instructions for this run (persona kept)";
 
     /// <summary>The actual harness (system) prompt text for the selected vendor and agent, fetched from the service.</summary>
-    public string PromptText => _promptText;
+    public string PromptText => _promptVersion == owner.ConfigurationVersion ? _promptText : string.Empty;
 
-    public bool HasPromptText => !string.IsNullOrWhiteSpace(_promptText);
+    public bool HasPromptText => !string.IsNullOrWhiteSpace(PromptText);
+
+    /// <summary>Distinguishes loading and unavailable text from a real fetched prompt.</summary>
+    public string PromptAvailability => _promptVersion != owner.ConfigurationVersion
+        ? "Prompt not loaded for this selection."
+        : _loading ? "Loading host instructions..." : "Host instructions unavailable.";
+
+    /// <summary>Clears old text before fetching the current selection's prompt.</summary>
+    public void BeginPromptLoad()
+    {
+        _promptVersion = owner.ConfigurationVersion;
+        _promptText = string.Empty;
+        _loading = true;
+        notify();
+    }
 
     /// <summary>Whether the anatomy shows the full system prompt text (vs. a short preview).</summary>
     public bool ShowFullPrompt
@@ -78,6 +94,8 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     /// <summary>Replaces the fetched prompt (after the vendor or agent changes), collapsing any expanded full view.</summary>
     public void SetPrompt(string? prompt)
     {
+        _promptVersion = owner.ConfigurationVersion;
+        _loading = false;
         _promptText = prompt ?? string.Empty;
         _showFullPrompt = false;
         notify();

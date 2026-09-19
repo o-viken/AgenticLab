@@ -94,7 +94,7 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
         set { _bottomMaximized = value; notify(); }
     }
 
-    /// <summary>Whether the right (learning) panel is rendered at all (gated by the concept switch).</summary>
+    /// <summary>Whether the independent Learn dock is enabled.</summary>
     public bool RightPanelVisible => rightPanelEnabled();
 
     /// <summary>The main column body's class, carrying the bottom panel's maximized state.</summary>

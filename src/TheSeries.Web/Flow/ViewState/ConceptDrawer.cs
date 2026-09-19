@@ -23,6 +23,10 @@ internal sealed class ConceptDrawer(ConceptCatalog concepts, Action revealRightP
                 _active = null;
                 _filter = string.Empty;
             }
+            else
+            {
+                revealRightPanel();
+            }
 
             notify();
         }

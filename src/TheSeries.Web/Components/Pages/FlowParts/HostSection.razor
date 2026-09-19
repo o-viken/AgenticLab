@@ -1,0 +1,21 @@
+@if (View.Diagram.ExpandHarness)
+{
+<button id="host-section-@Section-@(Label is null ? "default" : "label")" type="button" class="host-section @(View.Details.Active && View.Details.Section == Section ? "selected" : null)"
+        title="Inspect @HostDetailsSelection.Title(Section)" aria-controls="details-content"
+        aria-expanded="@(View.Details.Active && View.Details.Section == Section && !View.Details.Collapsed ? "true" : "false")"
+        @onclick="() => View.Details.Open(Section)" @onclick:stopPropagation="true">
+    <span>@(Label ?? HostDetailsSelection.Title(Section))</span><span class="inspect-icon" aria-hidden="true"><MiniIcon Name="expand" /></span>
+</button>
+}
+else
+{
+    <span>@(Label ?? HostDetailsSelection.Title(Section))</span>
+}
+
+@code {
+    [CascadingParameter] private FlowViewState View { get; set; } = default!;
+    /// <summary>The single detail section this heading selects.</summary>
+    [Parameter] public HostDetailSection Section { get; set; }
+    /// <summary>An optional host-specific label; otherwise the shared section title is used.</summary>
+    [Parameter] public string? Label { get; set; }
+}

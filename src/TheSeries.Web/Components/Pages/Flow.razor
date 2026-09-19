@@ -25,7 +25,7 @@
             <div class="flow-shell">
                 <VendorRail OnSelectVendor="SetVendorAsync" />
 
-                <div class="flow-body" style="@_view.Layout.BodyStyle">
+                <div class="flow-body" style="@(_view.Layout.BodyStyle + _view.Details.PanelStyle)">
                     <SidePanel Side="PanelSide.Left" Title="Controls"
                                Collapsed="_view.Layout.LeftPanelCollapsed"
                                OnToggleCollapse="ToggleLeftPanelAsync"
@@ -61,14 +61,23 @@
                         </div>
                     </section>
 
+                    @if (_view.Details.Active)
+                    {
+                        <div class="details-dock">
+                            <InspectorPanel />
+                        </div>
+                    }
+
                     @if (_view.Layout.RightPanelVisible)
                     {
+                        <div class="learn-dock">
                         <SidePanel Side="PanelSide.Right" Title="Learn"
                                    Collapsed="_view.Layout.RightPanelCollapsed"
                                    OnToggleCollapse="ToggleRightPanelAsync"
                                    OnResize="SetRightWidthAsync">
                             <ConceptPanel />
                         </SidePanel>
+                        </div>
                     }
                 </div>
             </div>

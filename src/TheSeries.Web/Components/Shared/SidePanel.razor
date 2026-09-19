@@ -56,6 +56,9 @@
     /// <summary>The panel's title, shown in its header and (rotated) on its collapsed rail.</summary>
     [Parameter] public string Title { get; set; } = string.Empty;
 
+    /// <summary>An optional independent grid-size variable for another panel on the same edge.</summary>
+    [Parameter] public string? SizeVariable { get; set; }
+
     /// <summary>Whether the panel is collapsed to a thin rail.</summary>
     [Parameter] public bool Collapsed { get; set; }
 
@@ -108,7 +111,7 @@
             _ref ??= DotNetObjectReference.Create(this);
             try
             {
-                await JS.InvokeVoidAsync("theSeriesPanels.initResizer", _handle, _ref, SideClass);
+                await JS.InvokeVoidAsync("theSeriesPanels.initResizer", _handle, _ref, SideClass, SizeVariable);
                 _wired = true;
             }
             catch

@@ -33,6 +33,16 @@ disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` a
 Learn has no Discovery entry. Overlay re-discovery is disabled during the parent chat run, and
 closing cancels only Discovery's stream. See [docs/protocols.md](docs/protocols.md).
 
+Flow has independent Details and Learn docks, visible simultaneously. `InspectorPanel` owns the
+Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transient width, collapse state
+and one host-section selection. Learn keeps the existing `PanelLayout` right-panel state. Both reuse
+`SidePanel`, with a separate `SizeVariable` for Details. Selection is independent of diagram and run
+options; `HostSection` renders clickable headings only while **Expand agent host** is enabled,
+and plain labels in the compact host. An already-open inspector survives collapsing the host.
+`HostDetailsBuilder` projects current configuration separately from causally bounded, attributed
+captures. `ConfigurationVersion` and per-fetch generations prevent asynchronous catalogue/prompt
+responses from publishing data for old selections. See [docs/web-flow-page.md](docs/web-flow-page.md).
+
 ## Documentation map
 
 The detailed design notes live under [docs/](docs) — read the page for the area you are changing and keep it in sync:

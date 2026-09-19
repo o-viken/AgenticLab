@@ -10,7 +10,7 @@ window.theSeriesPanels = (function () {
     const MIN_H = 120;
     const MAX_H = 900;
 
-    function initResizer(handle, dotnetRef, side) {
+    function initResizer(handle, dotnetRef, side, sizeVariable) {
         if (!handle) {
             return;
         }
@@ -21,7 +21,7 @@ window.theSeriesPanels = (function () {
         }
 
         const vertical = side === "bottom";
-        const cssVar = vertical ? "--bottom-h" : side === "left" ? "--left-w" : "--right-w";
+        const cssVar = sizeVariable || (vertical ? "--bottom-h" : side === "left" ? "--left-w" : "--right-w");
         const min = vertical ? MIN_H : MIN_W;
         const max = vertical ? MAX_H : MAX_W;
         const dragClass = vertical ? "resizing-y" : "resizing";

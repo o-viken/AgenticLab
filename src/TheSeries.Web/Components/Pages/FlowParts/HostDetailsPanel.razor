@@ -1,0 +1,23 @@
+@if (View.Details.Section is { } section)
+{
+    var heading = HostDetailsSelection.Title(section);
+    <section class="host-details @HostDetailsSelection.Contributor(section)" aria-labelledby="host-detail-heading">
+        <h2 id="host-detail-heading" tabindex="-1">@heading</h2>
+        @foreach (var block in HostDetailsBuilder.Build(section, View, Run))
+        {
+            <section class="detail-block" title="@block.Source">
+                @if (block.Title != heading)
+                {
+                    <h3>@block.Title</h3>
+                }
+                <pre>@block.Text</pre>
+            </section>
+        }
+    </section>
+}
+
+@code {
+    [CascadingParameter] private FlowViewState View { get; set; } = default!;
+    [CascadingParameter] private FlowRunController Run { get; set; } = default!;
+
+}
