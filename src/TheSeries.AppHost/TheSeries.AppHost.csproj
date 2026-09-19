@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.4" />
+    <ProjectReference Include="..\TheSeries.Bff\TheSeries.Bff.csproj" />
     <ProjectReference Include="..\TheSeries.AiService\TheSeries.AiService.csproj" />
     <ProjectReference Include="..\TheSeries.A2AServer\TheSeries.A2AServer.csproj" />
     <ProjectReference Include="..\TheSeries.Console\TheSeries.Console.csproj" />

@@ -1,0 +1,44 @@
+name: React frontend
+
+on:
+  pull_request:
+    paths:
+      - 'src/TheSeries.React/**'
+      - 'src/TheSeries.Bff/**'
+      - 'src/TheSeries.ServiceDefaults/**'
+      - 'src/TheSeries.AiService/**'
+      - 'tests/TheSeries.Bff.Tests/**'
+      - '.github/workflows/react-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src/TheSeries.React/package-lock.json
+      - run: dotnet test tests/TheSeries.Bff.Tests/TheSeries.Bff.Tests.csproj
+      - run: npm ci
+        working-directory: src/TheSeries.React
+      - run: npm run lint && npm run typecheck && npm test && npm run build
+        working-directory: src/TheSeries.React
+      - run: npx playwright install --with-deps chromium
+        working-directory: src/TheSeries.React
+      - run: npm run test:e2e
+        working-directory: src/TheSeries.React
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: react-browser-results
+          path: src/TheSeries.React/test-results

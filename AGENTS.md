@@ -6,7 +6,8 @@ See [README.md](README.md) for a user-facing overview, prerequisites, and the `P
 
 ## Architecture
 
-Five projects, orchestrated by Aspire (solution: [TheSeries.slnx](TheSeries.slnx)):
+Eight .NET projects plus an optional React frontend, orchestrated by Aspire
+(solution: [TheSeries.slnx](TheSeries.slnx)):
 
 | Project | Role |
 |---------|------|
@@ -14,6 +15,8 @@ Five projects, orchestrated by Aspire (solution: [TheSeries.slnx](TheSeries.slnx
 | [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream`, `POST /chat/control`, `POST /chat/reset`, `GET /agents`, `POST /skills` and `POST /harness`. Hosts the agent catalog. |
 | [src/TheSeries.Console](src/TheSeries.Console/Program.cs) | Interactive console client that calls the AI service via service discovery. |
 | [src/TheSeries.Web](src/TheSeries.Web/Program.cs) | Blazor Server app that visualizes the live data flow (User → Application/Harness → Tools → LLM) by consuming the `/chat/stream` Server-Sent Events. |
+| [src/TheSeries.React](src/TheSeries.React/README.md) | Optional React/TypeScript CSR example: conversation, live flow and real execution controls. Presentation is separate from its API client and run-state hook. |
+| [src/TheSeries.Bff](src/TheSeries.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
 | [src/TheSeries.ServiceDefaults](src/TheSeries.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
 | [src/TheSeries.McpServer](src/TheSeries.McpServer/Program.cs) | Minimal Model Context Protocol (MCP) server exposing a `GetCurrentTime` tool over HTTP. Consumed by the AiService over MCP. |
 | [src/TheSeries.A2AServer](src/TheSeries.A2AServer/Program.cs) | Minimal Agent2Agent (A2A) server hosting **config-declared persona-only agents** (a Research agent and a Poet by default) over the A2A protocol (Microsoft Agent Framework's `AddAIAgent` + `MapA2AJsonRpc`), plus a `GET /agents` discovery endpoint. Called by the AiService's `Orchestrator` agent over A2A. |
@@ -43,6 +46,12 @@ and plain labels in the compact host. An already-open inspector survives collaps
 captures. `ConfigurationVersion` and per-fetch generations prevent asynchronous catalogue/prompt
 responses from publishing data for old selections. See [docs/web-flow-page.md](docs/web-flow-page.md).
 
+React is an opt-in example, not a Blazor replacement. `ReactFrontend:Enabled=true` adds the `react`
+Vite resource and `react-bff`, which forwards five existing AiService routes. In development Vite
+proxies same-origin `/api` calls; the built BFF hosts static assets. `src/api` owns wire contracts and
+SSE parsing, `src/flow` owns the reducer/hook, and components/CSS modules/theme tokens own presentation.
+No npm task runs during normal .NET restore/build. See [docs/react-frontend.md](docs/react-frontend.md).
+
 ## Documentation map
 
 The detailed design notes live under [docs/](docs) — read the page for the area you are changing and keep it in sync:
@@ -51,6 +60,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 |------|--------|
 | [docs/agents.md](docs/agents.md) | Conversation memory, the layered harness + persona prompt, per-vendor harnesses, the agent table, human-in-the-loop questions, per-run tool toggles, per-agent models / `ForceDefaultModel`. |
 | [docs/web-flow-page.md](docs/web-flow-page.md) | The live flow visualization: page shell and panels, perspectives, diagram toggles, conversation surface, captured LLM payloads, prompt signature, the simulated inference / embeddings / network panels, backend-gated stepping, environment & risk view. |
+| [docs/react-frontend.md](docs/react-frontend.md) | Optional CSR React prototype, BFF routes, startup/build/test commands, scope and frontend customization. |
 | [docs/execution-explorer.md](docs/execution-explorer.md) | The Execution dock (replay of a captured run, bounded archives, resource baseline) and chat execution breakpoints. |
 | [docs/learning.md](docs/learning.md) | The in-app Learn panel (concept content) and the standalone guided `/learn` journey. |
 | [docs/workspace.md](docs/workspace.md) | Workspace skills, custom instructions, workspace-defined agents (YAML + markdown conventions, tool aliases) and the workspace-scoped file/terminal tools. |
@@ -66,6 +76,11 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - Test: `dotnet test TheSeries.slnx`. AiService's `FlowExecutionTests` and `ProtocolIntegrationTests` cover agent streaming/history/tool filtering and loopback MCP/A2A round trips without Azure credentials. Protocol tests reference the MCP and A2A server projects and use ephemeral ports with a fake model.
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
+- Optional React (Node 24 LTS): `npm --prefix src/TheSeries.React ci`, then
+  `dotnet run --project src/TheSeries.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
+- React checks: `npm --prefix src/TheSeries.React test` and `npm --prefix src/TheSeries.React run build`;
+  BFF checks: `dotnet test tests/TheSeries.Bff.Tests/TheSeries.Bff.Tests.csproj`. Browser commands are in
+  [docs/react-frontend.md](docs/react-frontend.md#verification).
 
 ## Configuration
 

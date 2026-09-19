@@ -27,6 +27,25 @@ hosts an `AgentCatalog` of stateless `ChatClientAgent`s (Azure OpenAI), each com
 agents. The Blazor web UI calls `POST /chat/stream`, which streams the real execution steps (LLM
 round-trips and tool calls) as Server-Sent Events so the data flow can be animated live.
 
+### Optional React frontend
+
+The [React Flow Workspace](docs/react-frontend.md) is a client-rendered React/TypeScript example
+alongside Blazor, designed to be customized or used as a starting point for another look and feel.
+It has a conversation-led layout, live agent/tool activity and real Auto/Manual stepping controls.
+A small ASP.NET Core BFF forwards the same AiService APIs; no model credentials reach the browser.
+
+With Node 24 LTS installed, opt in explicitly:
+
+```sh
+npm --prefix src/TheSeries.React ci
+dotnet run --project src/TheSeries.AppHost -- --ReactFrontend:Enabled=true
+```
+
+Open **react** in the Aspire dashboard. The existing **web** Blazor resource remains unchanged.
+Normal .NET builds and startup do not need Node. The prototype starts with non-workspace agents;
+Learn, anatomy, replay, discovery and workspace tooling remain in Blazor. See the
+[frontend guide](docs/react-frontend.md) for standalone builds and customization.
+
 ### Corporate workbench
 
 Every harness in the Web app uses the [Corporate Workbench design](design/mockups/v8-corporate-workbench.html):

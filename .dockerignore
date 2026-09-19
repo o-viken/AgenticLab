@@ -5,6 +5,12 @@
 **/bin
 **/obj
 **/TestResults
+**/node_modules
+**/dist
+**/playwright-report
+**/test-results
+**/.env
+**/.env.*
 artifacts
 deploy
 README.md

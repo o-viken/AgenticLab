@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // A tiny Model Context Protocol server exposing the local time, consumed by the AI service over MCP.
@@ -37,5 +39,25 @@ builder.AddProject<Projects.TheSeries_Web>("web")
     .WithReference(aiService)
     .WaitFor(aiService)
     .WithExternalHttpEndpoints();
+
+if (builder.Configuration.GetValue<bool>("ReactFrontend:Enabled"))
+{
+    var bff = builder.AddProject<Projects.TheSeries_Bff>("react-bff")
+        .WithReference(aiService)
+        .WaitFor(aiService)
+        .WithHttpHealthCheck("/health")
+        .WithExternalHttpEndpoints();
+
+    var react = builder.AddViteApp("react", "../TheSeries.React")
+        .WithExternalHttpEndpoints();
+
+    if (builder.ExecutionContext.IsRunMode)
+    {
+        react.WithEnvironment("BFF_URL", bff.GetEndpoint("http"))
+            .WaitFor(bff);
+    }
+
+    bff.PublishWithContainerFiles(react, "wwwroot");
+}
 
 builder.Build().Run();
