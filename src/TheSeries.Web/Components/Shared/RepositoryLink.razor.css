@@ -1,0 +1,13 @@
+.repository-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+}
+
+.repository-link:hover { background: #e8f1eb; }
+.repository-link:focus-visible { outline: 2px solid #315f9e; outline-offset: 4px; }
+.repository-link img { display: block; }

@@ -33,6 +33,8 @@ The standalone [Learn page](../src/TheSeries.Web/Components/Pages/Learn.razor) a
 but does not replace, the contextual Learn panel. See [README.md](../README.md#agent-guide) for the
 user-facing journey and its implementation-status caveats. Flow and Discovery link to it in a new
 tab to preserve the originating page's live run and page-scoped state.
+Learn's header also includes the shared GitHub repository icon link, which opens the source in a
+new tab without leaving the current lesson.
 Learn's header and stage actions do not link to Discovery. Open Discovery from the live Flow page's
 header instead; it appears as an overlay that preserves the current conversation. Direct `/discovery`
 visits still work.

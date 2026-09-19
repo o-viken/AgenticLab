@@ -67,8 +67,12 @@ is implemented in the Web UI; see [README.md](../README.md#corporate-workbench) 
 All harnesses share the Default off-white/forest-green/charcoal palette, with Bahnschrift UI text and Cambria/Georgia product
 headings. Logos distinguish vendors; vendor-driven agent selection and harness prompts remain unchanged. Flow uses flush,
 divider-led panels, 4px controls, an **Agentic AI** header and a **Learn** checkbox (formerly **Show concept info**).
-Flow, Learn and Discovery use the guide's stacked title/subtitle and plain navigation links. Flow's neutral
-header spans the full window above `.flow-shell`, which lays out the vendor rail beside `.flow-body`.
+Flow, Learn and Discovery use the guide's stacked title/subtitle and plain navigation links. Their
+headers also share a GitHub icon link to `https://github.com/o-viken/the-series`, opening in a new
+tab with an accessible label and tooltip. `RepositoryLink` owns the control and its scoped styles;
+the bundled Octicons mark and license live under Web's `wwwroot`.
+Flow's neutral header spans the full window above `.flow-shell`, which lays out the vendor rail
+beside `.flow-body`.
 The rail starts below the header, stays visible on desktop, and becomes a horizontal strip below the header
 on narrow screens. These shell details supersede the earlier full-height rail description below.
 New-session side widths are 276px/260px; persisted widths
