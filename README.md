@@ -9,6 +9,24 @@ The product and local projects are now named **Agentic Lab** and `AgenticLab.*`.
 and published `ghcr.io/o-viken/the-series-*` images retain their existing addresses for now.
 The AppHost secret-store ID is unchanged, so existing local Azure OpenAI credentials still apply.
 
+## License and attribution
+
+Agentic Lab was originally conceived and created by [o-viken](https://github.com/o-viken).
+Except where otherwise noted, the project's code and documentation are licensed under the
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for the project attribution.
+
+You may use, modify and redistribute the project, including commercially and in closed-source
+products, subject to the license. When redistributing, include the license, retain applicable
+notices and attribution, and mark modified files as required by Section 4. A visible credit in
+your application's UI is welcome but not required. This license covers the work, not ownership
+of the underlying ideas.
+
+Third-party dependencies and assets retain their own licenses and notices, including the
+[Web icon license](src/AgenticLab.Web/wwwroot/icons/lucide/LICENSE) and
+[React asset licenses](src/AgenticLab.React/public/licenses/).
+The container images built from this repository's Dockerfile include the project license and
+attribution at `/app/LICENSE` and `/app/NOTICE`.
+
 ## How it works
 
 ```mermaid

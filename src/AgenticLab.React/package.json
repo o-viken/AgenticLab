@@ -2,6 +2,7 @@
   "name": "agentic-lab-react",
   "private": true,
   "version": "0.0.0",
+  "license": "Apache-2.0",
   "engines": { "node": ">=24 <25" },
   "type": "module",
   "scripts": {

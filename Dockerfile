@@ -35,6 +35,7 @@ RUN dotnet publish src/AgenticLab.A2AServer/AgenticLab.A2AServer.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+COPY --chmod=644 LICENSE NOTICE ./
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_EnableDiagnostics=0
 EXPOSE 8080
