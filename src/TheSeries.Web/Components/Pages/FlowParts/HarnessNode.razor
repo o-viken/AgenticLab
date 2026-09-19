@@ -1,7 +1,3 @@
-@* The compact merged Client + AiService (Harness/Application) node: its icon (brand logo or the
-   Default emoji), label/subtitle, optional workspace path and environment badge, and — in Expert —
-   the Tools box and (for skill-using agents) the Skills catalogue. *@
-
 <div class="node harness @Run.Focus.NodeClass("harness")">
     <ConceptInfoButton Id="harness" Title="Learn about the agent host" />
     <span class="icon">
@@ -25,7 +21,7 @@
         <span class="env-badge @View.Agent.EnvBadgeClass" title="@View.Agent.EnvTitle">@View.Agent.EnvLabel</span>
     }
     <EnvironmentPanel />
-    @if (View.Perspective == Perspective.Expert)
+    @if (View.Diagram.ShowTools)
     {
         <div class="tools node-inner @Run.Focus.NodeClass("tools")">
             <ConceptInfoButton Id="tools" Title="Learn about tools" />
@@ -44,70 +40,8 @@
                 </div>
             }
         </div>
-        @if (View.Agent.SupportsSkills)
-        {
-            <div class="skills node-inner">
-                <ConceptInfoButton Id="skills" Title="Learn about skills" />
-                <span class="title">Skills</span>
-                @if (Run.Catalogs.KnownSkills.Count == 0)
-                {
-                    <span class="subtitle">@(string.IsNullOrWhiteSpace(View.Workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
-                }
-                else
-                {
-                    <div class="skill-chips">
-                        @foreach (var skill in Run.Catalogs.KnownSkills)
-                        {
-                            <span class="skill-chip @(Run.Catalogs.IsSkillLoaded(skill.Name) ? "loaded" : "")"
-                                  title="@skill.Description">
-                                @skill.Name
-                            </span>
-                        }
-                    </div>
-                }
-            </div>
-        }
-        @if (View.Agent.SupportsMcp)
-        {
-            <div class="mcp node-inner">
-                <ConceptInfoButton Id="mcp" Title="Learn about MCP" />
-                <span class="title">MCP servers</span>
-                @if (Run.Catalogs.KnownMcp.Count == 0)
-                {
-                    <span class="subtitle">no MCP server connected</span>
-                }
-                else
-                {
-                    <div class="skill-chips">
-                        @foreach (var tool in Run.Catalogs.KnownMcp)
-                        {
-                            <span class="skill-chip" title="@tool.Description">@tool.Name</span>
-                        }
-                    </div>
-                }
-            </div>
-        }
-        @if (View.Agent.SupportsA2A)
-        {
-            <div class="a2a node-inner">
-                <ConceptInfoButton Id="a2a" Title="Learn about A2A" />
-                <span class="title">A2A agents</span>
-                @if (Run.Catalogs.KnownA2A.Count == 0)
-                {
-                    <span class="subtitle">no A2A agent connected</span>
-                }
-                else
-                {
-                    <div class="skill-chips">
-                        @foreach (var agent in Run.Catalogs.KnownA2A)
-                        {
-                            <span class="skill-chip" title="@agent.Description">@agent.Name</span>
-                        }
-                    </div>
-                }
-            </div>
-        }
     }
+    <HostCatalogues />
 </div>
 
 @code {

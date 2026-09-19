@@ -1,25 +1,16 @@
-@* The live data-flow diagram: User → merged Harness/Application node → LLM, with directional send/recv
-   arrows, the loop badge, the optional boundary overlays and the per-perspective view controls. The
-   merged node and its anatomy live in the HarnessNode / HarnessAnatomy sub-components. *@
-
-<section class="diagram @View.PerspectiveClass">
+<section class="diagram @View.DiagramClass">
     <div class="diagram-controls">
         <div class="diagram-control detail-level">
-            <label>Detail level</label>
-            <div class="detail-hint"><span>less</span><span class="detail-track"></span><span>more</span></div>
-            <div class="mode-toggle perspective-toggle ladder">
-                <button type="button" class="@(View.Perspective == Perspective.Simple ? "selected" : "")"
-                        @onclick="@(() => View.Perspective = Perspective.Simple)"
-                        title="User ↔ Service (the model is hidden inside)">Basic</button>
-                <button type="button" class="@(View.Perspective == Perspective.NonTechnical ? "selected" : "")"
-                        @onclick="@(() => View.Perspective = Perspective.NonTechnical)"
-                        title="User → Agent host → Model">Non-technical</button>
-                <button type="button" class="@(View.Perspective == Perspective.Technical ? "selected" : "")"
-                        @onclick="@(() => View.Perspective = Perspective.Technical)"
-                        title="User → Agent host (Client + AiService) → Model">Technical</button>
-                <button type="button" class="@(View.Perspective == Perspective.Expert ? "selected" : "")"
-                        @onclick="@(() => View.Perspective = Perspective.Expert)"
-                        title="Agent host, tools and execution steps">Expert</button>
+                <label>View preset <span class="preset-status" role="status">@(View.Diagram.Preset is null ? "Custom" : "")</span></label>
+                <div class="mode-toggle preset-toggle" role="group" aria-label="View preset">
+                <button type="button" class="@(View.Diagram.Preset == DiagramPreset.Basic ? "selected" : "")"
+                        aria-pressed="@(View.Diagram.Preset == DiagramPreset.Basic ? "true" : "false")"
+                    @onclick="@(() => View.Diagram.ApplyPreset(DiagramPreset.Basic))"
+                    title="Reset display options to User and Agent host">Basic</button>
+                <button type="button" class="@(View.Diagram.Preset == DiagramPreset.Technical ? "selected" : "")"
+                        aria-pressed="@(View.Diagram.Preset == DiagramPreset.Technical ? "true" : "false")"
+                    @onclick="@(() => View.Diagram.ApplyPreset(DiagramPreset.Technical))"
+                    title="Reset display options to Model, loop counter, technical labels and Tools">Technical</button>
             </div>
         </div>
 
@@ -30,35 +21,46 @@
             </div>
         </div>
 
-        @if (View.Perspective == Perspective.Expert)
-        {
-            <div class="diagram-control boundaries-control">
-                <label>Boundaries</label>
+            <div class="diagram-control">
+                <label>Details</label>
                 <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowAgentBoundary" /> Agent</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowModel" /> Model</label>
+                    <label class="check" title="Shown on the model connection"><input type="checkbox" @bind="View.Diagram.ShowLoop" disabled="@(!View.Diagram.ShowModel)" /> Loop counter</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowTechnicalLabels" /> Technical labels</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowTools" /> Tools</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowSkills" /> Skills</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowMcp" /> MCP servers</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowA2A" /> A2A agents</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand agent host</label>
                 </div>
             </div>
 
-            <div class="diagram-control boundaries-control">
-                <label>Anatomy</label>
+            <div class="diagram-control">
+                <label>Boundaries</label>
                 <div class="boundary-toggles">
-                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand agent host</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowAgentBoundary" /> Agent</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowHarnessBoundary" /> Agent host</label>
+                </div>
+            </div>
+
+            <div class="diagram-control">
+                <label>Model internals</label>
+                <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowPromptSignature" /> Prompt signature</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowInferenceView" /> Inference</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEmbeddingsView" /> Embeddings</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowNetworkView" /> Neural network</label>
                 </div>
             </div>
-        }
     </div>
 
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowHarnessBoundary)
+    @if (View.Diagram.ShowHarnessBoundary)
     {
         <div class="boundary harness-b">
             <span class="boundary-label">Agent host</span>
         </div>
     }
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowAgentBoundary)
+    @if (View.Diagram.ShowAgentBoundary)
     {
         <div class="boundary agent-b">
             <span class="boundary-label">Agent = Agent host + Model</span>
@@ -91,7 +93,7 @@
     </div>
 
     <div class="column center">
-        @if (View.Perspective == Perspective.Expert && View.Diagram.ExpandHarness)
+        @if (View.Diagram.ExpandHarness)
         {
             <HarnessAnatomy />
         }
@@ -100,8 +102,8 @@
             <HarnessNode />
         }
 
-        @if (View.Perspective == Perspective.Expert && Run.Focus.ActiveResourceInfo is { } resource
-            && !(resource.Key == "a2a" && Run.Replay.DisplayA2A.ActiveAgent is not null))
+        @if (View.Diagram.ShowTools && Run.Focus.ActiveResourceInfo is { } resource
+            && !(resource.Key == "a2a" && View.Diagram.ShowA2A && Run.Replay.DisplayA2A.ActiveAgent is not null))
         {
             <div class="connector vertical active"></div>
             <div class="resources">
@@ -126,10 +128,10 @@
         }
     </div>
 
-    @if (View.Perspective != Perspective.Simple)
+    @if (View.Diagram.ShowModel)
     {
         <div class="connector-group loop">
-            @if (View.Perspective != Perspective.NonTechnical)
+            @if (View.Diagram.ShowLoop)
             {
                 <div class="loop-badge @(Run.Focus.LoopActive ? "active" : "")" title="Model round trips">
                     <span class="loop-icon" aria-hidden="true">&#8635;</span>
@@ -158,7 +160,7 @@
                 {
                     <span class="env-badge env-cloud" title="A model hosted by a cloud provider, outside your environment">☁️ Cloud service</span>
                 }
-                @if (View.Concepts.ShowConcepts && View.Perspective == Perspective.Expert)
+                @if (View.Concepts.ShowConcepts && View.Diagram.ShowMcp)
                 {
                     <button type="button" class="concept-mcp" title="Learn about MCP"
                             @onclick="@(() => View.Concepts.OpenConcept("mcp"))" @onclick:stopPropagation="true">What is MCP?</button>
@@ -167,35 +169,35 @@
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && Run.Replay.DisplayA2A.Agents.Count > 0)
+    @if (View.Diagram.ShowA2A && Run.Replay.DisplayA2A.Agents.Count > 0)
     {
         <div class="a2a-row">
             <A2AAgents />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowPromptSignature)
+    @if (View.Diagram.ShowPromptSignature)
     {
         <div class="signature-row">
             <PromptSignature />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowInferenceView)
+    @if (View.Diagram.ShowInferenceView)
     {
         <div class="inference-row">
             <Inference />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowEmbeddingsView)
+    @if (View.Diagram.ShowEmbeddingsView)
     {
         <div class="embeddings-row">
             <Embeddings />
         </div>
     }
 
-    @if (View.Perspective == Perspective.Expert && View.Diagram.ShowNetworkView)
+    @if (View.Diagram.ShowNetworkView)
     {
         <div class="network-row">
             <Network />

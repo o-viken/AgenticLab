@@ -16,7 +16,7 @@ request → tool-call → result → response loop drawn in the diagram.
 
 Selecting the **Gemini** logo chooses its representative harness while keeping the shared
 workbench colors. It labels the
-LLM node *Gemini 2.5 Pro (Google)* in the non-Expert perspectives to mimic that the product
-runs on its own model. The real backend is always **Azure OpenAI** — no Google model is
+Model node *Gemini 2.5 Pro (Google) (simulated)* when **Technical labels** is off.
+Turning that option on shows the actual deployment. The real backend is always **Azure OpenAI** — no Google model is
 called. The vendor offers a single **chat** mode backed by the `ChatAgent` agent (which answers
 from its own knowledge, with no tools).

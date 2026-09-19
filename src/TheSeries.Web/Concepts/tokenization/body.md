@@ -31,7 +31,7 @@ predicting a next token from a ranked list of candidates.
 
 ## In this application (the-series)
 
-Turning on **Inference** (an Expert-perspective diagram toggle) shows a panel under the flow
+Turning on **Inference** (a display option) shows a panel under the flow
 diagram that **simulates** what happens inside the LLM node. Step ① splits the latest user
 message into word-piece chips and shows a whole-prompt token estimate (≈ characters / 4). Step
 ② replays the agent's final answer as **generated** tokens, revealing them left-to-right; hover

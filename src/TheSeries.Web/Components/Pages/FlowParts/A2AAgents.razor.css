@@ -1,4 +1,4 @@
-/* The remote A2A agent row rendered below the primary agent row in the Expert flow: one harness/model
+/* The remote A2A agent row rendered below the primary agent row when A2A agents is enabled: one harness/model
    composition per discovered remote agent, the shared A2A server region and the observed delegation
    wires. Reuses the Flow tokens; the diagram grid places its .a2a-row wrapper. */
 .a2a-flow { position: relative; min-width: 0; }

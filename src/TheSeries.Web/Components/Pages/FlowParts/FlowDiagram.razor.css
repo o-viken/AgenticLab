@@ -49,7 +49,7 @@
     margin-top: 1.5rem;
 }
 
-/* View controls (Perspective + Boundaries) live on the diagram they affect,
+/* View controls (presets and display options) live on the diagram they affect,
    as a left-aligned row above the nodes (full grid width, first row). */
 .diagram ::deep .diagram-controls {
     grid-column: 1 / -1;
@@ -83,44 +83,26 @@
     color: var(--node-subtitle);
 }
 
-.diagram ::deep .perspective-toggle button {
+.diagram ::deep .preset-toggle button {
     padding: .55rem .8rem;
     font-size: .85rem;
 }
 
-/* Sketch A: the detail-level "complexity ladder". A continuous low→high-detail track holding
-   the four levels, a gradient hint strip above it and a one-line sublabel below. */
-.diagram ::deep .detail-level {
-    gap: .35rem;
-}
-
-.diagram ::deep .detail-hint {
-    display: none;
-    align-items: center;
-    gap: .4rem;
-    font-size: .62rem;
-    text-transform: uppercase;
-    letter-spacing: .06em;
+.diagram ::deep .preset-status {
+    display: inline-block;
+    min-width: 4rem;
+    margin-left: .4rem;
     color: var(--node-subtitle);
 }
 
-.diagram ::deep .detail-hint .detail-track {
-    flex: 1;
-    height: 3px;
-    border-radius: 3px;
-    background: linear-gradient(to right,
-        color-mix(in srgb, var(--link-accent) 18%, transparent),
-        var(--link-accent));
-}
-
-.diagram ::deep .perspective-toggle.ladder {
+.diagram ::deep .preset-toggle {
     background: var(--surface);
     border-radius: 4px;
     padding: 0;
     flex-wrap: wrap;
 }
 
-.diagram ::deep .perspective-toggle.ladder button {
+.diagram ::deep .preset-toggle button {
     background: transparent;
     border: none;
     flex: 1;
@@ -129,20 +111,10 @@
     transition: background .18s ease, color .18s ease;
 }
 
-.diagram ::deep .perspective-toggle.ladder button.selected {
+.diagram ::deep .preset-toggle button.selected {
     background: var(--surface-2);
     color: var(--accent-soft);
     box-shadow: inset 0 -2px var(--accent);
-}
-
-/* The Expert-only Boundaries block animates in when the ladder reaches Expert. */
-.diagram ::deep .boundaries-control {
-    animation: detail-fade-in .22s ease both;
-}
-
-@keyframes detail-fade-in {
-    from { opacity: 0; transform: translateY(-3px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Boundary toggles (inside the diagram controls). */
@@ -168,7 +140,12 @@
     accent-color: var(--link-accent);
 }
 
-/* Explicit column placement: User → [merged Client+AiService node] → LLM (same for every perspective). */
+.diagram ::deep .boundary-toggles .check:has(input:disabled) {
+    opacity: .55;
+    cursor: default;
+}
+
+/* Explicit column placement: User → [merged Client+AiService node] → LLM (independent of presets). */
 .diagram > .node.user { grid-column: 1; grid-row: 2; }
 .diagram > .connector-group.user-node { grid-column: 2; grid-row: 2; }
 .diagram > .column.center { grid-column: 3; grid-row: 2; }

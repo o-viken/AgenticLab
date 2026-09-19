@@ -401,7 +401,7 @@
    ============================================================ */
 
 /* Auto/Manual & boundary segmented toggles. Rendered inside FlowControls (stepping) and
-   FlowDiagram (perspective/boundaries), so the base lives here and reaches them via ::deep. */
+   FlowDiagram (presets/display options), so the base lives here and reaches them via ::deep. */
 .flow-app ::deep .mode-toggle {
     display: inline-flex;
     border: 1px solid var(--border);

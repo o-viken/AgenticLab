@@ -17,4 +17,4 @@ The **Client** box is an **application** layer (red) — set by the application,
 agent. Here the client is the **Blazor web app** you're looking at: it posts your message
 to the AI service and streams the reply back as the flow animates. A console client and an
 IDE could talk to the very same agent service. In the diagram the client is drawn merged
-with the AI service into a single node (titled *Harness* in the Expert view).
+with the AI service into a single *Agent host* node (or the selected vendor's name).

@@ -2,7 +2,7 @@
 
 /// <summary>
 /// The flow page's <em>view</em> state root: the handful of top-level selections every part of the page
-/// keys off (message, agent, workspace, vendor, perspective, active tab) plus the feature-scoped
+/// keys off (message, agent, workspace, vendor, active tab) plus the feature-scoped
 /// collaborators that hold the rest — <see cref="Layout"/> (dockable panels), <see cref="Concepts"/>
 /// (the Learn UI), <see cref="Options"/> (per-run stepping/breakpoint/toggle options),
 /// <see cref="WorkspacePrefs"/> (persisted workspace preferences), <see cref="Diagram"/> (diagram
@@ -18,7 +18,6 @@ internal sealed class FlowViewState
     private string? _selectedAgent;
     private string _workspace = string.Empty;
     private ControlsTab _activeControlsTab = ControlsTab.Chat;
-    private Perspective _perspective = Perspective.Simple;
     private Vendor _vendor = Vendor.ChatGpt;
 
     public FlowViewState(ConceptCatalog concepts)
@@ -93,21 +92,8 @@ internal sealed class FlowViewState
         set { _activeControlsTab = value; Notify(); }
     }
 
-    /// <summary>The level of detail shown in the diagram.</summary>
-    public Perspective Perspective
-    {
-        get => _perspective;
-        set { _perspective = value; Notify(); }
-    }
-
-    /// <summary>The CSS class applied to the diagram so the grid layout matches the selected perspective.</summary>
-    public string PerspectiveClass => _perspective switch
-    {
-        Perspective.Simple => "p-simple",
-        Perspective.NonTechnical => "p-nontech",
-        Perspective.Technical => "p-mid",
-        _ => "p-full",
-    };
+    /// <summary>Layout follows visible nodes, not the last preset applied.</summary>
+    public string DiagramClass => Diagram.ShowModel ? "p-full" : "p-simple";
 
     /// <summary>The currently selected vendor/brand (persisted by the page in localStorage).</summary>
     public Vendor Vendor

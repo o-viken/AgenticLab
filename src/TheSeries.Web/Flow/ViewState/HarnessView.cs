@@ -2,7 +2,7 @@ namespace TheSeries.Web.Flow;
 
 /// <summary>
 /// How the merged Client + AiService ("Agent host") node and the Model node present themselves
-/// for the current vendor and perspective — their labels and the active system (harness) prompt fetched
+/// for the current vendor and display options — their labels and the active system (harness) prompt fetched
 /// from the service, shown in the anatomy's System Prompt box as a preview or the full text.
 /// </summary>
 internal sealed class HarnessView(FlowViewState owner, Action notify)
@@ -15,28 +15,20 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
         ? "Agent host"
         : owner.Roster.VendorName;
 
-    /// <summary>The merged node's subtitle: Non-technical states the grouping plainly; Technical/Expert name the agent.</summary>
-    public string Subtitle => owner.Perspective switch
-    {
-        Perspective.Simple => "Agent service",
-        Perspective.NonTechnical => "Agent host · Client + AiService",
-        Perspective.Technical => $"Agent host · Client + AiService · {owner.SelectedAgent ?? "Agent"}",
-        _ => $"Agent host · AiService · {owner.SelectedAgent ?? "Agent"}",
-    };
+    /// <summary>Technical labels expose the implementation and selected agent.</summary>
+    public string Subtitle => owner.Diagram.ShowTechnicalLabels
+        ? $"Agent host · Client + AiService · {owner.SelectedAgent ?? "Agent"}"
+        : "Agent service";
 
-    /// <summary>
-    /// The LLM node's provider/model label. The Default vendor and the Expert perspective show the real Azure
-    /// OpenAI deployment; a brand vendor's other perspectives show its simulated provider label to mimic that
-    /// the product runs on its own model, even though the backend is always Azure OpenAI.
-    /// </summary>
+    /// <summary>Technical labels expose the actual deployment; branded overview labels are explicitly simulated.</summary>
     public string LlmModelLabel
     {
         get
         {
             var simulated = owner.Roster.CurrentVendorInfo?.ModelLabel ?? string.Empty;
-            if (owner.Vendor != Vendor.Default && owner.Perspective != Perspective.Expert && simulated.Length > 0)
+            if (owner.Vendor != Vendor.Default && !owner.Diagram.ShowTechnicalLabels && simulated.Length > 0)
             {
-                return simulated;
+                return $"{simulated} (simulated)";
             }
 
             var deployment = owner.Agent.Info?.ModelId;

@@ -16,6 +16,78 @@ namespace TheSeries.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Theory]
+    [InlineData(nameof(DiagramOptions.ShowModel))]
+    [InlineData(nameof(DiagramOptions.ShowLoop))]
+    [InlineData(nameof(DiagramOptions.ShowTechnicalLabels))]
+    [InlineData(nameof(DiagramOptions.ShowTools))]
+    [InlineData(nameof(DiagramOptions.ShowSkills))]
+    [InlineData(nameof(DiagramOptions.ShowMcp))]
+    [InlineData(nameof(DiagramOptions.ShowA2A))]
+    [InlineData(nameof(DiagramOptions.ShowHarnessBoundary))]
+    [InlineData(nameof(DiagramOptions.ShowAgentBoundary))]
+    [InlineData(nameof(DiagramOptions.ShowEnvironment))]
+    [InlineData(nameof(DiagramOptions.ExpandHarness))]
+    [InlineData(nameof(DiagramOptions.ShowPromptSignature))]
+    [InlineData(nameof(DiagramOptions.ShowInferenceView))]
+    [InlineData(nameof(DiagramOptions.ShowEmbeddingsView))]
+    [InlineData(nameof(DiagramOptions.ShowNetworkView))]
+    public void DiagramPresets_EveryDisplayOptionParticipatesInMatchingAndReset(string optionName)
+    {
+        var option = typeof(DiagramOptions).GetProperty(optionName)!;
+        foreach (var preset in Enum.GetValues<DiagramPreset>())
+        {
+            var diagram = new DiagramOptions(() => { });
+            diagram.ApplyPreset(preset);
+            var original = (bool)option.GetValue(diagram)!;
+            option.SetValue(diagram, !original);
+            Assert.Null(diagram.Preset);
+            option.SetValue(diagram, original);
+            Assert.Equal(preset, diagram.Preset);
+            option.SetValue(diagram, !original);
+            diagram.ApplyPreset(preset);
+            Assert.Equal(original, option.GetValue(diagram));
+            Assert.Equal(preset, diagram.Preset);
+        }
+    }
+
+    [Fact]
+    public void DiagramPresets_ApplyAtomicallyAndRecognizeCustomOptions()
+    {
+        var notifications = 0;
+        var diagram = new DiagramOptions(() => notifications++);
+        Assert.Equal(DiagramPreset.Basic, diagram.Preset);
+        diagram.ApplyPreset(DiagramPreset.Technical);
+        Assert.Equal(1, notifications);
+        Assert.True(diagram.ShowModel);
+        Assert.True(diagram.ShowLoop);
+        Assert.True(diagram.ShowTechnicalLabels);
+        Assert.True(diagram.ShowTools);
+        Assert.Equal(DiagramPreset.Technical, diagram.Preset);
+        diagram.ShowTools = false;
+        Assert.Null(diagram.Preset);
+        diagram.ShowTools = true;
+        Assert.Equal(DiagramPreset.Technical, diagram.Preset);
+        diagram.ShowModel = false;
+        Assert.True(diagram.ShowLoop);
+        Assert.Null(diagram.Preset);
+        diagram.ShowModel = true;
+        Assert.Equal(DiagramPreset.Technical, diagram.Preset);
+        diagram.ShowSkills = diagram.ShowMcp = diagram.ShowA2A = true;
+        diagram.ShowHarnessBoundary = diagram.ShowAgentBoundary = diagram.ShowEnvironment = true;
+        diagram.ExpandHarness = diagram.ShowPromptSignature = diagram.ShowInferenceView = true;
+        diagram.ShowEmbeddingsView = diagram.ShowNetworkView = true;
+        diagram.SelectToken("context");
+        diagram.PromptSignatureDelta = true;
+        var beforeReset = notifications;
+        diagram.ApplyPreset(DiagramPreset.Basic);
+        Assert.Equal(beforeReset + 1, notifications);
+        Assert.Equal(DiagramPreset.Basic, diagram.Preset);
+        Assert.False(diagram.ShowTools);
+        Assert.Equal("context", diagram.SelectedToken);
+        Assert.True(diagram.PromptSignatureDelta);
+    }
+
     /// <summary>Opening Discovery is a transient layout change, not a new conversation or replay selection.</summary>
     [Fact]
     public async Task DiscoveryOverlay_PreservesConversationDraftAndReplay()
@@ -40,6 +112,18 @@ public sealed class ExecutionReplayTests
         view.Workspace = "test workspace";
         var conversationId = Assert.Single(handler.ConversationIds);
         var selectedStage = run.Replay.SelectedStage;
+        view.Options.SetToolEnabled("test-tool", false);
+        view.Options.SetSkillEnabled("test-skill", false);
+        view.Options.SetInstructionEnabled("test-instruction", true);
+        view.Options.SetBreakpoint("before-tool", true);
+        view.Diagram.ApplyPreset(DiagramPreset.Technical);
+        view.Diagram.ShowTools = true;
+        view.Diagram.ExpandHarness = true;
+        view.Diagram.ApplyPreset(DiagramPreset.Basic);
+        Assert.False(view.Options.IsToolEnabled("test-tool"));
+        Assert.False(view.Options.IsSkillEnabled("test-skill"));
+        Assert.True(view.Options.IsInstructionEnabled("test-instruction"));
+        Assert.True(view.Options.IsBreakpointEnabled("before-tool"));
         view.Layout.DiscoveryOpen = true;
         Assert.True(view.Layout.DiscoveryOpen);
         view.Layout.DiscoveryOpen = false;

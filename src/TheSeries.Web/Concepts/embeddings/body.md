@@ -29,7 +29,7 @@ Seeing tokens as vectors makes the leap from language to numbers concrete, and t
 
 ## In this application (the-series)
 
-Turning on **Embeddings** (an Expert-perspective diagram toggle) shows a panel under the flow diagram with
+Turning on **Embeddings** (a display option) shows a panel under the flow diagram with
 two steps. Step ① turns each prompt token into a small fake embedding vector, drawn as a red↔blue heatmap
 strip; clicking a token row (or a point on the map) **pins** it and shows its actual numbers — each of the
 vector's components plus its 2-D coordinates. Step ② projects those vectors down to a 2-D **meaning map**

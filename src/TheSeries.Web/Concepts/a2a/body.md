@@ -41,7 +41,7 @@ sends the question to the named agent over the A2A protocol and relays the answe
 
 The roster is **discovered**, not hard-coded: the Orchestrator asks the A2A server which agents it hosts
 and builds a client for each, so adding a specialist to the server's configuration makes it available for
-delegation with no code change. In Expert Flow, selecting the Orchestrator shows each remote agent as
+delegation with no code change. With **A2A agents** enabled in Flow, selecting the Orchestrator shows each remote agent as
 its own **harness + model** composition. Research and Poet share a separate A2A service process; their
 models are cloud-hosted. These repeated model nodes describe agent roles, not distinct deployments.
 The harness catalogue lists available remote agents, while request/result arrows highlight the target.

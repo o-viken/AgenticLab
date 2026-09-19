@@ -19,8 +19,8 @@ independently of where model inference runs.
 
 ## In this application (the-series)
 
-The **Agent host** node merges the client and the AI service. Turn on **Expand agent host** in
-the Expert perspective to break it into colour-coded layers — *application* (system prompt
+The **Agent host** node merges the client and the AI service. Turn on **Expand agent host** to
+break it into colour-coded layers — *application* (system prompt
 + plumbing), *agent* (persona, tools, settings) and *user* (the prompt) — and watch the
 **Context** bar grow as each turn adds to what the model sees.
 

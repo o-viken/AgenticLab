@@ -1,6 +1,6 @@
 @using static TheSeries.Web.Flow.NetworkSimulation
 
-@* The "neural network" panel (Expert · Neural network toggle): a deliberately *simulated* symbolic
+@* The "neural network" panel (Neural network toggle): a deliberately *simulated* symbolic
    forward pass through a tiny fully-connected network (embedding → hidden layers → logits → softmax →
    next token). It now *decodes*: a timer loops through the generated answer one token at a time, and for
    each step shows the softmax **distribution** over candidates, which one is **picked**, lights the output

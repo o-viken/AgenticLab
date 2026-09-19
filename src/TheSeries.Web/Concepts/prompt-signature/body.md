@@ -32,7 +32,7 @@ the cache.
 
 ## In this application (the-series)
 
-Turning on **Prompt signature** (an Expert-perspective diagram toggle) shows a panel under the
+Turning on **Prompt signature** (a display option) shows a panel under the
 flow diagram. It reads the **real captured requests** the harness sent to the model and draws a
 stacked bar for the **Current** request — one segment per category, sized by its share of
 characters — plus a **Previous** bar once a second request has been sent. A **Match** bar shows

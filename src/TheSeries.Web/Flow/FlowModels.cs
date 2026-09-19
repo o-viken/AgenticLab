@@ -57,23 +57,6 @@ public enum PanelSide
 }
 
 /// <summary>
-/// The level of detail shown in the diagram and Steps list.
-/// <list type="bullet">
-/// <item><description><see cref="Simple"/>: User ↔ Service only — the LLM is hidden inside the service (a black box).</description></item>
-/// <item><description><see cref="NonTechnical"/>: User → Application → LLM (Client + AiService merged, no tools/loop).</description></item>
-/// <item><description><see cref="Technical"/>: User → Client → AiService → LLM (no nested Tools box / resources).</description></item>
-/// <item><description><see cref="Expert"/>: the complete harness view (Tools, resources, loop badge, every step).</description></item>
-/// </list>
-/// </summary>
-internal enum Perspective
-{
-    Simple,
-    NonTechnical,
-    Technical,
-    Expert,
-}
-
-/// <summary>
 /// The vendor/brand whose look, agent roster, simulated model label and harness system prompt are
 /// applied to the page. <see cref="Default"/> is the non-brand original look (no harness override).
 /// </summary>
@@ -242,7 +225,7 @@ internal sealed record SimToken(string Text, double Probability, IReadOnlyList<T
 }
 
 /// <summary>
-/// The simulated "inside the LLM" view (Expert · Inference toggle): the latest user message split into
+/// The simulated "inside the LLM" view (Inference toggle): the latest user message split into
 /// <paramref name="PromptTokens"/> (word-piece chips), the final answer replayed as
 /// <paramref name="ResponseTokens"/> (autoregressively generated chips), and a whole-prompt
 /// <paramref name="PromptTokenEstimate"/> (≈ chars / 4 across the whole request). All of it is a
@@ -276,7 +259,7 @@ internal sealed record InferenceView(
 internal sealed record EmbeddingToken(string Text, IReadOnlyList<double> Vector, double X, double Y);
 
 /// <summary>
-/// The simulated embeddings/neural-network view (Expert · Embeddings &amp; network toggle): the latest
+/// The simulated embeddings/neural-network view (Embeddings &amp; network toggle): the latest
 /// prompt's meaningful tokens turned into fake <paramref name="Tokens"/> (vector + 2-D position), the vector
 /// <paramref name="Dimensions"/> shown, and the optional <paramref name="PredictedToken"/> the symbolic
 /// forward-pass diagram resolves to (the run's first generated token, when an answer exists). Purely

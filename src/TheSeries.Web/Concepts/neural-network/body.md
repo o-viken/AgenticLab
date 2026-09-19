@@ -43,7 +43,7 @@ to it all is just the embedding's numbers.
 
 ## In this application (the-series)
 
-Turning on **Neural network** (an Expert-perspective diagram toggle) shows a panel under the flow diagram
+Turning on **Neural network** (a display option) shows a panel under the flow diagram
 with a **symbolic** network — input (embedding) → two hidden layers → logits → softmax → next token — drawn
 as nodes and fully-connected edges with an animated left→right signal sweep, ending in the run's predicted
 token. When you **pin** a token (in the **Embeddings** or **Inference** panels) the network's input layer
