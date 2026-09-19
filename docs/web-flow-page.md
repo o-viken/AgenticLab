@@ -96,6 +96,15 @@ when **Technical labels** is on or the **Default** vendor is selected. Otherwise
 `ModelLabel` is explicitly marked **(simulated)**; the real backend remains Azure OpenAI.
 
 **View presets and options.** All diagram visibility lives in `FlowViewState.Diagram` (`DiagramOptions`).
+The compact diagram toolbar keeps **Basic / Technical** and the **Custom** status visible. It sticks
+to the top of the flow scroll panel on desktop, or the viewport on narrow screens, until the diagram
+ends. The diagram shares its parent's scroll area so the toolbar follows the actual scrolling content.
+A single
+**View options** popover groups the independent checkboxes under Details, Boundaries, Model internals
+and Where it runs. It stays open while changing options, closes on Escape or an outside click, and
+floats above the diagram without adding layout height. Native popover focus behavior supports keyboard
+navigation and returns focus to the trigger on Escape. The panel is viewport-constrained and scrollable;
+CSS anchor positioning places it beside its trigger where supported, with a centered fallback.
 **Basic** and **Technical** are commands applying complete option sets, not rendering modes:
 
 | Display option | Basic (initial) | Technical |

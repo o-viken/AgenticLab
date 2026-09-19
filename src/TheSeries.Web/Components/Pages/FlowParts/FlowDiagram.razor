@@ -1,7 +1,6 @@
 <section class="diagram @View.DiagramClass">
     <div class="diagram-controls">
-        <div class="diagram-control detail-level">
-                <label>View preset <span class="preset-status" role="status">@(View.Diagram.Preset is null ? "Custom" : "")</span></label>
+        <div class="detail-level">
                 <div class="mode-toggle preset-toggle" role="group" aria-label="View preset">
                 <button type="button" class="@(View.Diagram.Preset == DiagramPreset.Basic ? "selected" : "")"
                         aria-pressed="@(View.Diagram.Preset == DiagramPreset.Basic ? "true" : "false")"
@@ -12,17 +11,19 @@
                     @onclick="@(() => View.Diagram.ApplyPreset(DiagramPreset.Technical))"
                     title="Reset display options to Model, loop counter, technical labels and Tools">Technical</button>
             </div>
+            <span class="preset-status" role="status">@(View.Diagram.Preset is null ? "Custom" : "")</span>
         </div>
 
-        <div class="diagram-control">
-            <label>Where it runs</label>
-            <div class="boundary-toggles">
-                <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEnvironment" /> Environment &amp; risk</label>
-            </div>
-        </div>
+        <button type="button" class="view-options-trigger" popovertarget="diagram-view-options"
+                title="View options">
+            <span class="view-options-icon" aria-hidden="true"></span>
+            View options
+        </button>
 
-            <div class="diagram-control">
-                <label>Details</label>
+        <div id="diagram-view-options" class="view-options-popover" popover="auto"
+             role="group" aria-label="View options">
+            <fieldset class="diagram-control">
+                <legend>Details</legend>
                 <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowModel" /> Model</label>
                     <label class="check" title="Shown on the model connection"><input type="checkbox" @bind="View.Diagram.ShowLoop" disabled="@(!View.Diagram.ShowModel)" /> Loop counter</label>
@@ -33,25 +34,33 @@
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowA2A" /> A2A agents</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand agent host</label>
                 </div>
-            </div>
+            </fieldset>
 
-            <div class="diagram-control">
-                <label>Boundaries</label>
+            <fieldset class="diagram-control">
+                <legend>Boundaries</legend>
                 <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowAgentBoundary" /> Agent</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowHarnessBoundary" /> Agent host</label>
                 </div>
-            </div>
+            </fieldset>
 
-            <div class="diagram-control">
-                <label>Model internals</label>
+            <fieldset class="diagram-control">
+                <legend>Model internals</legend>
                 <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowPromptSignature" /> Prompt signature</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowInferenceView" /> Inference</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEmbeddingsView" /> Embeddings</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowNetworkView" /> Neural network</label>
                 </div>
-            </div>
+            </fieldset>
+
+            <fieldset class="diagram-control">
+                <legend>Where it runs</legend>
+                <div class="boundary-toggles">
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowEnvironment" /> Environment &amp; risk</label>
+                </div>
+            </fieldset>
+        </div>
     </div>
 
     @if (View.Diagram.ShowHarnessBoundary)

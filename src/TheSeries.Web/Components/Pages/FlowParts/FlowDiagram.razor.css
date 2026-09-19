@@ -19,7 +19,6 @@
     background-size: 24px 24px;
     border: 1px solid var(--panel-border);
     border-radius: 0;
-    overflow-x: auto;
     position: relative;
     --diagram-grid-line: color-mix(in srgb, var(--panel-border) 35%, var(--surface));
 }
@@ -54,29 +53,31 @@
 .diagram ::deep .diagram-controls {
     grid-column: 1 / -1;
     grid-row: 1;
+    position: sticky;
+    top: var(--flow-toolbar-offset, 0px);
     z-index: 5;
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
-    align-items: flex-start;
-    gap: .4rem .9rem;
+    align-items: center;
+    gap: .4rem .6rem;
     margin: -1.25rem -1.25rem 1.75rem;
-    padding: .8rem 1.25rem;
+    padding: .5rem 1.25rem;
     background: var(--surface);
     border-bottom: 1px solid var(--panel-border);
 }
 
 .diagram ::deep .diagram-control {
-    display: flex;
-    flex-direction: column;
-    gap: .3rem;
-    padding: .4rem .55rem .4rem 0;
+    min-width: 0;
+    margin: 0;
+    padding: .5rem 0 0;
     background: transparent;
     border: none;
     border-radius: 0;
 }
 
-.diagram ::deep .diagram-control > label {
+.diagram ::deep .diagram-control > legend {
+    padding: 0;
     font-size: .72rem;
     font-weight: 600;
     letter-spacing: 0;
@@ -90,9 +91,78 @@
 
 .diagram ::deep .preset-status {
     display: inline-block;
-    min-width: 4rem;
-    margin-left: .4rem;
+    font-size: .72rem;
     color: var(--node-subtitle);
+}
+
+.diagram .detail-level {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.diagram .view-options-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    margin-left: auto;
+    padding: 8px 10px;
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    anchor-name: --diagram-view-options;
+}
+
+.diagram .view-options-trigger:hover {
+    background: var(--surface-2);
+}
+
+.diagram .view-options-icon {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    background: currentColor;
+    mask: url('/icons/lucide/sliders-horizontal.svg') center / contain no-repeat;
+}
+
+.diagram .view-options-popover {
+    width: 340px;
+    height: fit-content;
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: 1rem;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px rgb(0 0 0 / .14);
+}
+
+.diagram .view-options-popover:popover-open {
+    display: grid;
+    gap: 1rem;
+}
+
+@supports (position-area: bottom) {
+    .diagram .view-options-popover {
+        position-anchor: --diagram-view-options;
+        position-area: bottom span-left;
+        position-try-fallbacks: flip-block, flip-inline, --view-options-centered;
+        inset: auto;
+        margin: .4rem 0;
+    }
+}
+
+@position-try --view-options-centered {
+    position-area: none;
+    inset: 1rem;
+    margin: auto;
 }
 
 .diagram ::deep .preset-toggle {
@@ -119,9 +189,9 @@
 
 /* Boundary toggles (inside the diagram controls). */
 .diagram ::deep .boundary-toggles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .35rem .8rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem .8rem;
     align-items: center;
     padding: 0;
 }
@@ -625,7 +695,7 @@
 
     .diagram ::deep .diagram-controls {
         margin: -1rem -1rem 1rem;
-        padding: .8rem 1rem;
+        padding: .5rem 1rem;
     }
 
     .diagram > .node.user { grid-column: 1; grid-row: 2; }
