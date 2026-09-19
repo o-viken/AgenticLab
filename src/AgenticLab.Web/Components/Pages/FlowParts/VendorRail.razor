@@ -1,0 +1,60 @@
+@* The full-height vendor rail down the left edge of the page: one brand logo per vendor, the
+    non-brand Default mark pinned at the top with a divider beneath it. Replaces the
+   old Vendor dropdown that lived in FlowControls. The active vendor shows a left-edge accent pill;
+   hovering an icon reveals a tooltip card with the vendor's name, simulated model label, mode count
+   and (when concept info is on) the ⓘ for its product concept. Picking a vendor raises OnSelectVendor,
+    which the page persists and uses to select the harness and swap the agent roster. *@
+
+<nav class="vendor-rail" aria-label="Vendor">
+    @for (var i = 0; i < VendorCatalog.DisplayOrder.Length; i++)
+    {
+        var vendor = VendorCatalog.DisplayOrder[i];
+        if (i == 1)
+        {
+            <div class="rail-divider" aria-hidden="true"></div>
+        }
+
+        var active = vendor == View.Vendor;
+        var info = View.Roster.VendorInfoFor(vendor);
+        var name = View.Roster.VendorDisplayName(vendor);
+
+        <div class="rail-item @(active ? "active" : "")">
+            <button type="button" class="rail-icon" aria-label="@name" aria-pressed="@active"
+                    disabled="@Run.Running" @onclick="@(() => SelectAsync(vendor))">
+                <VendorIcon Vendor="vendor" />
+            </button>
+            <div class="rail-tooltip" role="tooltip">
+                <span class="rt-name">@name</span>
+                @if (info is not null)
+                {
+                    <span class="rt-model">@info.ModelLabel</span>
+                    <span class="rt-modes">@info.Modes.Count mode@(info.Modes.Count == 1 ? "" : "s")</span>
+                }
+                @if (VendorCatalog.ProductConceptId(vendor) is { } conceptId)
+                {
+                    <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {name}")" />
+                }
+            </div>
+        </div>
+    }
+</nav>
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    /// <summary>Raised when the user picks a vendor; the page persists it and refreshes the agent roster.</summary>
+    [Parameter, EditorRequired]
+    public EventCallback<Vendor> OnSelectVendor { get; set; }
+
+    private async Task SelectAsync(Vendor vendor)
+    {
+        if (vendor != View.Vendor)
+        {
+            await OnSelectVendor.InvokeAsync(vendor);
+        }
+    }
+}

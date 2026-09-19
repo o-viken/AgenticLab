@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AgenticLab.A2AServer/AgenticLab.A2AServer.csproj" />
+    <Project Path="src/AgenticLab.AiService/AgenticLab.AiService.csproj" />
+    <Project Path="src/AgenticLab.AppHost/AgenticLab.AppHost.csproj" />
+    <Project Path="src/AgenticLab.Bff/AgenticLab.Bff.csproj" />
+    <Project Path="src/AgenticLab.Console/AgenticLab.Console.csproj" />
+    <Project Path="src/AgenticLab.McpServer/AgenticLab.McpServer.csproj" />
+    <Project Path="src/AgenticLab.ServiceDefaults/AgenticLab.ServiceDefaults.csproj" />
+    <Project Path="src/AgenticLab.Web/AgenticLab.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj" />
+    <Project Path="tests/AgenticLab.Bff.Tests/AgenticLab.Bff.Tests.csproj" />
+    <Project Path="tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj" />
+  </Folder>
+</Solution>

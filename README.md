@@ -1,14 +1,21 @@
-# TheSeries
+# Agentic Lab
 
-A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample built on **.NET 10**: a set of AI agents backed by Azure OpenAI, each with its own persona and toolset, that answer questions using Wikipedia and a calculator as tools.
+An educational lab for teaching how AI agents work and learning by inspecting real executions.
+Guided lessons explain the concepts; the live workspace exposes agent-host context, model requests,
+tool calls, and execution controls. Simulated model internals are labelled separately from captured
+activity. Built with [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/), **.NET 10**, and Azure OpenAI.
+
+The product and local projects are now named **Agentic Lab** and `AgenticLab.*`. The GitHub repository
+and published `ghcr.io/o-viken/the-series-*` images retain their existing addresses for now.
+The AppHost secret-store ID is unchanged, so existing local Azure OpenAI credentials still apply.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    Console["TheSeries.Console<br/>(interactive client)"]
-    Web["TheSeries.Web<br/>(Blazor flow visualizer)"]
-    AiService["TheSeries.AiService<br/>POST /chat, /chat/stream, /chat/control, GET /agents"]
+    Console["AgenticLab.Console<br/>(interactive client)"]
+    Web["AgenticLab.Web<br/>(Blazor flow visualizer)"]
+    AiService["AgenticLab.AiService<br/>POST /chat, /chat/stream, /chat/control, GET /agents"]
     Catalog["AgentCatalog<br/>(WikiAssistant, MathTutor, TriviaMaster)"]
     OpenAI["Azure OpenAI"]
     Wiki["Wikipedia REST API"]
@@ -37,8 +44,8 @@ A small ASP.NET Core BFF forwards the same AiService APIs; no model credentials 
 With Node 24 LTS installed, opt in explicitly:
 
 ```sh
-npm --prefix src/TheSeries.React ci
-dotnet run --project src/TheSeries.AppHost -- --ReactFrontend:Enabled=true
+npm --prefix src/AgenticLab.React ci
+dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
 ```
 
 Open **react** in the Aspire dashboard. The existing **web** Blazor resource remains unchanged.
@@ -62,8 +69,8 @@ Inference, embeddings and the network remain simulations, not captured model int
 The Conversation composer places the **Agent** selector below the message box, above the send controls.
 The message box, workspace path and repo base folders fields indicate focus with a subtle background tint, without an extra outline.
 
-Flow, Agent guide and Discovery use an **Agentic AI** heading with the subtitle underneath and
-plain navigation links. The Flow header stays neutral across vendor selections and spans the full
+Flow, Agent guide and React use an **Agentic AI** heading; Discovery retains **Agentic Lab**.
+The Blazor headers keep their subtitles and plain navigation links. The Flow header stays neutral across vendor selections and spans the full
 window. All three headers use 12-pixel vertical padding, with 24-pixel horizontal gutters on desktop
 and 16-pixel gutters below 1200 pixels. The harness/vendor rail begins below the Flow header,
 beside the workspace on desktop and as a horizontal
@@ -79,7 +86,7 @@ The Controls and Learn panels start at 276 and 260 pixels wide; saved panel size
 Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane
 is 620 pixels wide or narrower, including after panel resizing. Contributor colors retain their meanings,
 and reduced-motion preferences disable visual animations without changing execution pacing.
-The main diagram uses locally bundled [Lucide icons and license](src/TheSeries.Web/wwwroot/icons/lucide/LICENSE),
+The main diagram uses locally bundled [Lucide icons and license](src/AgenticLab.Web/wwwroot/icons/lucide/LICENSE),
 with no runtime CDN dependency.
 
 ### Remote A2A agents
@@ -221,14 +228,14 @@ Foundry hosting and managed-evaluation integration. The guide works without AiSe
 credentials; run only the Web project and visit `/learn`:
 
 ```sh
-dotnet run --project src/TheSeries.Web
+dotnet run --project src/AgenticLab.Web
 ```
 
 Focused tests validate stable stage URLs, navigation, reveal bounds/reset, independent example/trigger
 selection, per-stage node selection and references to the shipped concept content:
 
 ```sh
-dotnet test tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj
+dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 ```
 
 ### Agents
@@ -248,15 +255,15 @@ See [the ChatGPT demo](docs/agents.md#chatgpt-lookup-and-calculation-demo) for d
 
 ## Projects
 
-The solution ([TheSeries.slnx](TheSeries.slnx)) contains five projects, orchestrated by Aspire:
+The solution ([AgenticLab.slnx](AgenticLab.slnx)) contains five projects, orchestrated by Aspire:
 
 | Project | Role |
 |---------|------|
-| [src/TheSeries.AppHost](src/TheSeries.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects Azure OpenAI config, sets service references. |
-| [src/TheSeries.AiService](src/TheSeries.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream`, `POST /chat/control` and `GET /agents`. Hosts the agent catalog. |
-| [src/TheSeries.Console](src/TheSeries.Console/Program.cs) | Interactive console client that calls the AI service via service discovery. |
-| [src/TheSeries.Web](src/TheSeries.Web/Program.cs) | Blazor Server app that animates the live data flow (User → Client → Harness → Tools → LLM) from the `/chat/stream` events. |
-| [src/TheSeries.ServiceDefaults](src/TheSeries.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. |
+| [src/AgenticLab.AppHost](src/AgenticLab.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects Azure OpenAI config, sets service references. |
+| [src/AgenticLab.AiService](src/AgenticLab.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream`, `POST /chat/control` and `GET /agents`. Hosts the agent catalog. |
+| [src/AgenticLab.Console](src/AgenticLab.Console/Program.cs) | Interactive console client that calls the AI service via service discovery. |
+| [src/AgenticLab.Web](src/AgenticLab.Web/Program.cs) | Blazor Server app that animates the live data flow (User → Client → Harness → Tools → LLM) from the `/chat/stream` events. |
+| [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. |
 
 ## Prerequisites
 
@@ -274,16 +281,16 @@ Azure OpenAI settings are read from the **AppHost user-secrets** and injected in
 environment variables. Set them on the AppHost project:
 
 ```sh
-dotnet user-secrets set "AzureOpenAI:Endpoint" "<url>" --project src/TheSeries.AppHost
-dotnet user-secrets set "AzureOpenAI:Deployment" "<deployment>" --project src/TheSeries.AppHost
-dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/TheSeries.AppHost
+dotnet user-secrets set "AzureOpenAI:Endpoint" "<url>" --project src/AgenticLab.AppHost
+dotnet user-secrets set "AzureOpenAI:Deployment" "<deployment>" --project src/AgenticLab.AppHost
+dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/AgenticLab.AppHost
 ```
 
 Missing configuration throws at agent creation. **Never commit secrets.**
 
 Conversation history is held in memory by the AI service and expires on a sliding inactivity window.
 The defaults retain an active conversation for one hour and scan for expired entries every five minutes;
-override them in `src/TheSeries.AiService/appsettings.json` when needed:
+override them in `src/AgenticLab.AiService/appsettings.json` when needed:
 
 ```json
 "Conversations": {
@@ -298,7 +305,7 @@ through OpenTelemetry. These instruments report counts only and never include co
 ### Replay retention
 
 The Web app keeps the current exchange intact and bounds **archived** exchanges per Flow page.
-Configure these initial budgets in [Web appsettings.json](src/TheSeries.Web/appsettings.json):
+Configure these initial budgets in [Web appsettings.json](src/AgenticLab.Web/appsettings.json):
 
 ```json
 "ReplayRetention": {
@@ -315,7 +322,7 @@ metadata); it is **not** managed heap size and excludes object overhead and deri
 The current exchange is exempt, even after it finishes, until the next Send. A single long run can
 therefore exceed the archive budget. AI service history and its inactivity TTL are independent.
 
-The Web meter `TheSeries.Web.Replay` exports process-wide sums `replay.archived.exchanges`,
+The Web meter `AgenticLab.Web.Replay` exports process-wide sums `replay.archived.exchanges`,
 `replay.archived.events`, `replay.archived.payload_bytes`, and a cumulative `replay.evicted.exchanges`
 counter. Reset and page disposal subtract their retained totals. No identifiers or content are tagged.
 
@@ -325,8 +332,8 @@ closed tabs after circuit retention has elapsed. Archives should plateau at the 
 reset/disposal should return their totals to baseline. Also measure browser memory and event latency.
 The synthetic retention test verifies bounded accounting, not real concurrent-user capacity.
 
-The measurement baseline also includes `TheSeries.Web.Flow` (`flow.active_pages`,
-`flow.retained_events`, `flow.retained_payload_bytes`) and `TheSeries.AiService.Flow`
+The measurement baseline also includes `AgenticLab.Web.Flow` (`flow.active_pages`,
+`flow.retained_events`, `flow.retained_payload_bytes`) and `AgenticLab.AiService.Flow`
 (`flow.active_sessions`). These aggregate instruments have no user, conversation or session-id tags.
 Use them with runtime heap, allocation rate and request latency when comparing Interactive Server with a
 future client-rendered build.
@@ -336,13 +343,13 @@ future client-rendered build.
 Build the solution:
 
 ```sh
-dotnet build TheSeries.slnx
+dotnet build AgenticLab.slnx
 ```
 
 Run everything (launches the Aspire dashboard):
 
 ```sh
-dotnet run --project src/TheSeries.AppHost
+dotnet run --project src/AgenticLab.AppHost
 ```
 
 ### Dependency upgrade checks
@@ -350,7 +357,7 @@ dotnet run --project src/TheSeries.AppHost
 Run the deterministic agent and protocol integration tests without Azure credentials:
 
 ```sh
-dotnet test tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
+dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
 ```
 
 These cover streamed agent tool execution, disabled tools and second-turn conversation history,
@@ -363,7 +370,7 @@ replace a live Azure OpenAI or full AppHost startup smoke test.
 The Console is registered with `WithExplicitStart()`, so it does not launch automatically with the rest
 of the app. To run it:
 
-1. Start the app with `dotnet run --project src/TheSeries.AppHost` and open the Aspire dashboard.
+1. Start the app with `dotnet run --project src/AgenticLab.AppHost` and open the Aspire dashboard.
 2. Find the `console` resource and start it (▶). It needs an attached terminal for stdin, so use the
    dashboard's terminal/console view to interact with it.
 3. The console lists the available agents and starts on the default. Type a question at the
@@ -373,7 +380,7 @@ of the app. To run it:
 To run the Console **standalone** (against an already-running AI service), pass the service URL:
 
 ```sh
-dotnet run --project src/TheSeries.Console -- --AiService:Url https://localhost:7123
+dotnet run --project src/AgenticLab.Console -- --AiService:Url https://localhost:7123
 ```
 
 Under Aspire it resolves the AI service by name (`https+http://aiservice`) via service discovery, so no
@@ -526,7 +533,7 @@ do not use execution breakpoints.
 
 ### Breakpoint Tests
 
-`dotnet test tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj` runs deterministic
+`dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj` runs deterministic
 model/tool pipeline tests without Azure credentials. The tests check execution ordering, successive
 tool calls, cancellation, stale controls, live selection changes, manual/auto pacing and early user answers.
 
@@ -537,7 +544,7 @@ tool calls, cancellation, stale controls, live selection changes, manual/auto pa
 - DTOs are `internal sealed record` types declared at the bottom of the file that uses them.
 - Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter)
   and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()`.
-- Each agent is an `IAgentDefinition` under `src/TheSeries.AiService/Agents/`; add a new one by
+- Each agent is an `IAgentDefinition` under `src/AgenticLab.AiService/Agents/`; add a new one by
   implementing the interface and registering it in `Program.cs`.
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service
   discovery, not hardcoded URLs.

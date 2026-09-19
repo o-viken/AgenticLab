@@ -1,0 +1,205 @@
+<div class="discovery-app @(Embedded ? "embedded" : "")">
+    @if (!Embedded)
+    {
+    <header class="discovery-header">
+        <div class="discovery-header-text">
+            <h1>Agentic Lab</h1>
+            <p>Discovery / MCP tools and A2A agents</p>
+        </div>
+        <div class="discovery-header-actions">
+            <a class="back-link" href="/learn" target="_blank" rel="noopener noreferrer"
+               title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
+            <a class="back-link" href="/">Live flow</a>
+            <RepositoryLink />
+        </div>
+    </header>
+    }
+
+    <div class="discovery-toolbar">
+        <button class="rediscover" @onclick="() => RediscoverAsync(null)" disabled="@(_running || !AllowRediscovery)"
+                title="@RediscoveryTitle">
+            @(_running ? "Discovering…" : "↻ Re-discover all")
+        </button>
+
+        <div class="stepping">
+            <div class="mode-toggle">
+                <button type="button" class="@(_manual ? "" : "selected")"
+                        @onclick="() => SetManualAsync(false)">Auto</button>
+                <button type="button" class="@(_manual ? "selected" : "")"
+                        @onclick="() => SetManualAsync(true)">Step</button>
+            </div>
+
+            @if (!_manual)
+            {
+                <label class="delay">
+                    Delay
+                    <input type="range" min="0" max="2500" step="100" value="@_stepDelayMs" @onchange="SetDelayAsync" />
+                    <span class="delay-val">@_stepDelayMs ms</span>
+                </label>
+            }
+
+            @if (_running)
+            {
+                @if (_manual)
+                {
+                    <button class="step-btn next" @onclick="NextAsync">Next ▶</button>
+                }
+                else
+                {
+                    <button class="step-btn" @onclick="TogglePauseAsync">@(_paused ? "Resume" : "Pause")</button>
+                }
+                <button class="step-btn stop" @onclick="StopAsync">Stop</button>
+            }
+        </div>
+
+        <span class="startup-flag @(_discoverOnStartup ? "on" : "off")"
+              title="Controlled by the Discovery:OnStartup service configuration flag">
+            Discover on startup: @(_discoverOnStartup ? "on" : "off")
+        </span>
+
+        @if (_lastRunUtc is { } run)
+        {
+            <span class="last-run">Last run @run.LocalDateTime.ToString("HH:mm:ss")</span>
+        }
+    </div>
+
+    <div class="discovery-grid">
+        @foreach (var source in Sources)
+        {
+            <section class="source-card" aria-label="@SourceTitle(source)">
+                <header class="source-head">
+                    <div class="source-title-row">
+                        <span class="source-title">@SourceTitle(source)</span>
+                        <span class="state-badge @StateClass(source)">@StateLabel(_state.GetValueOrDefault(source) ?? "NotRun")</span>
+                    </div>
+                    <p class="source-subtitle">@SourceSubtitle(source)</p>
+                    <div class="source-head-actions">
+                        <button class="rediscover small" @onclick="() => RediscoverAsync(source)" disabled="@(_running || !AllowRediscovery)"
+                            title="@RediscoveryTitle">
+                            @(IsRunningSource(source) ? "Discovering…" : $"↻ Re-discover {SourceTitle(source).Split(' ')[0]}")
+                        </button>
+                    </div>
+                </header>
+
+                <div class="source-body">
+                    <div class="disc-flow @(IsRunningSource(source) ? "running" : "")">
+                        <div class="disc-node client @ClientNodeClass(source)">
+                            <span class="disc-icon">🖧</span>
+                            <span class="disc-node-title">AiService</span>
+                            <span class="disc-node-sub">discovery client</span>
+                        </div>
+
+                        <div class="disc-conns">
+                            <div class="disc-conn send @SendArrowClass(source)">
+                                <span class="disc-flow-label">connect / list</span>
+                            </div>
+                            <div class="disc-conn recv @RecvArrowClass(source)">
+                                <span class="disc-flow-label">@(source == "mcp" ? "tools" : "agents")</span>
+                            </div>
+                        </div>
+
+                        <div class="disc-node server @ServerNodeClass(source)">
+                            <span class="disc-icon">@ServerIcon(source)</span>
+                            <span class="disc-node-title">@ServerLabel(source)</span>
+                            <span class="disc-node-sub">
+                                @if (!string.IsNullOrWhiteSpace(_endpoint.GetValueOrDefault(source)))
+                                {
+                                    <code title="@_endpoint[source]">@_endpoint[source]</code>
+                                }
+                                else
+                                {
+                                    <span class="endpoint-none">no endpoint</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="source-items">
+                        <span class="section-label">
+                            Discovered (@_items.GetValueOrDefault(source)?.Count)
+                        </span>
+                        @if (_items.GetValueOrDefault(source) is { Count: > 0 } items)
+                        {
+                            <ul class="item-list">
+                                @foreach (var item in items)
+                                {
+                                    var itemKey = $"item:{source}:{item.Name}";
+                                    var hasDef = !string.IsNullOrWhiteSpace(item.Description);
+                                    <li class="item-row @(IsExpanded(itemKey) ? "open" : "")">
+                                        <button type="button" class="item-toggle" @onclick="() => Toggle(itemKey)" disabled="@(!hasDef)">
+                                            @if (hasDef)
+                                            {
+                                                <span class="chevron">@(IsExpanded(itemKey) ? "▾" : "▸")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="chevron placeholder"></span>
+                                            }
+                                            <span class="item-name">@item.Name</span>
+                                            <span class="item-kind">@(source == "mcp" ? "tool" : "agent")</span>
+                                        </button>
+                                        @if (hasDef && IsExpanded(itemKey))
+                                        {
+                                            <div class="item-def">
+                                                <span class="def-label">Definition</span>
+                                                <p class="def-body">@item.Description</p>
+                                            </div>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <span class="empty">Nothing discovered yet.</span>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(_error.GetValueOrDefault(source)))
+                        {
+                            <p class="source-error">@_error[source]</p>
+                        }
+                    </div>
+
+                    <div class="source-log">
+                        <span class="section-label">Steps</span>
+                        @if (_log.GetValueOrDefault(source) is { Count: > 0 } log)
+                        {
+                            <ol class="log-list">
+                                @foreach (var evt in log)
+                                {
+                                    var stepKey = $"step:{source}:{evt.Sequence}";
+                                    var canExpand = HasStepDetail(evt);
+                                    <li class="log-step @StepClass(evt.Kind) @(IsExpanded(stepKey) ? "open" : "")">
+                                        <button type="button" class="step-row" @onclick="() => Toggle(stepKey)" disabled="@(!canExpand)">
+                                            @if (canExpand)
+                                            {
+                                                <span class="chevron">@(IsExpanded(stepKey) ? "▾" : "▸")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="chevron placeholder"></span>
+                                            }
+                                            <span class="step-kind">@evt.Kind</span>
+                                            <span class="step-msg">@evt.Message</span>
+                                        </button>
+                                        @if (canExpand && IsExpanded(stepKey))
+                                        {
+                                            <div class="step-detail">
+                                                <span class="detail-title">@StepDetailTitle(evt)</span>
+                                                <p class="detail-body">@StepDetailBody(evt)</p>
+                                            </div>
+                                        }
+                                    </li>
+                                }
+                            </ol>
+                        }
+                        else
+                        {
+                            <span class="empty">Run a discovery to see the steps.</span>
+                        }
+                    </div>
+                </div>
+            </section>
+        }
+    </div>
+</div>

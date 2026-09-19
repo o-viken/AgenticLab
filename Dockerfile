@@ -2,10 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore TheSeries.slnx
+RUN dotnet restore AgenticLab.slnx
 
 FROM build AS publish-web
-RUN dotnet publish src/TheSeries.Web/TheSeries.Web.csproj \
+RUN dotnet publish src/AgenticLab.Web/AgenticLab.Web.csproj \
     --configuration Release \
     --runtime linux-x64 \
     --self-contained false \
@@ -13,21 +13,21 @@ RUN dotnet publish src/TheSeries.Web/TheSeries.Web.csproj \
     /p:UseAppHost=false
 
 FROM build AS publish-aiservice
-RUN dotnet publish src/TheSeries.AiService/TheSeries.AiService.csproj \
+RUN dotnet publish src/AgenticLab.AiService/AgenticLab.AiService.csproj \
     --configuration Release \
     --output /out \
     --no-restore \
     /p:UseAppHost=false
 
 FROM build AS publish-mcpserver
-RUN dotnet publish src/TheSeries.McpServer/TheSeries.McpServer.csproj \
+RUN dotnet publish src/AgenticLab.McpServer/AgenticLab.McpServer.csproj \
     --configuration Release \
     --output /out \
     --no-restore \
     /p:UseAppHost=false
 
 FROM build AS publish-a2aserver
-RUN dotnet publish src/TheSeries.A2AServer/TheSeries.A2AServer.csproj \
+RUN dotnet publish src/AgenticLab.A2AServer/AgenticLab.A2AServer.csproj \
     --configuration Release \
     --output /out \
     --no-restore \
@@ -42,16 +42,16 @@ USER $APP_UID
 
 FROM runtime AS web
 COPY --from=publish-web /out .
-ENTRYPOINT ["dotnet", "TheSeries.Web.dll"]
+ENTRYPOINT ["dotnet", "AgenticLab.Web.dll"]
 
 FROM runtime AS aiservice
 COPY --from=publish-aiservice /out .
-ENTRYPOINT ["dotnet", "TheSeries.AiService.dll"]
+ENTRYPOINT ["dotnet", "AgenticLab.AiService.dll"]
 
 FROM runtime AS mcpserver
 COPY --from=publish-mcpserver /out .
-ENTRYPOINT ["dotnet", "TheSeries.McpServer.dll"]
+ENTRYPOINT ["dotnet", "AgenticLab.McpServer.dll"]
 
 FROM runtime AS a2aserver
 COPY --from=publish-a2aserver /out .
-ENTRYPOINT ["dotnet", "TheSeries.A2AServer.dll"]
+ENTRYPOINT ["dotnet", "AgenticLab.A2AServer.dll"]

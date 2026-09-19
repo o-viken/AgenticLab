@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "src/TheSeries.AppHost/TheSeries.AppHost.csproj"
+    "path": "src/AgenticLab.AppHost/AgenticLab.AppHost.csproj"
   }
 }

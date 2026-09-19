@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>c3642cfc-0469-40ad-aaf5-98d7900d35cc</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.4" />
+    <ProjectReference Include="..\AgenticLab.Bff\AgenticLab.Bff.csproj" />
+    <ProjectReference Include="..\AgenticLab.AiService\AgenticLab.AiService.csproj" />
+    <ProjectReference Include="..\AgenticLab.A2AServer\AgenticLab.A2AServer.csproj" />
+    <ProjectReference Include="..\AgenticLab.Console\AgenticLab.Console.csproj" />
+    <ProjectReference Include="..\AgenticLab.McpServer\AgenticLab.McpServer.csproj" />
+    <ProjectReference Include="..\AgenticLab.Web\AgenticLab.Web.csproj" />
+  </ItemGroup>
+
+</Project>

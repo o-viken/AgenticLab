@@ -1,0 +1,239 @@
+@page "/learn"
+@rendermode InteractiveServer
+@using AgenticLab.Web.Learning
+@using AgenticLab.Web.Components.Pages.LearningParts
+
+<PageTitle>Agentic Lab - @_stage.Title</PageTitle>
+
+<div class="learn-app">
+    <header class="learn-header">
+        <div>
+            <h1>Agentic AI</h1>
+            <p>Agent guide / Fundamentals to operations</p>
+        </div>
+        <nav class="page-links" aria-label="Agentic Lab pages">
+            <a href="/">Live flow</a>
+            <RepositoryLink />
+        </nav>
+    </header>
+
+    <main class="learn-workspace">
+        <nav class="stage-rail" aria-label="Learning stages">
+            <div class="journey-heading">
+                <span>Agent fundamentals</span>
+                <span class="stage-progress" role="status">@(_stageIndex + 1) / @Stages.Count</span>
+            </div>
+            <ol class="stage-list">
+                @for (var index = 0; index < Stages.Count; index++)
+                {
+                    var stage = Stages[index];
+                    var selected = stage.Id == _stage.Id;
+                    <li>
+                        <a href="@AgentLearningJourney.Href(stage.Id)" aria-current="@(selected ? "step" : null)">
+                            <span class="stage-number" aria-hidden="true">@((index + 1).ToString("00"))</span>
+                            <span>@stage.Title</span>
+                        </a>
+                    </li>
+                }
+            </ol>
+        </nav>
+
+        <section class="stage-main" aria-labelledby="stage-title">
+            <header class="stage-heading">
+                <div>
+                    <p class="eyebrow">Stage @(_stageIndex + 1)</p>
+                    <h2 id="stage-title" tabindex="-1" @ref="_stageHeading">@_stage.Title</h2>
+                </div>
+                <span class="reality @(_stage.PlatformMap ? "conceptual" : "today")">@_stage.RealityLabel</span>
+            </header>
+            <p class="stage-summary">@_stage.Summary</p>
+
+            @if (_stage.Id == "why-agents")
+            {
+                <div class="architecture intro-lesson">
+                <div class="intro-toolbar" role="group" aria-label="Introduction steps">
+                    <button type="button" title="Previous step" aria-label="Previous step"
+                            disabled="@(_introStep == 0)" @onclick="() => MoveIntroduction(-1)"><MiniIcon Name="prev" /></button>
+                    <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
+                    <button type="button" title="Next step" aria-label="Next step"
+                            disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" @onclick="() => MoveIntroduction(1)"><MiniIcon Name="next" /></button>
+                    <button type="button" class="intro-restart" disabled="@(_introStep == 0)" @onclick="() => _introStep = 0">Restart</button>
+                </div>
+                <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
+                    @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
+                    {
+                        var step = AgentLearningJourney.IntroductionSteps[index];
+                        var current = index == _introStep;
+                        <div class="@(current ? "intro-step current" : "intro-step")" aria-hidden="@(current ? "false" : "true")">
+                            <dt>@step.Title</dt>
+                            <dd>@step.Detail</dd>
+                        </div>
+                    }
+                </dl>
+                </div>
+            }
+
+            @if (_stage.HighlightedNodes.Count > 0)
+            {
+            <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
+                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "agents-everywhere" or "anatomy-of-agent")
+                {
+                    <FoundationLesson StageId="@_stage.Id" />
+                }
+                else if (_stage.Id == "where-to-run")
+                {
+                    <HostingLesson />
+                }
+                else if (_stage.Id == "inside-the-harness")
+                {
+                    <p class="boundary-label">Agent host</p>
+                    <div class="harness-anatomy" data-diagram="harness">
+                        @foreach (var nodeId in _stage.HighlightedNodes)
+                        {
+                            @DiagramNode(nodeId)
+                        }
+                    </div>
+                }
+                else if (_stage.Id == "agent-loop")
+                {
+                    <div class="execution-loop" data-diagram="loop">
+                        <div class="loop-input">@DiagramNode("loop-context")</div>
+                        <div class="loop-feed loop-connector" aria-label="Context goes to the model"><span aria-hidden="true">&darr;</span></div>
+                        <div class="loop-decision">@DiagramNode("loop-decision")</div>
+                        <div class="loop-exit loop-connector" aria-label="Answer instead of using a tool"><span aria-hidden="true">&rarr;</span></div>
+                        <div class="loop-answer">@DiagramNode("loop-answer")</div>
+                        <div class="loop-request loop-connector"><span>Tool request</span><span aria-hidden="true">&darr;</span></div>
+                        <div class="loop-execute">@DiagramNode("loop-execute")</div>
+                        <div class="loop-result loop-connector"><span>Tool result</span><span aria-hidden="true">&darr;</span></div>
+                        <div class="loop-observe">@DiagramNode("loop-observe")</div>
+                        <div class="loop-return" role="img" aria-label="Observation returns to the model as updated context for another decision">
+                            <span class="sr-only">Repeat with updated context</span>
+                        </div>
+                    </div>
+                }
+                else if (_stage.Id == "wider-ecosystem")
+                {
+                    <div class="ecosystem-connections" data-diagram="ecosystem">
+                        <div class="ecosystem-origin">@DiagramNode("connected-agent")</div>
+                        <div class="protocol-link mcp-link" aria-label="MCP: tool calls and results">
+                            <strong>MCP</strong><span aria-hidden="true">&harr;</span>
+                        </div>
+                        <div class="ecosystem-tools">@DiagramNode("mcp-tools")</div>
+                        <div class="protocol-link a2a-link" aria-label="A2A: delegated tasks and results">
+                            <strong>A2A</strong><span aria-hidden="true">&harr;</span>
+                        </div>
+                        <div class="ecosystem-peer">@DiagramNode("a2a-agent")</div>
+                    </div>
+                }
+                else if (_stage.Id == "map-to-foundry")
+                {
+                    <dl class="foundry-mapping" data-diagram="foundry">
+                        <div class="mapping-row">
+                            <dt>Execution <span aria-hidden="true">&rarr;</span></dt>
+                            <dd>@DiagramNode("foundry-runtime")</dd>
+                        </div>
+                        <div class="mapping-row">
+                            <dt>Model <span aria-hidden="true">&rarr;</span></dt>
+                            <dd>@DiagramNode("foundry-model")</dd>
+                        </div>
+                        <div class="mapping-row">
+                            <dt>Tools <span aria-hidden="true">&rarr;</span></dt>
+                            <dd>@DiagramNode("foundry-tools")</dd>
+                        </div>
+                    </dl>
+                }
+                else if (_stage.Id == "run-and-improve")
+                {
+                    <div class="improvement-cycle" data-diagram="lifecycle">
+                        <div class="cycle-run">@DiagramNode("lifecycle-run")</div>
+                        <div class="cycle-to-observe cycle-arrow" role="img" aria-label="Run to observe">&rarr;</div>
+                        <div class="cycle-observe">@DiagramNode("lifecycle-observe")</div>
+                        <div class="cycle-to-evaluate cycle-arrow" role="img" aria-label="Observe to evaluate">&darr;</div>
+                        <div class="cycle-evaluate">@DiagramNode("lifecycle-evaluate")</div>
+                        <div class="cycle-to-improve cycle-arrow" role="img" aria-label="Evaluate to improve">&larr;</div>
+                        <div class="cycle-improve">@DiagramNode("lifecycle-improve")</div>
+                        <div class="cycle-to-run cycle-arrow" role="img" aria-label="Release the tested version and run again">&uarr;</div>
+                    </div>
+                    <figcaption>Release the tested version, then repeat.</figcaption>
+                }
+            </figure>
+            }
+
+            <blockquote class="takeaway">@_stage.Takeaway</blockquote>
+
+            <section class="related-topics" aria-labelledby="related-title">
+                <h3 id="related-title" tabindex="-1" @ref="_relatedHeading">Related concepts</h3>
+                <div class="concept-links">
+                    @foreach (var conceptId in _stage.ConceptIds)
+                    {
+                        if (Concepts.Get(conceptId) is { } concept)
+                        {
+                            <button type="button" aria-expanded="@(_activeConcept?.Id == concept.Id)"
+                                    aria-controls="concept-detail" @onclick="() => OpenConcept(concept)">@concept.Title</button>
+                        }
+                    }
+                </div>
+                <div id="concept-detail" hidden="@(_activeConcept is null)">
+                    @if (_activeConcept is { } active)
+                    {
+                        <article class="concept-detail" aria-labelledby="concept-title">
+                            <header class="concept-detail-heading">
+                                <h3 id="concept-title" tabindex="-1" @ref="_conceptHeading">@active.Title</h3>
+                                <button type="button" class="close-topic" @onclick="CloseConcept">Close topic</button>
+                            </header>
+                            <p class="concept-summary">@active.Summary</p>
+                            <div class="concept-body">@((MarkupString)active.BodyHtml)</div>
+                            @if (active.Links.Count > 0)
+                            {
+                                <ul class="concept-sources">
+                                    @foreach (var link in active.Links)
+                                    {
+                                        <li><a href="@link.Url" target="_blank" rel="noopener noreferrer">@link.Label<span class="sr-only"> (opens in a new tab)</span></a></li>
+                                    }
+                                </ul>
+                            }
+                        </article>
+                    }
+                </div>
+            </section>
+
+            <footer class="stage-actions">
+                @if (_stageIndex == 0)
+                {
+                    <button type="button" disabled>Previous</button>
+                }
+                else
+                {
+                    <a class="previous" href="@AgentLearningJourney.Href(AgentLearningJourney.Move(_stage.Id, -1).Id)">Previous</a>
+                }
+                @if (_stage.ActionHref is not null)
+                {
+                    <a class="demo-link" href="@_stage.ActionHref">@_stage.ActionLabel <span aria-hidden="true">&rarr;</span></a>
+                }
+                @if (_stageIndex == Stages.Count - 1)
+                {
+                    <button type="button" class="next" disabled>Next</button>
+                }
+                else
+                {
+                    <a class="next" href="@AgentLearningJourney.Href(AgentLearningJourney.Move(_stage.Id, 1).Id)">Next</a>
+                }
+            </footer>
+        </section>
+    </main>
+</div>
+
+@code {
+    private RenderFragment DiagramNode(string id)
+    {
+        var node = AgentLearningJourney.Node(id);
+        var highlighted = _stage.HighlightedNodes.Contains(id);
+        var nodeClass = $"map-node node-{id}{(highlighted ? " highlighted" : string.Empty)}";
+        var iconClass = $"node-icon icon-{(id is "model" or "loop-decision" or "foundry-model" ? "model" : "harness")}";
+        return @<div class="@nodeClass" data-node="@id">
+            <span class="@iconClass" aria-hidden="true"></span>
+            <strong>@node.Title</strong>
+            <span class="node-detail">@node.Detail</span>
+        </div>;
+    }
+}

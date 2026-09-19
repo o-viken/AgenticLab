@@ -36,7 +36,7 @@ Payloads and status codes pass through unchanged. There is no catch-all proxy, b
 destination, or duplicate agent implementation. Unknown API paths return 404, wrong methods return
 405 and POST bodies require JSON. API failures cannot fall through to the frontend document.
 The development BFF provides `/openapi/v1.json` route metadata and
-[an HTTP request file](../src/TheSeries.Bff/TheSeries.Bff.http) for manual exploration.
+[an HTTP request file](../src/AgenticLab.Bff/AgenticLab.Bff.http) for manual exploration.
 No AiService endpoint or CORS change is needed; no Azure key or private service URL is in the bundle.
 
 ## Run with Aspire
@@ -46,8 +46,8 @@ Install Node **24 LTS** only when working on this example, plus the repository's
 13.5.4 prerequisites and existing AppHost Azure OpenAI configuration.
 
 ```sh
-npm --prefix src/TheSeries.React ci
-dotnet run --project src/TheSeries.AppHost -- --ReactFrontend:Enabled=true
+npm --prefix src/AgenticLab.React ci
+dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
 ```
 
 Open the **react** resource URL in the dashboard. **react-bff** provides the API boundary; the existing
@@ -64,14 +64,14 @@ With AiService running, set its URL on the BFF in one terminal. Substitute its a
 for the example below; the BFF default port is 5181.
 
 ```sh
-AiService__Url=http://localhost:5039 dotnet run --project src/TheSeries.Bff
+AiService__Url=http://localhost:5039 dotnet run --project src/AgenticLab.Bff
 ```
 
 In another terminal:
 
 ```sh
-npm --prefix src/TheSeries.React ci
-BFF_URL=http://localhost:5181 npm --prefix src/TheSeries.React run dev
+npm --prefix src/AgenticLab.React ci
+BFF_URL=http://localhost:5181 npm --prefix src/AgenticLab.React run dev
 ```
 
 Vite defaults to `http://127.0.0.1:5173`. Use `-- --port <free-port>` if occupied. These environment
@@ -83,10 +83,10 @@ Build React **before** publishing the BFF. Its project links an existing `dist` 
 without an npm MSBuild target:
 
 ```sh
-npm --prefix src/TheSeries.React ci
-npm --prefix src/TheSeries.React run build
-dotnet publish src/TheSeries.Bff -c Release -o artifacts/react-bff
-AiService__Url=http://localhost:5039 dotnet artifacts/react-bff/TheSeries.Bff.dll \
+npm --prefix src/AgenticLab.React ci
+npm --prefix src/AgenticLab.React run build
+dotnet publish src/AgenticLab.Bff -c Release -o artifacts/react-bff
+AiService__Url=http://localhost:5039 dotnet artifacts/react-bff/AgenticLab.Bff.dll \
   --contentRoot "$PWD/artifacts/react-bff" --urls http://localhost:5182
 ```
 
@@ -165,13 +165,13 @@ UI SDK yet: this is a small, forkable example.
 From the repository root:
 
 ```sh
-dotnet test tests/TheSeries.Bff.Tests/TheSeries.Bff.Tests.csproj
-npm --prefix src/TheSeries.React ci
-npm --prefix src/TheSeries.React run lint
-npm --prefix src/TheSeries.React run typecheck
-npm --prefix src/TheSeries.React test
-npm --prefix src/TheSeries.React run build
-cd src/TheSeries.React
+dotnet test tests/AgenticLab.Bff.Tests/AgenticLab.Bff.Tests.csproj
+npm --prefix src/AgenticLab.React ci
+npm --prefix src/AgenticLab.React run lint
+npm --prefix src/AgenticLab.React run typecheck
+npm --prefix src/AgenticLab.React test
+npm --prefix src/AgenticLab.React run build
+cd src/AgenticLab.React
 npx playwright install chromium
 npm run test:e2e
 ```

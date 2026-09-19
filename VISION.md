@@ -8,7 +8,7 @@ hidden behind a chat box: a question goes in, an answer comes out, and everythin
 between is invisible. That opacity makes agents hard to trust, hard to reason about,
 and hard to learn from.
 
-**TheSeries exists to open that black box.** It is a tool/app that shows, in a clear
+**Agentic Lab exists to open that black box.** It is a tool/app that shows, in a clear
 and human-understandable way, *how an agentic system actually works* — turning the
 abstract "model + harness + tools" loop into something you can watch, explore, and
 understand step by step.
@@ -50,7 +50,7 @@ understand the capabilities and risks without reading the source.
 
 ## How people reach it
 
-- **Hosted service.** TheSeries runs as a service on our website, so anyone can open
+- **Hosted service.** Agentic Lab runs as a service on our website, so anyone can open
   it in a browser and start exploring immediately — no install, no setup, nothing to
   configure.
 - **Run it locally (BYOK).** People can also download a Docker image and run the whole
@@ -64,7 +64,7 @@ difference is where it runs and whose key powers the model.
 
 ## How this project serves the vision
 
-TheSeries is a working agentic system *and* a window into one. Real agents answer real
+Agentic Lab is a working agentic system *and* a window into one. Real agents answer real
 questions using real tools, while the flow visualizer animates every step of that
 execution — the agent loop, the growing context, the harness anatomy, the tools and
 skills, and the environment in which it all runs — backed by in-app learning content
