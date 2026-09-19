@@ -68,7 +68,7 @@ checks permissions and executes permitted actions. Technical harness/LLM referen
 component names, event kinds and concept IDs remain unchanged; these are presentation-only labels.
 
 **Corporate workbench styling (current).** The approved [V8 preview](../design/mockups/v8-corporate-workbench.html)
-is implemented in the Web UI; see [README.md](../README.md#corporate-workbench) for the user-facing behavior.
+is implemented in the Web UI; see [the reference below](#corporate-workbench) for the user-facing behavior.
 All harnesses share the Default off-white/forest-green/charcoal palette, with Bahnschrift UI text and Cambria/Georgia product
 headings. Logos distinguish vendors; vendor-driven agent selection and harness prompts remain unchanged. Flow uses flush,
 divider-led panels, 4px controls, an **Agentic AI** header and a **Learn** checkbox (formerly **Show concept info**).
@@ -256,3 +256,87 @@ apart.
 **Backend-gated stepping (telemetry-synced).** Pacing happens on the *server* so the animation lines up with the real agent execution (and its OpenTelemetry spans), not just a client-side replay. Each run gets a `FlowSession` tracked in a `FlowControlRegistry` ([Application/Flow/FlowSession.cs](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs)); `FlowTracer.StreamAsync` awaits `FlowSession.WaitForStepAsync` *before emitting each event*, so the next real step does not start until the session is allowed to advance. The session is created synchronously inside the `/chat/stream` endpoint (keyed by a client-supplied `SessionId`) so that control calls cannot race ahead of it. The UI drives it via `POST /chat/control` (`FlowControlRequest { SessionId, Action, Manual?, DelayMs?, Answer? }`) with actions `next`, `pause`, `resume`, `stop` (and `answer`, which delivers the user's reply to a tool that asked a question — see [asking the user a question](agents.md#asking-the-user-a-question-human-in-the-loop)). **Auto** mode paces with a server-side `DelayMs`/`stepDelayMs` between steps (adjustable live, plus pause/resume); **Manual** mode blocks each step until the user clicks *Next*. Two implementation notes keep long pauses alive: the Web `AiServiceClient` registration calls `.RemoveAllResilienceHandlers()` (otherwise the shared resilience handler's ~30s timeout/retries would abort a paused stream), and the AiService disables Kestrel's `MinResponseDataRate` so an idle SSE response is not aborted.
 
 **Environment & risk view.** A single **Environment & risk** toggle (the "Where it runs" diagram control, `_showEnvironment` in [Components/Pages/Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor)) makes *where each part of the system runs* and *how risky the selected agent is* explicit. Like every display option, it is always available and independent of the selected preset. When on it adds: per-node **location badges** — the User node shows `🖥️ Your browser`, the LLM node shows `☁️ Cloud service`, and the merged Harness/Application node shows either `💻 Your machine — file + shell access` (for a workspace agent) or `🖧 Server process — no local access` (otherwise); a dashed **`🔒 Your environment` trust boundary** overlay drawn around the parts that run on the user's own machine; and an **`EnvironmentPanel()`** under the harness node that renders a three-segment **risk meter** (filled per the agent's level — High=3, Medium=2, Low=1, None=0) plus a **guardrails** box listing the agent's enforced safety mechanisms as chips (with an empty-state when it has none). When **Show concept info** is also on, the panel adds three learn pills → the `where-agents-run`, `environment` and `sandbox` concepts, and the risk meter / guardrails box carry ⓘ buttons → the `agent-risk` and `guardrails` concepts. The data is **authoritative from the backend**, not derived client-side: each `IAgentDefinition` declares an `AgentRiskLevel RiskLevel` (`None`/`Low`/`Medium`/`High`, see [Application/Agents/IAgentDefinition.cs](../src/AgenticLab.AiService/Application/Agents/IAgentDefinition.cs)) and an `IReadOnlyList<string> Guardrails` of human-readable mechanisms; [Application/Agents/AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) defaults them to `None` / empty and each concrete agent overrides them (e.g. `Coder` → `High` with the workspace-confinement, command-allowlist, shell-operator-rejection, timeout and files-only guardrails; `M365Copilot` → `Medium` because its `SendMail` tool sends email on the user's behalf; the read-only and sample-data agents → `Low`; `ChatAgent` keeps `None`). `GET /agents` carries both (`AgentInfo.RiskLevel` as a string and `AgentInfo.Guardrails`, see [Application/Agents/AgentCatalog.cs](../src/AgenticLab.AiService/Application/Agents/AgentCatalog.cs)); the Web client mirrors them on its own `AgentInfo` record ([Services/AiServiceClient.cs](../src/AgenticLab.Web/Services/AiServiceClient.cs)). All styling (the `env-*`, `risk-*` and `guardrail-*` classes and CSS variables) is themed via the `.flow-app` tokens in [Components/Pages/Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css), so the badges, meter and boundary share the same palette across vendors.
+
+## Corporate workbench
+
+Every harness in the Web app uses the [Corporate Workbench design](../design/mockups/v8-corporate-workbench.html):
+off-white surfaces, forest-green actions, a serif product heading and flat, divider-led panels.
+Flow and Discovery share this visual treatment. Vendor logos distinguish harnesses without changing colors.
+Harness prompts, agent choices and saved vendor preferences are preserved.
+
+Prompt signature, Inference, Embeddings and Neural network use the same flat sections,
+compact headers and controls. Their role colors, signed red/blue vectors and token linking
+are preserved. Narrow panes reflow the signature bars; reduced motion reveals answer tokens
+without animation and suppresses the network's visual effects without changing playback controls.
+Inference, embeddings and the network remain simulations, not captured model internals.
+
+The Conversation composer places the **Agent** selector below the message box, above the send controls.
+The message box, workspace path and repo base folders fields indicate focus with a subtle background tint, without an extra outline.
+
+Flow, Agent guide and React use an **Agentic AI** heading; Discovery retains **Agentic Lab**.
+The Blazor headers keep their subtitles and plain navigation links. The Flow header stays neutral across vendor selections and spans the full
+window. All three headers use 12-pixel vertical padding, with 24-pixel horizontal gutters on desktop
+and 16-pixel gutters below 1200 pixels. The harness/vendor rail begins below the Flow header,
+beside the workspace on desktop and as a horizontal
+strip above the panels below 1200 pixels.
+
+The live Flow diagram follows the Agent guide's visual language: a subtle 24-pixel grid, square nodes
+with compact left-aligned icons and colored edges, plain dashed boundaries, and divider-led tool
+sections. The Agent boundary explicitly labels **Agent = Agent host + Model**. Active nodes pulse
+without moving or resizing; directional arrows retain their live animations and align vertically
+when the diagram stacks. Perspectives, breakpoints and panel persistence are unchanged.
+
+The Controls and Learn panels start at 276 and 260 pixels wide; saved panel sizes still take precedence.
+Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane
+is 620 pixels wide or narrower, including after panel resizing. Contributor colors retain their meanings,
+and reduced-motion preferences disable visual animations without changing execution pacing.
+The main diagram uses locally bundled [Lucide icons and license](../src/AgenticLab.Web/wwwroot/icons/lucide/LICENSE),
+with no runtime CDN dependency.
+
+## Running the Console
+
+The Console is registered with `WithExplicitStart()`, so it does not launch automatically with the rest
+of the app. To run it:
+
+1. Start the app with `dotnet run --project src/AgenticLab.AppHost` and open the Aspire dashboard.
+2. Find the `console` resource and start it (▶). It needs an attached terminal for stdin, so use the
+   dashboard's terminal/console view to interact with it.
+3. The console lists the available agents and starts on the default. Type a question at the
+   `<agent>>` prompt and press Enter. Use `/agents` to list them again and `/agent <name>` to switch
+   (e.g. `/agent MathTutor`). Press Enter on an empty line to quit.
+
+To run the Console **standalone** (against an already-running AI service), pass the service URL:
+
+```sh
+dotnet run --project src/AgenticLab.Console -- --AiService:Url https://localhost:7123
+```
+
+Under Aspire it resolves the AI service by name (`https+http://aiservice`) via service discovery, so no
+URL is needed.
+
+## Running the web UI
+
+The `web` resource (Blazor Server) starts automatically with the app and is exposed on an external HTTP
+endpoint. Open it from the Aspire dashboard's `web` resource link. Type a message, pick an agent, then
+watch the data flow light up node-by-node as the agent runs. The stepping is **gated on the backend**, so
+the animation stays in sync with the real agent execution (and its OpenTelemetry spans) rather than being
+a client-side replay. Two modes control the pacing:
+
+- **Auto** — the AI service advances on its own, pausing for an adjustable *step delay* after each real
+  step. The delay can be changed live, and the run can be paused/resumed at any time.
+- **Manual** — the AI service blocks before each step until you click *Next*, so the next LLM round-trip
+  or tool call does not start until you allow it.
+
+The UI sends `next`, `pause`, `resume` and `stop` actions to `/chat/control`. The final answer appears
+once the run completes.
+
+**Breakpoints** in Settings pause actual execution even in Auto mode: **Before model request**,
+**After model response**, **Before tool execution**, and **After tool result**. Model breakpoints
+apply to every complete round-trip, including responses that request tools, not individual tokens.
+Tool breakpoints apply to each local or MCP function call, including the local A2A delegation call
+(not the remote agent's internal steps). The paused reason and tool name appear in both Settings
+and Chat. **Continue** runs in Auto until the next selected breakpoint; **Next** switches to Manual
+and releases the current boundary; **Stop** cancels. Breakpoints start off, remain selected across
+conversations, and clear on page refresh. Changing selections during a run affects future boundaries
+but does not release an existing pause. After-tool breakpoints follow successful tool returns;
+thrown errors retain the existing error behavior. Completed side effects cannot be undone.

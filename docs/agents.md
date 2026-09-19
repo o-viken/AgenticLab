@@ -2,6 +2,65 @@
 
 Part of the [Agentic Lab architecture notes](../AGENTS.md). How agents are defined and run: conversation memory, the layered harness + persona system prompt and the per-vendor harnesses that replace it, the built-in agent roster, the human-in-the-loop question tool, per-run tool toggles and per-agent model deployments. Workspace-defined agents are covered under [workspace](workspace.md#workspace-defined-agents-the-agents-folder).
 
+## Chat API
+
+Use the **aiservice** endpoint shown in the Aspire dashboard for direct API calls. These routes
+are implemented in [AgentEndpoints](../src/AgenticLab.AiService/Endpoints/AgentEndpoints.cs) and
+[ChatEndpoints](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs).
+
+### `GET /agents`
+
+Returns an `agents` array describing the available built-in agents and a `default` agent name
+(`ChatAgent`). Entries include the name, description, tools, workspace requirements, skills
+support, model configuration, risk level and guardrails. Use discovery rather than assuming a
+fixed roster; workspace-defined agents are listed separately by `POST /agents/workspace`.
+
+### `POST /chat`
+
+Send a message, optionally choosing an agent (otherwise the default is used):
+
+```json
+{ "message": "Who was Alan Turing?", "agent": "WikiAssistant" }
+```
+
+An example response:
+
+```json
+{
+  "reply": "Alan Turing was a British mathematician and computer scientist...",
+  "agent": "WikiAssistant",
+  "conversationId": "example-conversation-id"
+}
+```
+
+Include the returned `conversationId` in subsequent requests to continue the conversation.
+An empty message, unknown agent, or missing/invalid workspace for an agent that requires one
+returns `400 Bad Request`. Workspace agents and per-run tool, skill, instruction and vendor
+options are described in this guide and the [workspace guide](workspace.md).
+
+### `POST /chat/reset`
+
+Clear remembered history with `{ "conversationId": "example-conversation-id" }`.
+Returns `204 No Content`, or `400 Bad Request` for a blank ID. For interactive execution, see
+the [streaming API](execution-explorer.md#post-chatstream) and
+[control API](execution-explorer.md#post-chatcontrol).
+
+## Conversation retention
+
+History is held in memory, not durable storage. Configure the sliding inactivity window and
+cleanup interval in [AiService settings](../src/AgenticLab.AiService/appsettings.json):
+
+```json
+"Conversations": {
+  "InactiveTtl": "01:00:00",
+  "CleanupInterval": "00:05:00"
+}
+```
+
+Each use refreshes the expiry window. The `conversations.retained`, `conversations.expired` and
+`conversations.reset` OpenTelemetry instruments report counts, never conversation content.
+These settings are independent of the Web app's [replay retention](execution-explorer.md#replay-retention).
+
 ## Conversation memory and the layered prompt
 
 **Conversation memory.** Agents stay stateless, but a run can continue a prior chat. Each request carries a client-generated `ConversationId`; [Application/Conversations/ConversationStore.cs](../src/AgenticLab.AiService/Application/Conversations/ConversationStore.cs) (a singleton `ConcurrentDictionary<string, ConversationEntry>`) holds one `AgentSession` per conversation, created lazily via `agent.CreateSessionAsync(…)` on first use. The endpoints pass that session into `agent.RunAsync(message, session, …)` / `RunStreamingAsync(message, session, …)`, so the model sees the earlier turns. Sessions are interchangeable across agents (they just carry chat messages), so a conversation may switch agents and keep its history. `POST /chat/reset` (`ConversationResetRequest { ConversationId }`) forgets a conversation immediately; the Console `/new` command and the Web **New conversation** button call it. Storage is in-memory and intended for sequential use within a conversation (no per-conversation locking). To bound abandoned history, access refreshes a sliding expiration window configured by `Conversations:InactiveTtl` (one hour by default), and a `TimeProvider` timer removes inactive entries at `Conversations:CleanupInterval` (five minutes by default). The store publishes count-only OpenTelemetry instruments on the `AgenticLab.AiService.Conversations` meter: `conversations.retained`, `conversations.expired` and `conversations.reset`.

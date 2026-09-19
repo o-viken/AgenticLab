@@ -50,6 +50,14 @@ npm --prefix src/AgenticLab.React ci
 dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
 ```
 
+Alternatively, after installing the frontend dependencies, use the Aspire CLI from the repository root:
+
+```sh
+aspire run -- --ReactFrontend:Enabled=true
+```
+
+The CLI restores and builds the AppHost and its dependencies before starting the application.
+
 Open the **react** resource URL in the dashboard. **react-bff** provides the API boundary; the existing
 **web** resource still opens Blazor. Vite uses Aspire's assigned `PORT` and BFF endpoint. The flag can
 also be supplied as `ReactFrontend__Enabled=true`. Omit it for the original startup.

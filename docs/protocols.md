@@ -29,7 +29,7 @@ FullCall remains display text, not JSON; routing must not parse it. The pure
 `ExecutionExchange.A2AAgents` retain the send-time roster. Replay uses the same causal prefix as Context,
 so later results/agents never leak into an earlier stage. Unknown targets/old captures retain the generic
 resource fallback. Initial load and vendor changes refresh A2A discovery as agent-picker changes already do.
-See [README.md](../README.md#remote-a2a-agents) for visible states and limitations. Focused capture/replay tests
+See [the reference below](#remote-a2a-agents) for visible states and limitations. Focused capture/replay tests
 live in the existing AiService and Web test projects.
 
 ## Protocol integration tests
@@ -71,3 +71,35 @@ also has an independent Re-discover command. Controls use Discovery's own sessio
 reconciliation use `GetDiscoveryAsync`. `Discovery:OnStartup` remains read-only. After a modal that
 started re-discovery closes, Flow refreshes live agent/MCP/A2A catalogs without changing historical
 exchange rosters, conversation identity, draft or replay selection.
+
+## Remote A2A agents
+
+Select **Orchestrator** and **Expert** to see each discovered remote agent (Research and Poet by
+default) as its own **Agent host + Model** composition below the main flow. Both agent hosts run in the same
+separate **A2A service** process; the cloud-model nodes show each agent's model role, not separate
+deployments. **Agent** outlines each composition, while **Environment & risk** distinguishes the
+shared server process from the cloud models. Narrow panes stack each harness above its model.
+The remote area has a grid-free background, with alternating blue/green bands grouping each agent's
+harness and model. This visual separation remains visible when boundary overlays are off.
+
+Request/result arrows highlight the targeted agent. The display distinguishes **Delegation requested**
+from **Result returned**: the former is a captured tool request, not confirmation of a network send,
+and a result can contain an error. Remote model calls, prompts and token counts are **not captured**;
+internal model links stay static. Generic model labels do not borrow the Orchestrator's deployment.
+
+Execution playback uses the roster saved with that exchange and pairs calls/results by call ID.
+Selecting a request never reveals its future reply. Missing structured metadata or unknown targets
+fall back to the generic resource display. Replay and held/stopped runs do not animate remote links.
+
+## Dependency upgrade checks
+
+Run the deterministic agent and protocol integration tests without Azure credentials:
+
+```sh
+dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
+```
+
+These cover streamed agent tool execution, disabled tools and second-turn conversation history,
+plus MCP discovery/tool calls and A2A discovery/delegation over loopback HTTP. The model is a fake;
+the protocol servers use ephemeral ports and are disposed after each test. These checks do not
+replace a live Azure OpenAI or full AppHost startup smoke test.

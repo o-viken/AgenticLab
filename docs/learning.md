@@ -30,7 +30,7 @@ The learning content renders in the right **Learn** [SidePanel](../src/AgenticLa
 ## Guided agent learning
 
 The standalone [Learn page](../src/AgenticLab.Web/Components/Pages/Learn.razor) at `/learn` supplements,
-but does not replace, the contextual Learn panel. See [README.md](../README.md#agent-guide) for the
+but does not replace, the contextual Learn panel. See [the reference below](#agent-guide) for the
 user-facing journey and its implementation-status caveats. Flow and Discovery link to it in a new
 tab to preserve the originating page's live run and page-scoped state.
 Learn's header also includes the shared GitHub repository icon link, which opens the source in a
@@ -148,3 +148,133 @@ is copied to test output rather than located through repository-relative directo
 Run `dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj` for stage/permalink,
 navigation and concept/node-reference validation. Public page members use XML summaries, for
 example `StageId` documents the stable query-string identifier.
+
+## Agent guide
+
+Open **Agent guide** from Flow or Discovery for the standalone `/learn` page. The link opens a new
+tab so a live or paused run remains in its original page. The existing **Learn** checkbox still
+controls the contextual topic panel; it is independent of the guide.
+
+The guide fits the viewport: the header and stage navigation stay visible while the lesson pane
+scrolls independently. Navigation scrolls separately when needed and becomes a horizontal strip
+on narrow screens. Reveal controls stay pinned at the top of the pane while scrolling their lesson.
+
+Ten stages connect the ideas: **Demystify**, **Agent**, **The Agentic Landscape**, **Inside the agent host**,
+**Anatomy of an agent**, **The agent loop**, **Same foundation, different setting**, **The wider ecosystem**, **Where should your agent run?**, and
+**Run and improve**. The short **Demystify** introduction demystifies agents: why understanding
+them matters, what they are, and how a task moves through the system. It is the default opening at
+`/learn` and retains the `why-agents` permalink. Each subsequent stage has a concept diagram,
+and all stages link to related topics from the same concept catalog as the contextual panel.
+The introduction shows **Why**, **What**, then **How**, one at a time, with Previous/Next step
+controls, a counter and Restart. Returning to the stage starts at Why.
+**The Agentic Landscape** connects chat, coding, office and custom purposes to one shared
+agentic foundation. These overlapping examples are not a vendor taxonomy.
+It has two reveals: the agent purposes, then their shared **Agent host + Model** foundation.
+Execution is introduced later in the dedicated **The agent loop** chapter.
+**Agent** builds **Agent host + Model** in seven reveals: a names-only Agent host + Model
+overview, host details and responsibilities, host tool execution, model details,
+the outbound context/tool definitions/tool results, the model's answer or tool
+request, and the enclosing agent boundary. The agent host manages context, instructions, tools,
+memory and execution controls; the model reasons, plans and chooses a next step or final answer.
+**The model reasons. The agent host acts. Together, they form an agent.** A model request is not
+permission to execute. Harness remains the technical term for the host's agent-running machinery;
+host describes a software role, not a machine. Triggers remain outside the agent boundary.
+Its original `/learn?stage=model-to-agent` permalink is preserved.
+Both component boxes and the plus sign remain visible from the opening overview; descriptions,
+responsibilities, tools and exchange paths appear progressively without moving the boxes.
+These two lessons, **Anatomy of an agent**, and **Same foundation, different setting** provide Previous/Next reveal controls,
+**Show complete diagram** and **Restart**, separate from chapter navigation. Reveals reserve
+their layout space, are manually advanced (no autoplay), and respect reduced motion.
+Reveal progress resets on a chapter change or reload; opening a related concept does not reset it.
+**Inside the agent host** uses the overview's five responsibilities in the same order: **Gather context**,
+**Load instructions**, **Make tools available**, **Manage memory**, and **Enforce execution controls**.
+Its `inside-the-harness` permalink remains unchanged.
+**Anatomy of an agent** (`/learn?stage=anatomy-of-agent`) follows with eight cumulative reveals:
+system prompt, available host capabilities, agent persona, selected tools and model/settings,
+task prompt, custom instructions, skill descriptions, and a loaded skill body. The layered diagram
+distinguishes standing guidance, configured capabilities, and per-task context. MCP tools and A2A
+delegation are labelled separately; a skill is guidance loaded through an allowed tool, not extra permissions.
+The **Chat / Office / Coding / Custom** selector changes the entire anatomy to fit its purpose:
+system guidance, capability catalogue and selected subset, persona, model role, required controls,
+task, custom instructions and playbooks. **Office** is a Microsoft 365 Copilot-style example with
+mail, calendar, document and people connectors plus sending mail with user confirmation.
+Its **Meeting assistant / Document reviewer** selector contrasts briefing and confirmed communications
+with read-only document comparison. The reviewer has its own task, model-choice rationale and
+playbooks; only document search and skill reading are selected, with no sending, editing or deletion.
+**Chat** researches questions; **Custom** investigates equipment alerts with read-only telemetry
+and manuals, without equipment control. These are illustrative teaching configurations, not product
+replicas or claims about native connectors, skills, models or enforcement in Microsoft 365.
+**Coding** offers **Ask / Plan / Implement / Review**. Ask, Plan and Review stay read-only;
+Implement selects workspace writes and terminal use with approval or allowlisting, resource limits
+and no production access. Its task and playbooks demonstrate an edit-and-test workflow.
+Every persona across Chat, Office, Coding and Custom carries a **Model choice example** and a short
+rationale: conversational speed, long-context synthesis, planning/review reasoning, reliable coding
+tool use or domain-tested alert triage. These are capability-based trade-offs, not required model
+products or automatic routing. Model choice never grants permissions. The host prompt and capability
+catalogue remain shared within each purpose. Purpose and mode changes preserve reveal progress; choosing a purpose
+selects its first mode. **Restart** retains the selected purpose and mode; leaving and reentering the
+chapter or reloading restores Coding / Ask.
+Opening a related topic preserves both selection and progress. No backend agent is selected and no
+model, tool or discovery call runs. On narrow screens the layers stack in reveal order.
+**The agent loop** shows the model's decision, the
+tool execution and observation cycle, and a separate final-answer exit that can bypass tools.
+**Same foundation, different setting** compares illustrative local/cloud application configurations
+and names familiar applications by purpose: ChatGPT, Gemini and Claude for Chat; GitHub Copilot,
+Claude Code and Gemini Code Assist for Coding; Microsoft 365 Copilot and Gemini for Google Workspace
+for Office; and an in-house agent or business application for Custom. Products can span purposes,
+and agentic capabilities depend on mode/configuration. These examples do not claim that the
+local/cloud comparisons describe those products. The configurations show the shared foundation
+for each purpose, including context, tools and controls. A separate user/schedule/event selector
+explains triggers. A local application can use a remote model; portability and tool access are
+not automatic. These controls never move agents, schedule work or make model calls.
+**Where should your agent run?** (`/learn?stage=where-to-run`) compares **Personal runtime**,
+**Existing product**, **Your own service**, and **Managed agent platform** using one report-review task.
+Each option separates agent host, model service, tools/data access and operational ownership,
+then explains its trade-off and the approvals or capabilities needed to use it. These are operating
+models, not a list of platforms available in your organization.
+The **Vendors and stacks** list adds expandable, officially sourced examples for the selected
+category: Microsoft Agent Framework, OpenAI Agents SDK, Claude Agent SDK, Google ADK, Strands
+Agents and LangGraph for code-based stacks; Microsoft 365 Copilot, Copilot Studio, ChatGPT GPTs
+and workspace agents, Gemini Gems and n8n Cloud for product-based work; Foundry Agent Service,
+Google's Gemini Enterprise Agent Platform Agent Runtime, Amazon Bedrock AgentCore Runtime,
+Claude Managed Agents and LangSmith Deployment for managed operation. Self-hosted n8n appears
+under personal/own-service options; LangSmith Deployment spans own-service and managed options.
+Each entry distinguishes its offering type from hosting and links to an official source. Sources
+were checked on 17 September 2026; preview/beta, license and access caveats are not guarantees of
+organizational availability. Category changes collapse the new list's details, without resetting
+the lesson's reveal, trigger or readiness selections.
+Three manual reveals cover the comparison, triggers/supervision and hybrid connections, then
+operational readiness. Later sections remain hidden and unfocusable until revealed. User request,
+schedule and event are independent of hosting; all retain review before publication in this example.
+**Try it yourself / Share with a team / Run operationally** compares identity, state and isolation,
+recovery, cost and release controls. Local-to-cloud is one possible path, not a requirement or a
+promise of portability. Selections preserve reveal progress; Restart preserves selections, while
+chapter reentry or reload resets them. Related topics do not reset state. No deployment, platform
+discovery, scheduling or backend calls are performed by this lesson.
+**The wider ecosystem** contrasts MCP tool calls with A2A delegation, without exposing agent internals.
+**Run and improve** follows Run, Observe, Evaluate and Improve back to the next tested version;
+this operating cycle is separate from the agent's per-turn execution loop.
+Stage URLs such as `/learn?stage=agent-loop` support bookmarks, reload and browser Back/Forward.
+The product-specific **Map to Microsoft Foundry** stage is retained in code but hidden from the guide.
+Previous/Next skip it, and **Run and improve** is stage 08. Hidden or unknown stage IDs fall back
+to the first stage. Live-flow links navigate only; they never send a prompt.
+Discovery is available from the live Flow header, not from the guide. It opens as a modal overlay
+that keeps the conversation, draft and execution history intact. Close, Escape or a backdrop click
+returns to the same conversation. Opening only reads the discovery snapshot; re-discovery is explicit
+and unavailable while the current chat runs. The standalone `/discovery` URL remains available.
+
+The diagrams are explanations, not live telemetry. Landscape and environment comparisons are
+illustrative, not product or deployment guarantees. The final stage distinguishes today's execution traces from future
+Foundry hosting and managed-evaluation integration. The guide works without AiService or Azure
+credentials; run only the Web project and visit `/learn`:
+
+```sh
+dotnet run --project src/AgenticLab.Web
+```
+
+Focused tests validate stable stage URLs, navigation, reveal bounds/reset, independent example/trigger
+selection, per-stage node selection and references to the shipped concept content:
+
+```sh
+dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
+```

@@ -2,7 +2,8 @@
 
 A .NET 10 [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample: a set of AI agents backed by Azure OpenAI, each with its own persona and toolset, that answer questions using Wikipedia and a calculator as tools.
 
-See [README.md](README.md) for a user-facing overview, prerequisites, and the `POST /chat` / `GET /agents` API.
+See [README.md](README.md) for a user-facing overview, prerequisites, local setup and contribution steps.
+The [agents guide](docs/agents.md#chat-api) covers the `POST /chat` / `GET /agents` API.
 
 ## Architecture
 
@@ -58,14 +59,14 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 
 | Page | Covers |
 |------|--------|
-| [docs/agents.md](docs/agents.md) | Conversation memory, the layered harness + persona prompt, per-vendor harnesses, the agent table, human-in-the-loop questions, per-run tool toggles, per-agent models / `ForceDefaultModel`. |
+| [docs/agents.md](docs/agents.md) | Chat API, conversation memory and retention, the layered harness + persona prompt, per-vendor harnesses, the agent table, human-in-the-loop questions, per-run tool toggles, per-agent models / `ForceDefaultModel`. |
 | [docs/web-flow-page.md](docs/web-flow-page.md) | The live flow visualization: page shell and panels, perspectives, diagram toggles, conversation surface, captured LLM payloads, prompt signature, the simulated inference / embeddings / network panels, backend-gated stepping, environment & risk view. |
 | [docs/react-frontend.md](docs/react-frontend.md) | Optional CSR React prototype, BFF routes, startup/build/test commands, scope and frontend customization. |
-| [docs/execution-explorer.md](docs/execution-explorer.md) | The Execution dock (replay of a captured run, bounded archives, resource baseline) and chat execution breakpoints. |
+| [docs/execution-explorer.md](docs/execution-explorer.md) | The Execution dock (replay of a captured run, bounded archives, resource baseline), chat execution breakpoints and streaming/control API. |
 | [docs/learning.md](docs/learning.md) | The in-app Learn panel (concept content) and the standalone guided `/learn` journey. |
 | [docs/workspace.md](docs/workspace.md) | Workspace skills, custom instructions, workspace-defined agents (YAML + markdown conventions, tool aliases) and the workspace-scoped file/terminal tools. |
 | [docs/protocols.md](docs/protocols.md) | The MCP server, the A2A server and the observable discovery process + Discovery page. |
-| [README.md](README.md) | User-facing overview, prerequisites and the HTTP API. |
+| [README.md](README.md) | Purpose, prerequisites, local startup, contribution steps and documentation index. |
 | [tools/README.md](tools/README.md) | The Playwright load-test profile. |
 
 ## Build and Run
