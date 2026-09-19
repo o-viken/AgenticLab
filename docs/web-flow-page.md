@@ -126,7 +126,12 @@ lifetime and are not persisted across refreshes.
 The loop counter control is disabled while **Model** is hidden, but retains its checked preference; it
 returns when the model is shown again. Teaching panels can be displayed independently of the Model node.
 **Tools** controls tool details in both compact and expanded hosts plus the active tool resource below
-the host. **Skills**, **MCP servers**, and **A2A agents** independently control their supported catalogues
+the host. External tool activity occupies its own diagram row, so showing, updating or clearing a
+resource card does not recenter the User, host, Model or their main connections. The diagram grows
+downward as needed. At container widths of 620px or less, activity follows the entire main node stack
+(including Model when visible), ahead of A2A and model-internals panels. No empty activity row is
+reserved while inactive; changing the host's content or display options can still change its layout.
+**Skills**, **MCP servers**, and **A2A agents** independently control their supported catalogues
 in both layouts; **A2A agents** also controls the remote-agent flow row. `HostCatalogues` shares the
 catalogue markup between both layouts. No option enables or disables an actual tool, filters captured
 events, clears conversation history, or resets replay selection. Run settings remain in `RunOptions`.

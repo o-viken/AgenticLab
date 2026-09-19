@@ -110,31 +110,6 @@
         {
             <HarnessNode />
         }
-
-        @if (View.Diagram.ShowTools && Run.Focus.ActiveResourceInfo is { } resource
-            && !(resource.Key == "a2a" && View.Diagram.ShowA2A && Run.Replay.DisplayA2A.ActiveAgent is not null))
-        {
-            <div class="connector vertical active"></div>
-            <div class="resources">
-                <div class="node resource active">
-                    <span class="icon">@resource.Icon</span>
-                    <span class="title">@resource.Title</span>
-                    <span class="subtitle">@resource.Transport</span>
-                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolName))
-                    {
-                        <span class="resource-tool">🔧 @Run.Focus.ActiveToolName</span>
-                    }
-                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolArgs))
-                    {
-                        <span class="resource-detail args" title="@Run.Focus.ActiveToolArgs">▶ @Run.Focus.ActiveToolArgs</span>
-                    }
-                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolResult))
-                    {
-                        <span class="resource-detail result" title="@Run.Focus.ActiveToolResult">◀ @Run.Focus.ActiveToolResult</span>
-                    }
-                </div>
-            </div>
-        }
     </div>
 
     @if (View.Diagram.ShowModel)
@@ -174,6 +149,33 @@
                     <button type="button" class="concept-mcp" title="Learn about MCP"
                             @onclick="@(() => View.Concepts.OpenConcept("mcp"))" @onclick:stopPropagation="true">What is MCP?</button>
                 }
+            </div>
+        </div>
+    }
+
+    @if (View.Diagram.ShowTools && Run.Focus.ActiveResourceInfo is { } resource
+        && !(resource.Key == "a2a" && View.Diagram.ShowA2A && Run.Replay.DisplayA2A.ActiveAgent is not null))
+    {
+        <div class="column resource-activity">
+            <div class="connector vertical active"></div>
+            <div class="resources">
+                <div class="node resource active">
+                    <span class="icon">@resource.Icon</span>
+                    <span class="title">@resource.Title</span>
+                    <span class="subtitle">@resource.Transport</span>
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolName))
+                    {
+                        <span class="resource-tool">🔧 @Run.Focus.ActiveToolName</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolArgs))
+                    {
+                        <span class="resource-detail args" title="@Run.Focus.ActiveToolArgs">▶ @Run.Focus.ActiveToolArgs</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Run.Focus.ActiveToolResult))
+                    {
+                        <span class="resource-detail result" title="@Run.Focus.ActiveToolResult">◀ @Run.Focus.ActiveToolResult</span>
+                    }
+                </div>
             </div>
         </div>
     }
