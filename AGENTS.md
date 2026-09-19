@@ -52,6 +52,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 
 - Build: `dotnet build TheSeries.slnx`
 - Run everything (launches the Aspire dashboard): `dotnet run --project src/TheSeries.AppHost`
+- AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
+- Test: `dotnet test TheSeries.slnx`. AiService's `FlowExecutionTests` and `ProtocolIntegrationTests` cover agent streaming/history/tool filtering and loopback MCP/A2A round trips without Azure credentials. Protocol tests reference the MCP and A2A server projects and use ephemeral ports with a fake model.
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
 

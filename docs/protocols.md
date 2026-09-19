@@ -6,6 +6,10 @@ Part of the [TheSeries architecture notes](../AGENTS.md). The two real cross-ser
 
 A real Model Context Protocol integration: [src/TheSeries.McpServer](../src/TheSeries.McpServer/Program.cs) is a minimal ASP.NET Core MCP server (`ModelContextProtocol.AspNetCore`, `AddMcpServer().WithHttpTransport().WithToolsFromAssembly()`, `MapMcp()`) exposing one `[McpServerTool]` — `GetCurrentTime` ([Tools/TimeTools.cs](../src/TheSeries.McpServer/Tools/TimeTools.cs)). The AppHost runs it as the `mcpserver` resource and the AiService references it. At startup [Application/Discovery/McpToolProvider.cs](../src/TheSeries.AiService/Application/Discovery/McpToolProvider.cs) connects an MCP client over HTTP (endpoint resolved via service discovery, `services:mcpserver:http:0`), lists the tools, and caches them as `AITool`s; failures degrade gracefully to an empty list. The `TimeKeeper` agent ([Demo/Agents/TimeKeeperAgent.cs](../src/TheSeries.AiService/Demo/Agents/TimeKeeperAgent.cs)) sets `SupportsMcp => true` and exposes those discovered tools. Discovery is surfaced over `GET /mcp` (`McpResponse { Servers: [{ Name, Tools: [{ Name, Description }] }] }`) and as the new `AgentInfo.SupportsMcp` flag; the Web flow page shows an **MCP servers** box in the harness (mirroring the Skills box). It can also be listed in a `.vscode/mcp.json` so VS Code uses it directly.
 
+MCP uses the v2 SDK's default **stateless HTTP** transport. The time tool needs no transport session
+or unsolicited server-to-client requests, so no stateful opt-in is required. This is independent of
+the AiService's conversation memory and the Web application's chat SSE stream.
+
 ## A2A server (the Orchestrator agent)
 
 A real Agent2Agent (A2A) integration — the agent-to-agent analogue of the MCP one above (where MCP standardizes model-to-**tool** calls, A2A standardizes agent-to-**agent** calls; there is no protocol distinction between "an agent" and "a sub-agent" — that only names the caller→callee relationship). [src/TheSeries.A2AServer](../src/TheSeries.A2AServer/Program.cs) is a minimal ASP.NET Core service that hosts **one or more persona-only agents declared in configuration** (`A2A:Agents` — each an entry of `{ Name, Path?, Description, Instructions }`; ships a `research` and a `poet` agent) via Microsoft Agent Framework: for each it calls `builder.AddAIAgent(name, instructions)` (backed by an Azure OpenAI `IChatClient`), `agent.AddA2AServer()`, and `app.MapA2AJsonRpc(agent, path)` (path defaults to `/a2a/{name}`) from `Microsoft.Agents.AI.Hosting.A2A.AspNetCore`. It also exposes a plain `GET /agents` **discovery** endpoint (`A2AAgentsResponse { Agents: [{ Name, Path, Description }] }`) so a caller can learn the roster without sharing config — adding an agent to `A2A:Agents` surfaces it to callers automatically. Because it hosts LLM agents, the AppHost injects the same `AzureOpenAI__*` settings it gives the AiService (unlike `mcpserver`, which needs none). The AppHost runs it as the `a2aserver` resource and the AiService references it. At startup [Application/Discovery/A2AAgentProvider.cs](../src/TheSeries.AiService/Application/Discovery/A2AAgentProvider.cs) resolves the server endpoint (service discovery `services:a2aserver:http:0`, falling back to the `A2A:Endpoint` config value for a standalone run), calls its `GET /agents` to **discover** the hosted agents, and builds one `A2AClient` (from the standalone `A2A` package) per agent keyed by name. It exposes a single generic `DelegateToAgent(agentName, question)` `AITool` (whose description lists the discovered roster) that routes a question to the named agent, sends an A2A message and returns the reply; an unknown name returns the list of valid agents, and any failure degrades gracefully to an empty tool list. The `Orchestrator` agent ([Demo/Agents/OrchestratorAgent.cs](../src/TheSeries.AiService/Demo/Agents/OrchestratorAgent.cs)) sets `SupportsA2A => true`, carries `Calculate` plus the delegation tool, and is instructed to answer arithmetic itself but delegate specialist questions by name — so a run contrasts a locally-answered turn with a delegated one. Discovery is surfaced over `GET /a2a` (`A2AResponse { Agents: [{ Name, Description }] }`) and as the new `AgentInfo.SupportsA2A` flag; the Web flow page shows an **A2A agents** box in the harness (mirroring the Skills/MCP boxes) listing every discovered agent, and a **Sub-agent (A2A)** resource node that lights up when the delegation tool runs.
@@ -27,6 +31,20 @@ so later results/agents never leak into an earlier stage. Unknown targets/old ca
 resource fallback. Initial load and vendor changes refresh A2A discovery as agent-picker changes already do.
 See [README.md](../README.md#remote-a2a-agents) for visible states and limitations. Focused capture/replay tests
 live in the existing AiService and Web test projects.
+
+## Protocol integration tests
+
+[ProtocolIntegrationTests.cs](../tests/TheSeries.AiService.Tests/ProtocolIntegrationTests.cs)
+starts local Kestrel servers on ephemeral loopback ports using the same MCP/A2A registration APIs
+as the production servers. It exercises the production `McpToolProvider` and `A2AAgentProvider`,
+including rediscovery and calls after reconnecting. MCP exposes the real `TimeTools` implementation;
+the A2A server hosts a deterministic fake-model agent and a test discovery roster. No Azure
+credentials or external model calls are needed. Server entry points, Azure client configuration,
+and Aspire service discovery still need a separate full-app smoke test.
+
+The neighboring `FlowExecutionTests` also runs an actual `ChatClientAgent` through the tool-filtering,
+function-invocation and capture middleware. It verifies streamed replies and tool results survive
+into the second conversation turn, and that a model request for a disabled tool cannot execute it.
 
 ## Discovery visualization (MCP + A2A)
 

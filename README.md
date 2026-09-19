@@ -244,6 +244,11 @@ The solution ([TheSeries.slnx](TheSeries.slnx)) contains five projects, orchestr
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - An [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) resource with a deployed chat model
 
+The AppHost pins Aspire **13.5.4**; `dotnet restore` downloads the matching SDK automatically.
+CLI bundle integration is enabled (`AspireUseCliBundle=true`). Install the matching
+[Aspire CLI](https://aspire.dev/get-started/install-cli/) for local development. The SDK uses a
+compatible CLI on `PATH`, with its SDK-paired CLI package through `dnx` as a fallback.
+
 ## Configuration
 
 Azure OpenAI settings are read from the **AppHost user-secrets** and injected into the AI service as
@@ -320,6 +325,19 @@ Run everything (launches the Aspire dashboard):
 ```sh
 dotnet run --project src/TheSeries.AppHost
 ```
+
+### Dependency upgrade checks
+
+Run the deterministic agent and protocol integration tests without Azure credentials:
+
+```sh
+dotnet test tests/TheSeries.AiService.Tests/TheSeries.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
+```
+
+These cover streamed agent tool execution, disabled tools and second-turn conversation history,
+plus MCP discovery/tool calls and A2A discovery/delegation over loopback HTTP. The model is a fake;
+the protocol servers use ephemeral ports and are disposed after each test. These checks do not
+replace a live Azure OpenAI or full AppHost startup smoke test.
 
 ### Running the Console
 

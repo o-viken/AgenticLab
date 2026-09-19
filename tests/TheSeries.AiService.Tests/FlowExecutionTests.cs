@@ -1,6 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
+using TheSeries.AiService.Application.Conversations;
 using TheSeries.AiService.Application.Flow;
 using Xunit;
 
@@ -8,6 +11,53 @@ namespace TheSeries.AiService.Tests;
 
 public sealed class FlowExecutionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AgentStreamingPreservesHistoryAndHonorsDisabledTools(bool disableTool)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var model = new FakeModel();
+        var toolCalls = 0;
+        var tool = AIFunctionFactory.Create(() => Interlocked.Increment(ref toolCalls), "Count");
+        using var pipeline = model.AsBuilder()
+            .Use(inner => new ToolFilteringChatClient(inner))
+            .UseFunctionInvocation(configure: client => client.FunctionInvoker = FlowExecutionScope.InvokeFunctionAsync)
+            .Use(inner => new CapturingChatClient(inner))
+            .Build();
+        var agent = new ChatClientAgent(pipeline, instructions: "Test", name: "Test", tools: [tool]);
+        using var conversations = new ConversationStore(Options.Create(new ConversationStoreOptions()), TimeProvider.System);
+        var session = await conversations.GetOrCreateAsync("integration", agent, timeout.Token);
+        using var filter = ToolFilterScope.Begin(disableTool ? ["Count"] : []);
+
+        var firstReply = new List<string>();
+        await foreach (var update in agent.RunStreamingAsync("Count twice", session, cancellationToken: timeout.Token))
+        {
+            firstReply.Add(update.Text);
+        }
+
+        Assert.Equal("Done", string.Concat(firstReply));
+        Assert.Equal(disableTool ? 0 : 2, toolCalls);
+        Assert.Equal(2, model.Requests);
+        Assert.All(model.RequestedTools, tools => Assert.Equal(!disableTool, tools.Contains("Count")));
+
+        var continuedSession = await conversations.GetOrCreateAsync("integration", agent, timeout.Token);
+        Assert.Same(session, continuedSession);
+        var secondReply = new List<string>();
+        await foreach (var update in agent.RunStreamingAsync("Follow-up", continuedSession, cancellationToken: timeout.Token))
+        {
+            secondReply.Add(update.Text);
+        }
+
+        Assert.Equal("Done", string.Concat(secondReply));
+        Assert.Equal(3, model.Requests);
+        Assert.Equal(disableTool ? 0 : 2, toolCalls);
+        var history = model.RequestMessages[^1];
+        Assert.Equal(new[] { "Count twice", "Follow-up" },
+            history.Where(message => message.Role == ChatRole.User).Select(message => message.Text));
+        Assert.Contains(history, message => message.Role == ChatRole.Assistant && message.Text == "Done");
+    }
+
     [Fact]
     public async Task EveryBoundaryStopsRealExecutionAndNotifiesWhileAdvanceIsBlocked()
     {
@@ -118,6 +168,8 @@ public sealed class FlowExecutionTests
     private sealed class FakeModel : IChatClient
     {
         public int Requests { get; private set; }
+        public List<ChatMessage[]> RequestMessages { get; } = [];
+        public List<string[]> RequestedTools { get; } = [];
 
         public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
             IEnumerable<ChatMessage> messages, ChatOptions? options = null,
@@ -125,6 +177,8 @@ public sealed class FlowExecutionTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             Requests++;
+            RequestMessages.Add(messages.ToArray());
+            RequestedTools.Add(options?.Tools?.OfType<AIFunction>().Select(tool => tool.Name).ToArray() ?? []);
             await Task.Yield();
             if (Requests == 1)
             {
