@@ -79,6 +79,7 @@ internal static class ServiceRegistration
     public static IServiceCollection AddDemoAgents(this IServiceCollection services)
     {
         services.AddSingleton<IAgentDefinition, ChatAgent>();
+        services.AddSingleton<IAgentDefinition, ChatGptAgent>();
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
         services.AddSingleton<IAgentDefinition, MathTutorAgent>();
         // services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();

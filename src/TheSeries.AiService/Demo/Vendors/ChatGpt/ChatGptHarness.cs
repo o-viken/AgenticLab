@@ -32,6 +32,6 @@ public sealed class ChatGptHarness : IVendorHarness
     /// <inheritdoc />
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode(ChatAgent.AgentName, "chat"),
+        new VendorMode(ChatGptAgent.AgentName, "chat"),
     };
 }

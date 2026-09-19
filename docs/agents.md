@@ -18,6 +18,7 @@ Part of the [TheSeries architecture notes](../AGENTS.md). How agents are defined
 | `MathTutor` | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | `TriviaMaster` | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `ChatAgent` (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
+| `ChatGpt` | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `Ask` | Read-only assistant that answers questions and explains code in the workspace without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles` |
 | `Plan` | Read-only planner that investigates the workspace and proposes an implementation plan without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles`, `AskQuestion` |
 | `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted commands. **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
@@ -30,6 +31,24 @@ Part of the [TheSeries architecture notes](../AGENTS.md). How agents are defined
 The first definition registered in [Startup/ServiceRegistration.cs](../src/TheSeries.AiService/Startup/ServiceRegistration.cs) (`AddDemoAgents`) is the default. `GET /agents` lists them (each entry includes a `RequiresWorkspace` flag); `POST /chat` selects one by name (case-insensitive) and falls back to the default when none is given. `Ask` and `Plan` are **read-only** workspace agents: they share the read-only subset of the file tools (`FileSystemTool.AsReadOnlyTools()` → `ReadFile`, `ListFiles`) and never write, delete or run commands. `Plan` additionally carries the `AskQuestion` tool (see [asking the user a question](#asking-the-user-a-question-human-in-the-loop)), which pauses a run to ask the user a clarifying question but changes nothing in the workspace.
 
 The three `M365*` agents power the **Microsoft 365 Copilot** vendor. They are grounded in a **fake** Microsoft 365 / Microsoft Graph tool set ([Demo/Tools/Microsoft365Tool.cs](../src/TheSeries.AiService/Demo/Tools/Microsoft365Tool.cs)) — `SearchEmail`, `SearchFiles`, `SearchChats`, `GetCalendar`, `FindPeople`, `SummarizeDocument` (read-only grounding) plus `SendMail` (a **write/side-effecting** action that simulates sending a work email) — that matches over small canned, in-memory sample datasets and makes **no real Graph or network call** (it models the kind of work-content grounding M365 Copilot does, conceptually like the existing Wikipedia/calculator tools). `SendMail` is the reason `M365Copilot` is rated **Medium** risk rather than Low: unlike the read-only tools it *acts in the world* on the user's behalf (a hard-to-reverse communication that could leak data or impersonate the user if the model is wrong or steered by prompt injection in the content it reads), so the agent's persona is instructed to confirm the recipient/subject/body before calling it, the tool validates the address and refuses an empty message, and it can be toggled off per run to make the agent read-only. `Microsoft365Tool` exposes three subsets: `AsTools()` (all seven, for `M365Copilot`), `AsResearchTools()` (search subset, no calendar or send — `M365Researcher` combines it with `WikiTool` for public-web grounding) and `AsAnalystTools()` (files + summaries — `M365Analyst` combines it with `CalculatorTool`). None of the M365 agents require a workspace or support skills.
+
+### ChatGPT lookup and calculation demo
+
+The ChatGPT vendor's **chat** mode selects `ChatGpt`, a dedicated agent reusing the existing
+Wikipedia and calculator tools. `ChatAgent` remains the tool-free default and other vendors' modes
+are unchanged. No extra API keys or services are needed: Wikipedia requests use its public API,
+and calculations run locally in the AI service. The model backend remains Azure OpenAI; this is
+a representative demo, not OpenAI's internal ChatGPT toolset.
+
+Try: "Find the height of the Eiffel Tower on Wikipedia, then calculate how much taller it is
+than a 250-metre building." The model chooses the tool calls; the host executes them and the
+existing flow capture shows the results. Individual tools can still be disabled per run.
+`GetWikiPage` returns a short summary, not the full article, and Wikipedia lookup is not general
+web search or a guaranteed source of live sports results. Retrieved text is treated as source
+material rather than instructions in the agent's prompt.
+
+Direct API callers select `Agent: "ChatGpt"` and `Vendor: "chatgpt"`. The vendor alone only
+changes the harness prompt; it does not select an agent or add tools.
 
 ## Asking the user a question (human-in-the-loop)
 

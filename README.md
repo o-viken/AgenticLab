@@ -217,9 +217,15 @@ dotnet test tests/TheSeries.Web.Tests/TheSeries.Web.Tests.csproj
 | Agent | Persona | Tools |
 |-------|---------|-------|
 | **ChatAgent** (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
+| **ChatGpt** | ChatGPT demo's conversational assistant with Wikipedia lookup and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | **WikiAssistant** | Concise research helper grounded in Wikipedia. | `SearchWiki`, `GetWikiPage` |
 | **MathTutor** | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | **TriviaMaster** | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
+
+Select **ChatGPT / chat** for a tool-using conversation with no additional API keys or services.
+Try: "Find the height of the Eiffel Tower on Wikipedia, then calculate how much taller it is
+than a 250-metre building." Wikipedia lookup is not general web search or a live results feed.
+See [the ChatGPT demo](docs/agents.md#chatgpt-lookup-and-calculation-demo) for details.
 
 ## Projects
 
