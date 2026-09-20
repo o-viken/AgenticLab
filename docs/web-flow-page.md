@@ -109,8 +109,10 @@ the rendered vendor rail and composer agent picker, preserving `SetVendorAsync`,
 workspace-agent choices and the saved vendor. Selectors are locked while a run is active.
 
 The primary `.workspace-grid` places Conversation/Settings beside live flow. `ControlsPanel` owns
-compact, keyboard-navigable tabs and keeps `FlowChat` mounted while Settings is selected. Chat owns
-the log, draft, user-answer input, New conversation and Send. `FlowControls` retains breakpoints,
+compact, keyboard-navigable tabs and keeps `FlowChat` mounted while Settings is selected. Its header
+places an icon-only **New conversation** action immediately before the collapse control on the right.
+The button retains its tooltip, accessible name and active-run disabled state. Chat owns
+the log, draft, user-answer input and Send. `FlowControls` retains breakpoints,
 tools, workspace/repo selection, skills and custom instructions. Skills remain on by default;
 instructions remain opt-in. Telemetry is still deliberately hidden.
 `FlowRunControls` above the diagram owns Auto/Manual, delay, pause/resume, Next and Stop; its shared
@@ -159,6 +161,9 @@ context-provenance colours retain their meanings in the anatomy, capture and cha
 `FlowRunController.Status.Activity` still derive those labels; no execution state is inferred from CSS.
 Held and reduced-motion states do not animate. `ComposerHint` retains missing-workspace and active-run
 feedback. New conversation, Send and the pending-question answer use shared `LabButton` controls.
+New conversation stays in the panel header so the composer is reserved for the current message.
+At narrow panel widths the header uses compact spacing and hides its decorative section number and
+Settings count; both tab labels and action icons remain visible without changing saved preferences.
 Keyboard submission and scroll-follow behaviour remain; selecting Settings does not recreate the
 chat log or scroll it while hidden. Replies remain escaped text, not a new HTML/Markdown renderer.
 

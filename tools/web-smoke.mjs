@@ -19,6 +19,7 @@ try {
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
         await openFlow(page);
+        await checkConversationHeader(page);
         await capture(page, `flow-${viewport.width}`);
         const layout = await page.evaluate(() => {
             const conversation = document.querySelector(".side-left").getBoundingClientRect();
@@ -61,6 +62,9 @@ try {
             await page.evaluate(() => document.documentElement.style.zoom = "2");
             await capture(page, "flow-200-percent");
             await page.evaluate(() => document.documentElement.style.zoom = "");
+            await page.evaluate(() => localStorage.setItem("theseries-panels", "0|0|0|240|300|360"));
+            await openFlow(page);
+            await checkConversationHeader(page);
         }
         await checkDocksAndDiscovery(page, viewport.width);
         await checkLearning(page, viewport.width);
@@ -91,6 +95,24 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkConversationHeader(page) {
+    const header = page.locator(".conversation-head");
+    const newConversation = header.getByRole("button", { name: "New conversation", exact: true });
+    assert.equal(await newConversation.count(), 1);
+    assert.equal(await newConversation.getAttribute("title"), "New conversation");
+    assert.ok(await newConversation.evaluate(button => button.classList.contains("icon-only")));
+    assert.equal(await page.locator(".chat-composer").getByRole("button", { name: "New conversation", exact: true }).count(), 0);
+    const fits = await header.evaluate(element => {
+        const boundary = element.getBoundingClientRect();
+        const buttons = [...element.querySelectorAll("button")];
+        const bounds = buttons.map(button => button.getBoundingClientRect());
+        return buttons.every((button, index) => button.scrollWidth <= button.clientWidth + 1
+            && bounds[index].left >= boundary.left && bounds[index].right <= boundary.right
+            && (index === 0 || bounds[index].left >= bounds[index - 1].right - 1));
+    });
+    assert.ok(fits, "Conversation tabs and header actions fit without overlapping");
 }
 
 async function checkDocksAndDiscovery(page, width) {

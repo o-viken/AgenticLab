@@ -90,7 +90,6 @@
         </div>
 
         <div class="composer-actions">
-            <LabButton Label="New conversation" Icon="new" Variant="quiet" OnClick="Run.NewConversationAsync" Disabled="Run.Running" />
             <span class="send-action">
                 <LabButton Label="Send" Icon="send" IconOnly="true" Variant="primary" OnClick="Run.SendAsync"
                            Disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))" />
