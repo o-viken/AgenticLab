@@ -1,4 +1,4 @@
-@if (View.Diagram.ExpandHarness || A2AAgentName is not null)
+@if (View.Diagram.ExpandHarness)
 {
 <button id="@ButtonId" type="button" class="host-section @(Selected ? "selected" : null)"
         title="Inspect @Heading" aria-controls="details-content"
@@ -18,7 +18,7 @@ else
     [Parameter] public HostDetailSection Section { get; set; }
     /// <summary>An optional host-specific label; otherwise the shared section title is used.</summary>
     [Parameter] public string? Label { get; set; }
-    /// <summary>A remote agent that remains inspectable from the compact catalogue or remote topology.</summary>
+    /// <summary>A remote agent inspected only while the agent host is expanded.</summary>
     [Parameter] public string? A2AAgentName { get; set; }
 
     private readonly string _agentButtonId = $"host-section-a2a-{Guid.NewGuid():N}";

@@ -55,8 +55,8 @@ host-section selection and optional A2A agent selection. Learn keeps the existin
 right-panel state. Both reuse
 `SidePanel`, with a separate `SizeVariable` for Details. Selection is independent of diagram and run
 options; `HostSection` renders clickable headings only while **Expand agent host** is enabled,
-and plain labels in the compact host, except individual A2A agents, which stay inspectable from their
-chips, remote headings and catalogue entries. A2A details reuse the bounded live/replay projection;
+and plain labels otherwise, including A2A chips, remote headings and catalogue entries.
+A2A details reuse the bounded live/replay projection;
 remote prompts, model settings and tools remain unavailable. An already-open inspector survives
 collapsing the host.
 `HostDetailsBuilder` projects current configuration separately from causally bounded, attributed

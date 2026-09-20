@@ -205,6 +205,13 @@ async function checkA2ADetails(page, width) {
     await page.getByRole("checkbox", { name: "A2A agents", exact: true }).check();
     await page.keyboard.press("Escape");
     const chips = page.locator(".a2a.node-inner .skill-chip .host-section");
+    await page.locator(".a2a.node-inner .skill-chip").first().waitFor();
+    await page.locator(".a2a-flow .a2a-agent-title h4").first().waitFor();
+    assert.equal(await page.locator(".host-section").count(), 0, "Collapsed host shows plain labels, including A2A agents");
+    assert.equal(await page.locator(".inspect-icon").count(), 0, "Collapsed host hides all inspect icons");
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.keyboard.press("Escape");
     await chips.first().waitFor();
     const names = (await chips.allTextContents()).map(name => name.trim());
     const firstAgent = names[0];
@@ -219,6 +226,19 @@ async function checkA2ADetails(page, width) {
     assert.match(await page.locator("#details-content").innerText(), /No request captured at this position/);
     assert.match(await page.locator("#details-content").innerText(), /model settings and tools are not exposed/);
     await capture(page, `a2a-details-${width}`);
+
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).uncheck();
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelectorAll(".host-section").length === 0);
+    assert.equal(await page.locator(".inspect-icon").count(), 0);
+    assert.ok(await page.locator(".details-dock").isVisible(), "Collapsing the host keeps A2A Details open");
+    assert.equal(await page.locator("#host-detail-heading").textContent(), firstAgent);
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.keyboard.press("Escape");
+    await chips.first().waitFor();
+    assert.equal(await chips.first().getAttribute("aria-expanded"), "true");
 
     await page.getByRole("button", { name: "Collapse the Details panel", exact: true }).click();
     await page.locator(".details-dock .collapsed").waitFor();

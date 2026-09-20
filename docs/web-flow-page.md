@@ -19,8 +19,9 @@ Details shows only the selected part, with one title and its content. There is n
 section picker, repeated agent heading or visible ownership/source badge. Contributor rails and
 titles are shared with the anatomy; selection styling is separate from execution activity.
 
-A2A agent chips and remote-agent headings open an individual agent in Details, including in the compact
-host. The A2A catalogue's entries also open that agent. Inspection shows its description, protocol,
+A2A agent chips, remote-agent headings and catalogue entries open an individual agent in Details only
+while **Expand agent host** is enabled. Otherwise they render as plain labels without inspect icons;
+an already-open Details pane and its selection remain intact. Inspection shows its description, protocol,
 delegation status and full captured request/result without changing the conversation's selected agent.
 The remote system prompt, model settings and tools are explicitly unavailable: discovery does not
 expose them. A2A details share the diagram's live or causal replay projection and captured roster, so
