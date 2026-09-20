@@ -1,16 +1,16 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Extensions.AI;
-using static AgenticLab.AiService.Demo.Tools.Microsoft365SampleData;
+using static AgenticLab.Examples.Copilot365.Data.Microsoft365SampleData;
 
-namespace AgenticLab.AiService.Demo.Tools;
+namespace AgenticLab.Examples.Copilot365.Tools;
 
 /// <summary>
 /// A <em>fake</em> Microsoft 365 / Microsoft Graph tool set: searching work email, files, Teams chats,
 /// the calendar and the people directory, plus summarizing a document. It models the kind of grounding
 /// Microsoft 365 Copilot does over your organization's content, but is entirely self-contained — every
 /// method matches over small canned, in-memory datasets and never calls a real Graph endpoint or network.
-/// The datasets live in <see cref="Microsoft365SampleData"/> and are illustrative, not real tenant data.
+/// The datasets live in <see cref="Data.Microsoft365SampleData"/> and are illustrative, not real tenant data.
 /// </summary>
 public sealed class Microsoft365Tool
 {

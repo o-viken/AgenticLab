@@ -5,7 +5,9 @@ tools, API, protocol adapters, data, process rules, UI, assets, documentation an
 hosts provide model clients, discovery, run capture, service discovery and the existing Flow shell.
 There is no runtime download, arbitrary assembly scanning, hot reload or security sandbox for modules.
 
-See the complete [Windfarm example](../src/AgenticLab.Examples.Windfarm/README.md).
+See [Windfarm](../src/AgenticLab.Examples.Windfarm/README.md) for a full multi-host process example,
+or [Copilot 365](../src/AgenticLab.Examples.Copilot365/README.md) for a smaller agent/tool example
+without a custom panel.
 
 ## Dependency boundary
 
@@ -66,6 +68,12 @@ or a generic approval/workflow engine.
 | `IA2AExample` | Persona-only `RemoteAgentDefinition` entries | Existing A2A host and its configured model |
 | `IWebExample` | Locally compiled panel type and HTTP-client registrations | One optional conversation panel outlet |
 
+Modules without custom panels set `RequiresUi=false` and do not implement `IWebExample`. Register
+them with `ExampleHost.Web` as well as their backend role so Flow loads their manifest resources and
+tool risks without registering backend services in Web. A module requiring UI is still supported
+only when its local registration implements `IWebExample`. An empty `MapApi` is appropriate when the
+existing host chat routes supply all required functionality.
+
 Use normal SDK APIs, not a second tool-schema implementation. `AddExampleTools` takes a snapshot
 before contributions mutate DI. Registration rejects duplicate module identities and conflicting
 declared ownership; the existing agent dictionaries/A2A roster also reject duplicate identities.
@@ -83,6 +91,10 @@ React excludes agents requiring an example UI it does not implement; its BFF all
   yields. Bind mutable case tools to this identity, not model-supplied conversation IDs.
 - `IMcpToolSource.GetTools(names)` returns only exact-name discovered tools. Existing TimeKeeper
   explicitly selects its original time tool. Registering an example must not widen another agent's tools.
+- `IHostToolSource.GetTools(names)` returns explicitly published local tools in requested order and
+   rejects unknown or incorrectly cased names. AiService's `DemoToolSource` publishes only `SearchWiki`,
+   `GetWikiPage` and `Calculate`, preserving their implementations and schemas. Examples reuse these
+   capabilities without referencing host projects or resolving arbitrary host services.
 - `IAgentDelegation.InvokeAsync` returns a typed success/failure outcome and propagates cancellation.
   Examples enforce their own specialist allowlists, evidence envelopes and result validation.
   The existing `DelegateToAgent(agentName, question)` signature remains recognizable in flow replay.
@@ -122,4 +134,5 @@ responsive, leaving the conversation composer usable. See the [design system](de
 
 | Example | Purpose | Documentation and tests |
 | --- | --- | --- |
+| Copilot 365 | Workplace chat, research and analysis over synthetic Microsoft 365 data; no custom panel | [Project README](../src/AgenticLab.Examples.Copilot365/README.md), [module tests](../src/AgenticLab.Examples.Copilot365/Tests) |
 | Windfarm | Synthetic alarm investigation, remote specialist review and human-approved planned inspection | [Project README](../src/AgenticLab.Examples.Windfarm/README.md), [module tests](../src/AgenticLab.Examples.Windfarm/Tests) |

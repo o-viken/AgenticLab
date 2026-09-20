@@ -1,13 +1,15 @@
 using Microsoft.Extensions.AI;
-using AgenticLab.AiService.Demo.Tools;
+using AgenticLab.Extensibility.Agents;
+using AgenticLab.Extensibility.Runtime;
+using AgenticLab.Examples.Copilot365.Tools;
 
-namespace AgenticLab.AiService.Demo.Agents;
+namespace AgenticLab.Examples.Copilot365.Agents;
 
 /// <summary>
 /// The Microsoft 365 Copilot "Analyst" agent: a data analyst that pulls figures from the user's
 /// documents (the fake Microsoft 365 / Graph file tools) and crunches the numbers with the calculator.
 /// </summary>
-public sealed class M365AnalystAgent(Microsoft365Tool m365, CalculatorTool calculator) : AgentDefinitionBase
+public sealed class M365AnalystAgent(Microsoft365Tool m365, IHostToolSource hostTools) : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
     public const string AgentName = "M365Analyst";
@@ -40,5 +42,5 @@ public sealed class M365AnalystAgent(Microsoft365Tool m365, CalculatorTool calcu
         "the result clearly. Never fabricate numbers that aren't in the documents.";
 
     /// <inheritdoc />
-    public override IList<AITool> Tools => [.. m365.AsAnalystTools(), .. calculator.AsTools()];
+    public override IList<AITool> Tools => [.. m365.AsAnalystTools(), .. hostTools.GetTools(["Calculate"])];
 }

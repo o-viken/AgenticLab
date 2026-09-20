@@ -12,6 +12,13 @@ public interface IAgentRunContext
     AgentRunIdentity? Current { get; }
 }
 
+/// <summary>Access to explicitly published local host tools without depending on an executable host.</summary>
+public interface IHostToolSource
+{
+    /// <summary>Returns tools in requested order using exact names; throws if any name is not published.</summary>
+    IList<AITool> GetTools(IReadOnlyCollection<string> names);
+}
+
 /// <summary>Access to existing discovered MCP tools through an exact, per-agent allowlist.</summary>
 public interface IMcpToolSource
 {

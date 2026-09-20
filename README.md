@@ -143,8 +143,16 @@ attached terminal for input, or follow the [standalone console instructions](doc
 
 Optional examples are registered as independent projects, keeping their domain code, UI, assets,
 tests and documentation together. See the [example catalogue and contributor guide](docs/examples.md)
-and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo.
+and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo,
+or [Copilot 365](src/AgenticLab.Examples.Copilot365/README.md) for workplace chat, research and analysis
+over synthetic Microsoft 365 data.
 Examples are disabled by default and reuse the existing hosts when enabled.
+
+The previously built-in workplace Copilot host and its three agents are now opt-in:
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=true
+```
 
 ## Documentation
 

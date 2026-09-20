@@ -20,6 +20,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
 | [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
+| [src/AgenticLab.Examples.Copilot365](src/AgenticLab.Examples.Copilot365/README.md) | Optional workplace Copilot example: three agents, host prompt, simulated Microsoft 365 tools/data, resource/risk metadata and tests. No custom panel or protocol service. |
 | [src/AgenticLab.Examples.Windfarm](src/AgenticLab.Examples.Windfarm/README.md) | Optional self-contained example RCL. All domain content, API/protocol adapters, UI, assets, docs and tests stay here; existing hosts load its role contributions. |
 | [src/AgenticLab.McpServer](src/AgenticLab.McpServer/Program.cs) | Minimal Model Context Protocol (MCP) server exposing a `GetCurrentTime` tool over HTTP. Consumed by the AiService over MCP. |
 | [src/AgenticLab.A2AServer](src/AgenticLab.A2AServer/Program.cs) | Minimal Agent2Agent (A2A) server hosting **config-declared persona-only agents** (a Research agent and a Poet by default) over the A2A protocol (Microsoft Agent Framework's `AddAIAgent` + `MapA2AJsonRpc`), plus a `GET /agents` discovery endpoint. Called by the AiService's `Orchestrator` agent over A2A. |
@@ -28,7 +29,7 @@ Key flow: Console/Web → `POST /chat` or `POST /chat/stream` (with an optional 
 
 - [src/AgenticLab.AiService/Program.cs](src/AgenticLab.AiService/Program.cs) is a short composition: it calls the `Add*` registration groups in [Startup/ServiceRegistration.cs](src/AgenticLab.AiService/Startup/ServiceRegistration.cs) and the `Map*Endpoints` groups under [Endpoints/](src/AgenticLab.AiService/Endpoints) — `AgentEndpoints` (`GET /agents`, `POST /agents/workspace`, `POST /harness`, `GET /vendors`), `WorkspaceEndpoints` (`POST /skills`, `POST /instructions`, `POST /workspaces`), `DiscoveryEndpoints` (`GET /mcp`, `GET /a2a`, `GET /discovery`, `POST /discovery/stream`) and `ChatEndpoints` (`POST /chat`, `/chat/stream`, `/chat/control`, `/chat/reset`). Each endpoint file declares its own request/response records at the bottom.
 - [Application/](src/AgenticLab.AiService/Application) is the reusable runtime infrastructure, grouped by feature with a matching namespace (`AgenticLab.AiService.Application.<Folder>`, imported project-wide by [GlobalUsings.cs](src/AgenticLab.AiService/GlobalUsings.cs)): `Agents` (`AgentCatalog`, `AgentInfo`, `ChatClientProvider`, `VendorHarnessCatalog`), `Flow` (`FlowTracer`, `FlowEvent`, `FlowSession`, `FlowControlRegistry`, `BreakpointNotice`, `FlowExecutionScope`, `FlowCaptureScope`, `CapturingChatClient`, `ToolFilteringChatClient`, `ToolFilterScope`, `UserInputScope`, `RunScopeSet`), `Conversations` (`ConversationStore`, `AgentRunScope`, `AgentRunContext`), `Discovery` (`McpToolProvider`, `A2AAgentProvider`, `DiscoveryTracer`, `DiscoveryModels`, `DiscoverySnapshot`), `Workspace` (`WorkspaceScope`, `WorkspaceAgentLoader` + `WorkspaceAgentFileParser` + `WorkspaceToolAliases`, `WorkspaceAgentResolver`, `WorkspaceDefinedAgent`, `WorkspaceAgentDefinition`), `Skills`, `Instructions` and the harness's own `Tools` (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool`). Shared agent definitions and host contracts live in [Extensibility/Agents](src/AgenticLab.Extensibility/Agents).
-- [Demo/](src/AgenticLab.AiService/Demo) holds the sample content: the agent personas under `Demo/Agents`, the demo tools (`WikiTool`, `CalculatorTool`, `Microsoft365Tool`) under `Demo/Tools` and the vendor-flavoured harness prompts under `Demo/Vendors/<Vendor>/`. `Application` never depends on `Demo`; the `IAgentDefinition` / `IVendorHarness` interfaces are the seam.
+- [Demo/](src/AgenticLab.AiService/Demo) holds the built-in sample content: the agent personas under `Demo/Agents`, the shared demo tools (`WikiTool`, `CalculatorTool` and their bounded `DemoToolSource` adapter) under `Demo/Tools` and the vendor-flavoured harness prompts under `Demo/Vendors/<Vendor>/`. Optional examples own their domain content separately. `Application` never depends on `Demo`; shared interfaces define the dependency boundary.
 - Both chat paths share [Application/Flow/RunScopeSet.cs](src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs), which begins, re-activates and disposes the per-run ambient scopes (workspace, disabled tools/skills, enabled instructions, user input and agent/conversation identity) together, and `WorkspaceScope.TryBegin` to turn a bad path into a 400 / error event.
 
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
@@ -88,12 +89,22 @@ MCP/A2A shared interfaces expose bounded tool selection and typed delegation out
 implementation types. Startup discovery precedes catalogue creation; rediscovery refreshes both
 the executable agents and their advertised tool lists.
 
+`IHostToolSource` publishes explicitly shared local tools by exact name, in requested order, and rejects
+unpublished names. AiService's `DemoToolSource` adapts only Wikipedia and calculator tools; examples
+must not depend on their concrete host types. Copilot365 is enabled with
+`Examples:copilot365:Enabled=true`; its API host key remains `microsoft365` and its agent names remain
+`M365Copilot`, `M365Researcher` and `M365Analyst` for compatibility.
+
 Web host selection uses catalogue keys with legacy `theseries-vendor` parsing. Locally registered
 `IWebExample` panels receive only `ExamplePanelContext`; awaited `IExamplePanel` cleanup precedes
 Web conversation reset. Core Flow roots own no example state. Keep module case history separate
 from captured execution replay. `LabButton`, `LabField`, `LabStatus` and `MiniIcon` now live in
 [Extensibility/Components](src/AgenticLab.Extensibility/Components), reused by Web and modules;
 document tokens, fonts and page/dock controls remain owned by Web.
+
+Enabled modules without panels still register in Web for manifest resources and tool risks.
+Flow includes their metadata when `RequiresUi=false`; modules requiring UI remain gated on a local
+`IWebExample` implementation. Copilot365 adds no custom Web panel, MCP/A2A role or new endpoint.
 
 Examples are disabled by default. AppHost forwards `Examples` configuration generically. MCP can
 reference AiService for invocation-time reads but must not wait for it or contact it during tool

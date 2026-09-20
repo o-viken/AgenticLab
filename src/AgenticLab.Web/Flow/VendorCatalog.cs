@@ -36,8 +36,8 @@ internal static class VendorCatalog
     };
 
     /// <summary>
-    /// The vendors in the order the rail (and the old dropdown) presents them: the non-brand Default first,
-    /// then the six brand vendors. Kept here so the rail and any other picker share one source of truth.
+    /// Preferred ordering for known branding keys, applied only to hosts returned by the backend.
+    /// Includes legacy branding for optional examples without making disabled hosts available.
     /// </summary>
     public static readonly Vendor[] DisplayOrder =
     {
@@ -82,7 +82,6 @@ internal static class VendorCatalog
         new("workspace", "📁", "Workspace", "Local file system", new[] { "ReadFile", "ListFiles", "WriteFile", "DeleteFile" }),
         new("shell", "⌨️", "Terminal", "Local process · allowlisted", new[] { "RunCommand" }),
         new("skills", "📚", "Skills", "Local · workspace SKILL.md", new[] { "ReadSkill" }),
-        new("microsoft365", "🗂️", "Microsoft 365", "Microsoft Graph · sample data", new[] { "SearchEmail", "SearchFiles", "SearchChats", "GetCalendar", "FindPeople", "SummarizeDocument", "SendMail" }),
         new("mcp", "🧩", "MCP server", "MCP · HTTP · mcpserver", new[] { "GetCurrentTime" }),
         new("a2a", "🤝", "Sub-agent (A2A)", "A2A · JSON-RPC · a2aserver", new[] { "DelegateToAgent" }),
     };

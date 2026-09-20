@@ -6,10 +6,15 @@
     <Project Path="src/AgenticLab.Bff/AgenticLab.Bff.csproj" />
     <Project Path="src/AgenticLab.Console/AgenticLab.Console.csproj" />
     <Project Path="src/AgenticLab.Extensibility/AgenticLab.Extensibility.csproj" />
+    <Project Path="src/AgenticLab.Examples.Copilot365/AgenticLab.Examples.Copilot365.csproj" />
     <Project Path="src/AgenticLab.Examples.Windfarm/AgenticLab.Examples.Windfarm.csproj" />
     <Project Path="src/AgenticLab.McpServer/AgenticLab.McpServer.csproj" />
     <Project Path="src/AgenticLab.ServiceDefaults/AgenticLab.ServiceDefaults.csproj" />
     <Project Path="src/AgenticLab.Web/AgenticLab.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/AgenticLab.Examples.Copilot365/" />
+  <Folder Name="/src/AgenticLab.Examples.Copilot365/Tests/">
+    <Project Path="src/AgenticLab.Examples.Copilot365/Tests/AgenticLab.Examples.Copilot365.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/AgenticLab.Examples.Windfarm/Tests/AgenticLab.Examples.Windfarm.Tests.csproj" />

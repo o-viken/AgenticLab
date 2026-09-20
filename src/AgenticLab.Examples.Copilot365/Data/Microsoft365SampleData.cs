@@ -1,4 +1,6 @@
-namespace AgenticLab.AiService.Demo.Tools;
+using AgenticLab.Examples.Copilot365.Tools;
+
+namespace AgenticLab.Examples.Copilot365.Data;
 
 /// <summary>
 /// The canned, in-memory "tenant" the fake <see cref="Microsoft365Tool"/> searches over: a handful of

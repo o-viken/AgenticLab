@@ -1,6 +1,6 @@
-using AgenticLab.AiService.Demo.Agents;
+using AgenticLab.Extensibility.Agents;
 
-namespace AgenticLab.AiService.Demo.Vendors;
+namespace AgenticLab.Examples.Copilot365.Agents;
 
 /// <summary>
 /// The Microsoft 365 Copilot harness prompt: a professional, work-grounded assistant framing. Original,
@@ -10,7 +10,7 @@ namespace AgenticLab.AiService.Demo.Vendors;
 public sealed class Microsoft365Harness : IVendorHarness
 {
     /// <inheritdoc />
-    public string Key => "microsoft365";
+    public string Key => Copilot365Example.HostKey;
 
     /// <inheritdoc />
     public string Harness =>
@@ -25,7 +25,7 @@ public sealed class Microsoft365Harness : IVendorHarness
         "instead of guessing. Keep your formatting clean and easy to read.";
 
     /// <inheritdoc />
-    public string DisplayName => "Microsoft 365 Copilot";
+    public string DisplayName => "Copilot 365";
 
     /// <inheritdoc />
     public string ModelLabel => "GPT-4o (Microsoft)";

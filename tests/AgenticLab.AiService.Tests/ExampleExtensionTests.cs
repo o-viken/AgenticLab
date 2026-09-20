@@ -1,8 +1,10 @@
+using System.Text.Json;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.Extensibility.Runtime;
 using AgenticLab.AiService.Application.Conversations;
 using AgenticLab.AiService.Application.Flow;
 using AgenticLab.AiService.Application.Agents;
+using AgenticLab.AiService.Demo.Tools;
 using Microsoft.Extensions.AI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -16,6 +18,56 @@ namespace AgenticLab.AiService.Tests;
 
 public sealed class ExampleExtensionTests
 {
+    [Fact]
+    public void HostToolsKeepExactSelectionOrderAndOriginalSchemas()
+    {
+        using var http = new HttpClient();
+        var wiki = new WikiTool(http);
+        var calculator = new CalculatorTool();
+        var source = new DemoToolSource(wiki, calculator);
+        var selected = source.GetTools(["Calculate", "GetWikiPage", "SearchWiki"]);
+        Assert.Equal(new[] { "Calculate", "GetWikiPage", "SearchWiki" }, selected.Select(tool => tool.Name));
+        var originals = wiki.AsTools().Concat(calculator.AsTools()).OfType<AIFunction>()
+            .ToDictionary(tool => tool.Name);
+        foreach (var tool in selected.Cast<AIFunction>())
+        {
+            Assert.Equal(originals[tool.Name].Description, tool.Description);
+            Assert.Equal(originals[tool.Name].JsonSchema.GetRawText(), tool.JsonSchema.GetRawText());
+        }
+        Assert.Single(source.GetTools(["Calculate"]));
+        Assert.Empty(source.GetTools([]));
+    }
+
+    [Theory]
+    [InlineData("calculate")]
+    [InlineData("WriteFile")]
+    [InlineData("GetCurrentTime")]
+    [InlineData("DelegateToAgent")]
+    public void HostToolsRejectUnpublishedNames(string name)
+    {
+        using var http = new HttpClient();
+        var source = new DemoToolSource(new WikiTool(http), new CalculatorTool());
+        Assert.Throws<ArgumentException>(() => source.GetTools(["Calculate", name]));
+    }
+
+    [Fact]
+    public async Task HostToolsInvokeExistingCalculatorAndWikipediaImplementations()
+    {
+        using var handler = new WikipediaHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://wikipedia.invalid") };
+        var source = new DemoToolSource(new WikiTool(http), new CalculatorTool());
+        var calculate = Assert.IsAssignableFrom<AIFunction>(Assert.Single(source.GetTools(["Calculate"])));
+        var calculation = await calculate.InvokeAsync(new AIFunctionArguments { ["expression"] = "(6 * 2) + 3" });
+        Assert.Equal("15", Assert.IsType<JsonElement>(calculation).GetString());
+        Assert.Equal(0, handler.RequestCount);
+        var search = Assert.IsAssignableFrom<AIFunction>(Assert.Single(source.GetTools(["SearchWiki"])));
+        var result = await search.InvokeAsync(new AIFunctionArguments { ["query"] = "Ada Lovelace" });
+        Assert.Contains("Ada Lovelace: Mathematician", Assert.IsType<JsonElement>(result).GetString());
+        Assert.Equal(1, handler.RequestCount);
+        Assert.Equal("/w/rest.php/v1/search/page", handler.RequestUri!.AbsolutePath);
+        Assert.Contains("q=Ada%20Lovelace", handler.RequestUri.Query);
+    }
+
     [Fact]
     public async Task ArbitraryModuleRegistersOnlyEnabledRoleAndOwnsItsRoutes()
     {
@@ -86,6 +138,22 @@ public sealed class ExampleExtensionTests
         definition.CurrentTools = [];
         catalog.RefreshDiscoveryAgents();
         Assert.Empty(Assert.Single(catalog.Agents).Tools);
+    }
+
+    private sealed class WikipediaHandler : HttpMessageHandler
+    {
+        public int RequestCount { get; private set; }
+        public Uri? RequestUri { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            RequestCount++;
+            RequestUri = request.RequestUri;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"pages":[{"title":"Ada Lovelace","description":"Mathematician"}]}"""),
+            });
+        }
     }
 
     private sealed class DiscoveredDefinition : AgentDefinitionBase

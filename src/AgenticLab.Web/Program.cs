@@ -3,12 +3,14 @@ using AgenticLab.Web;
 using AgenticLab.Web.Components;
 using AgenticLab.Web.Flow;
 using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.Copilot365;
 using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
+builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHost.Web);
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.Web);
 
 // Add services to the container.

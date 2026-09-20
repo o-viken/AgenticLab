@@ -14,7 +14,7 @@ namespace AgenticLab.AiService.Startup;
 /// </summary>
 internal static class ServiceRegistration
 {
-    /// <summary>The demo tools (Wikipedia, calculator, fake Microsoft 365) and the harness's own workspace/web/question tools.</summary>
+    /// <summary>The shared demo tools (Wikipedia and calculator) and the harness's own workspace/web/question tools.</summary>
     public static IServiceCollection AddHarnessTools(this IServiceCollection services)
     {
         // Wikipedia requires a descriptive User-Agent.
@@ -26,9 +26,7 @@ internal static class ServiceRegistration
         services.AddSingleton(sp =>
             new WikiTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("wikipedia")));
         services.AddSingleton<CalculatorTool>();
-
-        // Fake Microsoft 365 / Graph tool set (canned, in-memory) used by the Microsoft 365 Copilot agents.
-        services.AddSingleton<Microsoft365Tool>();
+        services.AddSingleton<IHostToolSource, DemoToolSource>();
 
         // Workspace-scoped tools for the coding agents.
         services.AddSingleton<FileSystemTool>();
@@ -72,7 +70,6 @@ internal static class ServiceRegistration
         services.AddSingleton<IVendorHarness, ClaudeHarness>();
         services.AddSingleton<IVendorHarness, ChatGptHarness>();
         services.AddSingleton<IVendorHarness, GeminiHarness>();
-        services.AddSingleton<IVendorHarness, Microsoft365Harness>();
         services.AddSingleton<VendorHarnessCatalog>();
         return services;
     }
@@ -90,9 +87,6 @@ internal static class ServiceRegistration
         services.AddSingleton<IAgentDefinition, AskAgent>();
         services.AddSingleton<IAgentDefinition, PlanAgent>();
         services.AddSingleton<IAgentDefinition, CoderAgent>();
-        services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
-        services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
-        services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
         services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
         services.AddSingleton<IAgentDefinition, OrchestratorAgent>();
 

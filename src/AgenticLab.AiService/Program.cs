@@ -1,6 +1,7 @@
 using AgenticLab.AiService.Endpoints;
 using AgenticLab.AiService.Startup;
 using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.Copilot365;
 using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,7 @@ builder.Services
     .AddFlowTracing()
     .AddDiscovery();
 
+builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHost.AiService);
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.AiService);
 
 var app = builder.Build();

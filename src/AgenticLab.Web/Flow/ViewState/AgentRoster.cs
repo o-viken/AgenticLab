@@ -14,7 +14,7 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     private readonly Dictionary<string, VendorInfo> _vendors = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<ExampleManifest> _examples = [];
 
-    /// <summary>Registers locally compiled panels and their resource metadata, never remote component types.</summary>
+    /// <summary>Registers supported local modules and their metadata, including modules without panels.</summary>
     public void SetExamples(IEnumerable<ExampleManifest> examples) => _examples = examples.ToArray();
 
     /// <summary>The enabled module owning the selected agent, independent of built-in branding.</summary>

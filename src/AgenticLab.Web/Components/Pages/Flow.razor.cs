@@ -85,7 +85,8 @@ public partial class Flow : IDisposable
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);
-        _view.Roster.SetExamples(Examples.OfType<IWebExample>().Select(example => example.Manifest));
+        _view.Roster.SetExamples(Examples.Where(example => !example.Manifest.RequiresUi || example is IWebExample)
+            .Select(example => example.Manifest));
         _run = new FlowRunController(Ai, _view, Retention.Value);
         _view.Changed += OnViewChanged;
         _view.WorkspacePrefs.Changed += OnWorkspacePrefsChanged;

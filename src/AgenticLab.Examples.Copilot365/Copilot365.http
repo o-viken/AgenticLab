@@ -1,0 +1,50 @@
+@baseUrl = http://localhost:5039
+
+### Enabled module manifests (adjust baseUrl to the aiservice URL in Aspire)
+GET {{baseUrl}}/examples
+
+### Available agents; M365 agents appear only with Examples:copilot365:Enabled=true
+GET {{baseUrl}}/agents
+
+### Copilot 365 host metadata; its compatible API key remains microsoft365
+GET {{baseUrl}}/vendors
+
+### Inspect the host prompt without calling a model
+POST {{baseUrl}}/harness
+Content-Type: application/json
+
+{
+  "agent": "M365Copilot",
+  "vendor": "microsoft365"
+}
+
+### Read-only workplace chat (invokes the configured model)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "message": "What is blocking the Q3 launch? Cite the sample sources.",
+  "agent": "M365Copilot",
+  "vendor": "microsoft365",
+  "disabledTools": ["SendMail"]
+}
+
+### Research with work content and Wikipedia (invokes the configured model)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "message": "Research the SSO requirement in the sample work content and explain SSO using Wikipedia.",
+  "agent": "M365Researcher",
+  "vendor": "microsoft365"
+}
+
+### Quantitative analysis (invokes the configured model)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "message": "Read the FY26 budget and calculate how much 4 percent under the 4.2 million budget is.",
+  "agent": "M365Analyst",
+  "vendor": "microsoft365"
+}

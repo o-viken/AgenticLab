@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using AgenticLab.Web;
 using AgenticLab.Web.Components.Pages;
 using AgenticLab.Web.Flow;
+using AgenticLab.Examples.Copilot365;
 using Xunit;
 
 namespace AgenticLab.Web.Tests;
@@ -657,6 +658,40 @@ public sealed class ExecutionReplayTests
     public void ExampleHosts_NormalizeLegacyPreferencesAndPreserveNewKeys(string stored, string expected)
     {
         Assert.Equal(expected, VendorCatalog.NormalizeKey(stored));
+    }
+
+    [Theory]
+    [InlineData("Microsoft365")]
+    [InlineData("microsoft365")]
+    public void ExampleHosts_Copilot365IsOptionalAndRetainsSavedSelections(string stored)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        VendorInfo[] builtInHosts = [new("default", "Default", "", []), new("chatgpt", "ChatGPT", "demo", [])];
+        view.Roster.SetVendors(builtInHosts);
+        Assert.Equal("chatgpt", view.Roster.RestoreHost(stored));
+        Assert.DoesNotContain(view.Roster.AvailableHosts, host => host.Key == "microsoft365");
+        Assert.Null(VendorCatalog.ActiveResource("SendMail"));
+        Assert.Equal(ToolRisk.Low, ToolRiskCatalog.Classify("SendMail"));
+
+        var manifest = new Copilot365Example().Manifest;
+        view.Roster.SetExamples([manifest]);
+        view.Roster.SetVendors([.. builtInHosts,
+            new("microsoft365", "Copilot 365", "demo", [new("M365Copilot", "chat")], "copilot365", false)]);
+        view.Roster.SetAgents([new("M365Copilot", "Workplace sample", ["SendMail"])]);
+        view.HostKey = view.Roster.RestoreHost(stored);
+        view.SelectedAgent = "M365Copilot";
+        Assert.Equal("microsoft365", view.HostKey);
+        Assert.Equal("M365Copilot", view.Roster.VendorDefaultAgent);
+        Assert.Same(manifest, view.Roster.CurrentExample);
+        Assert.Equal("risk-medium", view.Agent.ToolRiskClass("SendMail"));
+        Assert.Contains("never sends real email", view.Agent.ToolRiskTitle("SendMail"));
+        Assert.Contains("SendMail", Assert.Single(view.Roster.ExampleResources).ToolNames);
+
+        view.Roster.SetExamples([]);
+        view.Roster.SetVendors(builtInHosts);
+        Assert.Equal("chatgpt", view.Roster.RestoreHost(stored));
+        Assert.Null(view.Roster.RiskFor("SendMail"));
+        Assert.Empty(view.Roster.ExampleResources);
     }
 
     private sealed class ReplayEnvironment : IWebHostEnvironment

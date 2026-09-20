@@ -1,7 +1,8 @@
 using Microsoft.Extensions.AI;
-using AgenticLab.AiService.Demo.Tools;
+using AgenticLab.Extensibility.Agents;
+using AgenticLab.Examples.Copilot365.Tools;
 
-namespace AgenticLab.AiService.Demo.Agents;
+namespace AgenticLab.Examples.Copilot365.Agents;
 
 /// <summary>
 /// The Microsoft 365 Copilot "Copilot Chat" agent: a workplace assistant grounded in the user's
@@ -21,10 +22,9 @@ public sealed class Microsoft365Agent(Microsoft365Tool m365) : AgentDefinitionBa
 
     /// <inheritdoc />
     /// <remarks>
-    /// Medium risk: most tools are read-only grounding, but <see cref="Microsoft365Tool.SendMail"/> is a
-    /// write/side-effecting action — it sends a real communication on the user's behalf, which crosses a trust
-    /// boundary, is hard to reverse, and could leak data or impersonate the user if the model is wrong or is
-    /// steered by prompt injection in the content it reads.
+    /// Medium risk: most tools are read-only grounding, but <see cref="Microsoft365Tool.SendMail"/> models
+    /// a write action on the user's behalf. Real delivery would cross a trust boundary and could leak
+    /// data or impersonate the user; this sample only validates inputs and returns a simulated receipt.
     /// </remarks>
     public override AgentRiskLevel RiskLevel => AgentRiskLevel.Medium;
 
