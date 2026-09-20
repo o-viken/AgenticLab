@@ -10,26 +10,24 @@
                @bind:event="oninput" @bind:after="Run.SetDelayAsync" disabled="@(View.Options.Mode == FlowMode.Manual)" />
         <span>@View.Options.StepDelayMs ms</span>
     </label>
-    @if (!Run.BreakpointPaused)
-    {
-        <div class="transport">
-            @if (View.Options.Mode == FlowMode.Manual)
-            {
-                <LabButton Label="Next" Icon="next" IconOnly="true" Variant="quiet" OnClick="Run.NextAsync"
-                           Disabled="@(!Run.Running || Run.AwaitingStep)" />
-            }
-            else
-            {
-                <LabButton Label="@(Run.Paused ? "Resume" : "Pause")" Icon="@(Run.Paused ? "play" : "pause")"
-                           IconOnly="true" Variant="quiet" OnClick="Run.TogglePauseAsync" Disabled="@(!Run.Running)" />
-            }
-            <LabButton Label="Stop" Icon="stop" IconOnly="true" Variant="quiet" OnClick="Run.StopAsync" Disabled="@(!Run.Running)" />
-        </div>
-    }
+    <div class="transport" role="group" aria-label="Execution controls">
+        <LabButton Label="@PauseLabel" Icon="@(Run.BreakpointPaused || Run.Paused ? "play" : "pause")"
+                   IconOnly="true" Variant="quiet" OnClick="Run.TogglePauseAsync" Disabled="PauseDisabled"
+                   Title="@(Run.BreakpointPaused ? "Continue in Auto until the next breakpoint" : null)" />
+        <LabButton Label="Next" Icon="next" IconOnly="true" Variant="quiet" OnClick="Run.NextAsync"
+                   Disabled="NextDisabled" Title="@(Run.BreakpointPaused ? "Advance and switch to Manual stepping" : null)" />
+        <LabButton Label="Stop" Icon="stop" IconOnly="true" Variant="quiet" OnClick="Run.StopAsync" Disabled="@(!Run.Running)" />
+    </div>
     <FlowBreakpointControls />
 </div>
 
 @code {
     [CascadingParameter] private FlowViewState View { get; set; } = default!;
     [CascadingParameter] private FlowRunController Run { get; set; } = default!;
+
+    private string PauseLabel => Run.BreakpointPaused ? "Continue" : Run.Paused ? "Resume" : "Pause";
+    private bool PauseDisabled => !Run.Running || Run.BreakpointControlPending
+        || (!Run.BreakpointPaused && View.Options.Mode == FlowMode.Manual);
+    private bool NextDisabled => !Run.Running || Run.BreakpointControlPending
+        || (!Run.BreakpointPaused && (View.Options.Mode != FlowMode.Manual || Run.AwaitingStep));
 }

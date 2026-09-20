@@ -20,6 +20,7 @@ try {
         page.on("pageerror", error => errors.push(error.message));
         await openFlow(page);
         await checkConversationHeader(page);
+        await checkExecutionControls(page);
         await capture(page, `flow-${viewport.width}`);
         const layout = await page.evaluate(() => {
             const conversation = document.querySelector(".side-left").getBoundingClientRect();
@@ -95,6 +96,30 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkExecutionControls(page) {
+    const controls = page.getByRole("group", { name: "Execution controls", exact: true });
+    const buttons = controls.getByRole("button");
+    assert.deepEqual(await buttons.evaluateAll(elements => elements.map(element => element.getAttribute("aria-label"))), ["Pause", "Next", "Stop"]);
+    assert.ok(await buttons.evaluateAll(elements => elements.every(element => element.disabled && element.classList.contains("icon-only"))));
+    const initial = await buttons.evaluateAll(elements => elements.map(element => {
+        const bounds = element.getBoundingClientRect();
+        const toolbar = element.closest(".run-controls").getBoundingClientRect();
+        return { x: bounds.x - toolbar.x, y: bounds.y - toolbar.y, width: bounds.width, height: bounds.height };
+    }));
+    const modes = page.getByRole("group", { name: "Execution mode", exact: true });
+    await modes.getByRole("button", { name: "Manual", exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('[aria-label="Execution mode"] button:last-child')?.getAttribute("aria-pressed") === "true");
+    const manual = await buttons.evaluateAll(elements => elements.map(element => {
+        const bounds = element.getBoundingClientRect();
+        const toolbar = element.closest(".run-controls").getBoundingClientRect();
+        return { x: bounds.x - toolbar.x, y: bounds.y - toolbar.y, width: bounds.width, height: bounds.height };
+    }));
+    assert.deepEqual(manual, initial, "Execution action slots must not move when mode changes");
+    assert.ok(await buttons.evaluateAll(elements => elements.every(element => element.disabled)));
+    await modes.getByRole("button", { name: "Auto", exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('[aria-label="Execution mode"] button:first-child')?.getAttribute("aria-pressed") === "true");
 }
 
 async function checkConversationHeader(page) {

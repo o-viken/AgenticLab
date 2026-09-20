@@ -1,18 +1,6 @@
-@if (Run.BreakpointPaused)
+@if (ShowReason && Run.BreakpointPaused)
 {
-    <div class="breakpoint-status @(ShowReason ? "" : "bare")">
-        @if (ShowReason)
-        {
-            <p role="status">Paused: @Run.Status.BreakpointReason</p>
-        }
-        <div class="bp-actions">
-            <LabButton Label="Continue" Icon="play" OnClick="Run.ContinueAsync" Disabled="Run.BreakpointControlPending"
-                   Title="Continue in Auto until the next breakpoint" />
-            <LabButton Label="Next" Icon="next" OnClick="Run.NextAsync" Disabled="Run.BreakpointControlPending"
-                   Title="Advance and switch to Manual stepping" />
-            <LabButton Label="Stop" Icon="stop" Variant="danger" OnClick="Run.StopAsync" />
-        </div>
-    </div>
+    <p class="breakpoint-status" role="status">Paused: @Run.Status.BreakpointReason</p>
 }
 @if (Run.BreakpointError is { } error)
 {
@@ -20,7 +8,7 @@
 }
 
 @code {
-    /// <summary>Whether to name the holding boundary; off where the caller already shows it (the conversation).</summary>
+    /// <summary>Whether to name the holding boundary beneath the fixed execution toolbar.</summary>
     [Parameter] public bool ShowReason { get; set; } = true;
 
     [CascadingParameter]

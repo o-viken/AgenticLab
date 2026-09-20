@@ -116,8 +116,12 @@ the log, draft, user-answer input and Send. `FlowControls` retains breakpoints,
 tools, workspace/repo selection, skills and custom instructions. Skills remain on by default;
 instructions remain opt-in. Telemetry is still deliberately hidden.
 `FlowRunControls` above the diagram owns Auto/Manual, delay, pause/resume, Next and Stop; its shared
-`FlowBreakpointControls` also shows the holding reason and Continue/Next/Stop. These components call
-the existing controller methods. `ExecutionExplorer` sits below live flow and remains available before
+toolbar keeps three fixed icon slots on the right: Pause/Resume (Continue at a breakpoint), Next and
+Stop. All slots remain visible, with unavailable actions disabled, so Auto/Manual changes and
+breakpoint pauses never relocate the buttons. `FlowBreakpointControls` shows only the holding reason
+and control errors beneath that toolbar, not a second action row. The controls retain their accessible
+names, descriptive tooltips and existing controller callbacks, including pending-request guards.
+`ExecutionExplorer` sits below live flow and remains available before
 the first run. Details and Learn are separate auxiliary docks, never mutually exclusive.
 
 The desktop shell is centred, at most 1600px wide, with independently scrolling regions. A fresh or

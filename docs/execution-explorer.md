@@ -76,7 +76,12 @@ The tracer sends `breakpoint` control events immediately, outside display-event 
 stops and awaits the pending advance before scopes and the session are disposed. The browser consumes
 these notices separately from conversation events, preserving prompt/context totals, and renders the
 shared `FlowBreakpointControls` once inside `FlowRunControls` above live flow. Its `ShowReason`
-parameter names the holding boundary; breakpoint selection remains in Settings. The conversation
+parameter names the holding boundary; it displays status/errors only. Continue, Next and Stop stay
+in the toolbar's three fixed icon slots, with the same size, order and alignment as ordinary
+Pause/Resume, Next and Stop. Next is disabled during ordinary Auto runs; Pause is disabled during
+ordinary Manual runs. At a breakpoint both release actions are available and disable while a release
+request is pending; Stop remains available. Descriptive tooltips retain the distinction between
+continuing in Auto and advancing into Manual. Breakpoint selection remains in Settings. The conversation
 also retains its derived status note. `UserInputScope` preserves an answer submitted
 before a breakpoint-delayed `AskQuestion` starts waiting, then re-arms after consumption.
 
