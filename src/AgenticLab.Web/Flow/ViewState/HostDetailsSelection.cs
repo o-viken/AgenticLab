@@ -3,8 +3,6 @@ namespace AgenticLab.Web.Flow;
 /// <summary>The host layer inspected independently of diagram visibility and execution.</summary>
 public enum HostDetailSection
 {
-    /// <summary>The client and service responsibilities.</summary>
-    Client,
     /// <summary>The selected host's instructions.</summary>
     SystemPrompt,
     /// <summary>Workspace-authored instruction metadata and captured composition.</summary>
@@ -104,7 +102,7 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     /// <summary>The contributor rail shared with the expanded anatomy.</summary>
     public static string Contributor(HostDetailSection section) => section switch
     {
-        HostDetailSection.Client or HostDetailSection.SystemPrompt or HostDetailSection.Environment => "app",
+        HostDetailSection.SystemPrompt or HostDetailSection.Environment => "app",
         HostDetailSection.Instructions or HostDetailSection.UserPrompt or HostDetailSection.Skills => "user",
         _ => "agent"
     };

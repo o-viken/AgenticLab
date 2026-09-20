@@ -1,7 +1,7 @@
 namespace AgenticLab.Web.Flow;
 
 /// <summary>
-/// How the merged Client + AiService ("Agent host") node and the Model node present themselves
+/// How the Agent host node and the Model node present themselves
 /// for the current vendor and display options — their labels and the active system (harness) prompt fetched
 /// from the service, shown in the anatomy's System Prompt box as a preview or the full text.
 /// </summary>
@@ -12,14 +12,14 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     private int _promptVersion = -1;
     private bool _loading;
 
-    /// <summary>The merged node's title: the vendor name when selected, otherwise Agent host.</summary>
+    /// <summary>The host node's title: the vendor name when selected, otherwise Agent host.</summary>
     public string Label => owner.Vendor == Vendor.Default
         ? "Agent host"
         : owner.Roster.VendorName;
 
     /// <summary>Technical labels expose the implementation and selected agent.</summary>
     public string Subtitle => owner.Diagram.ShowTechnicalLabels
-        ? $"Agent host · Client + AiService · {owner.SelectedAgent ?? "Agent"}"
+        ? $"Agent host · AiService · {owner.SelectedAgent ?? "Agent"}"
         : "Agent service";
 
     /// <summary>Technical labels expose the actual deployment; branded overview labels are explicitly simulated.</summary>

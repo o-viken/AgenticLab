@@ -50,9 +50,6 @@ internal static class HostDetailsBuilder
 
         switch (section)
         {
-            case HostDetailSection.Client:
-                Add("Client", "Blazor web app: sends the user message and renders streamed replies.", "Set by application");
-                break;
             case HostDetailSection.SystemPrompt:
                 Add("System prompt", view.Harness.HasPromptText ? view.Harness.PromptText : view.Harness.PromptAvailability, "Set by application · " + view.Harness.Label);
                 break;

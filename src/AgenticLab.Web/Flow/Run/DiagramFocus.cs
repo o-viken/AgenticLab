@@ -17,8 +17,8 @@ internal sealed class DiagramFocus(FlowRunController owner)
     private string? CursorArrow => Replay.Replaying ? CursorTarget.Arrow : Live.Arrow;
 
     /// <summary>
-    /// Highlights a node when it is the active target. The Client and AiService are merged into one
-    /// "harness" node and the Tools box lives inside it, so an active "harness" or "tools" lights it up.
+    /// Highlights a node when it is the active target. The AI service is the "harness" node and the
+    /// Tools box lives inside it, so an active "harness" or "tools" lights it up.
     /// </summary>
     public string NodeClass(string node)
     {

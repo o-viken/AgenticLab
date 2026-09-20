@@ -82,6 +82,18 @@ public sealed class AgentLearningJourneyTests
         Assert.Same(stages[^1], AgentLearningJourney.Move(stages[^1].Id, int.MaxValue));
     }
 
+    /// <summary>Client remains a readable Learn topic even though it is outside the host anatomy.</summary>
+    [Fact]
+    public void ClientConcept_RemainsAvailableOutsideHostAnatomy()
+    {
+        var catalog = new ConceptCatalog(new ContentEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var client = catalog.Get("client");
+        Assert.NotNull(client);
+        Assert.Equal("Client", client.Title);
+        Assert.Contains(client, catalog.All);
+        Assert.Contains("outside the agent host", client.BodyHtml);
+    }
+
     /// <summary>Every stage links to readable concepts and defined architecture nodes.</summary>
     [Fact]
     public void Stages_ReferenceExistingConceptsAndNodes()

@@ -143,6 +143,13 @@ async function checkConversationHeader(page) {
 
 async function checkDocksAndDiscovery(page, width) {
     await openFlow(page);
+    const hostSubtitle = page.locator(".node.harness > .subtitle").first();
+    assert.equal(await hostSubtitle.innerText(), "Agent service");
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Technical labels", exact: true }).check();
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelector(".node.harness > .subtitle")?.textContent.includes("AiService"));
+    assert.doesNotMatch(await hostSubtitle.innerText(), /Client/, "The compact host describes the service, not the client");
     await page.locator("#message").fill("Preserved while inspecting");
     await page.getByRole("button", { name: "Expand the Execution panel", exact: true }).click();
     await page.locator(".main-panel-body.bottom-max").waitFor();
@@ -156,9 +163,18 @@ async function checkDocksAndDiscovery(page, width) {
     await page.getByRole("button", { name: "View options", exact: true }).click();
     await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
     await page.keyboard.press("Escape");
+    const anatomy = page.locator(".node.harness.anatomy");
+    await anatomy.waitFor();
+    assert.equal(await anatomy.getByRole("button", { name: "Client", exact: true }).count(), 0, "Client is not a host inspector section");
+    assert.equal(await anatomy.getByTitle("Learn about the client", { exact: true }).count(), 0, "Client has no anatomy info button");
     await page.getByRole("button", { name: "System prompt", exact: true }).click();
     await page.locator(".details-dock").waitFor({ state: "visible" });
-    await page.locator(".learn-dock").waitFor({ state: "visible" });
+    const learn = page.locator(".learn-dock");
+    await learn.waitFor({ state: "visible" });
+    await learn.getByRole("button", { name: /^Client\b/ }).click();
+    await learn.getByRole("heading", { name: "Client", exact: true }).waitFor();
+    assert.match(await learn.locator(".concept-body").innerText(), /outside the agent host/);
+    assert.equal(await page.locator("#host-detail-heading").innerText(), "System prompt", "Opening Client in Learn preserves Details");
     assert.equal(await page.locator("#message").inputValue(), "Preserved while inspecting");
     const regions = await page.evaluate(() => [".primary-workspace", ".details-dock", ".learn-dock"].map(selector => {
         const bounds = document.querySelector(selector).getBoundingClientRect();

@@ -34,7 +34,8 @@ node tools/web-smoke.mjs
 
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
 conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
-restoration, reset, Execution maximise/collapse, independent Details/Learn docks, individual A2A
+restoration, reset, Execution maximise/collapse, independent Details/Learn docks, host-only anatomy
+with the Client Learn topic retained, individual A2A
 inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
 dismissal, lesson progression and detailed diagrams, shared-control states, reduced motion and 404
 pages. It checks locally loaded fonts and page/toolbar overflow. Screenshots go to the system temporary

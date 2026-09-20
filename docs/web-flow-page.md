@@ -13,7 +13,7 @@ The panel JavaScript API is now `agenticLabPanels`, with matching Blazor interop
 section headings clickable and open one read-only **Details** pane in its own dock beside the flow.
 The compact host stays quiet: no extra prompt/persona/settings rows or inspect buttons, and visible
 tool, catalogue and risk headings remain plain text. The expanded anatomy exposes System prompt,
-Agent persona, Settings, Client, Custom instructions, User prompt and Context, plus enabled catalogue
+Agent persona, Settings, Custom instructions, User prompt and Context, plus enabled catalogue
 and risk sections. Collapsing the host leaves an already-open Details pane and its selection intact.
 Details shows only the selected part, with one title and its content. There is no
 section picker, repeated agent heading or visible ownership/source badge. Contributor rails and
@@ -71,10 +71,11 @@ but an active chat continues; re-discovery is disabled until that chat run ends 
 shared tool clients. Closing cancels only the Discovery stream. After re-discovery, live catalogs
 refresh without resetting chat or historical captures. Direct `/discovery` visits remain supported.
 
-**Naming.** Flow and Learn use **Agent = Agent host + Model**. The default merged Client +
-AiService node is **Agent host**, the inference node is **Model**, and the anatomy control is
+**Naming.** Flow and Learn use **Agent = Agent host + Model**. The AI service node is
+**Agent host**, the inference node is **Model**, and the anatomy control is
 **Expand agent host**. Vendor names remain the node title when selected; subtitles identify the
-host role. A2A agents use the same host/model labels. The model requests a next step; the host
+host role. The client sits outside the host and has no anatomy row or Details section.
+A2A agents use the same host/model labels. The model requests a next step; the host
 checks permissions and executes permitted actions. Technical harness/LLM references below,
 component names, event kinds and concept IDs remain unchanged; these are presentation-only labels.
 
@@ -198,7 +199,7 @@ untruncated data for that step). The endpoint returns them as Server-Sent Events
 [Services/AiServiceClient.cs](../src/AgenticLab.Web/Services/AiServiceClient.cs)) and lights up each node/arrow
 as events arrive. The diagram draws **separate send and receive arrows** for both the User↔node and node↔LLM
 links (so requests and responses animate independently), and a **loop badge** on the node↔LLM link shows the
-live turn / total round-trip count. The Client and AiService are drawn as a **single merged node**, titled
+live turn / total round-trip count. The AI service is drawn as a node titled
 **Agent host** or the selected vendor's name. **Technical labels** adds the implementation and agent name
 to its subtitle; otherwise the subtitle reads **Agent service**. Workspace agents also show their path.
 The optional **Skills** box mirrors the model's progressive-disclosure view: it lists the

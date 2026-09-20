@@ -90,6 +90,32 @@ public sealed class ExecutionReplayTests
         Assert.True(view.Layout.AdaptiveConversationWidth);
     }
 
+    /// <summary>The client stays outside the host while application-owned host layers retain their contributor.</summary>
+    [Fact]
+    public void HostDetails_SectionsExcludeClientAndKeepApplicationContributors()
+    {
+        Assert.DoesNotContain("Client", Enum.GetNames<HostDetailSection>());
+        Assert.Equal("app", HostDetailsSelection.Contributor(HostDetailSection.SystemPrompt));
+        Assert.Equal("app", HostDetailsSelection.Contributor(HostDetailSection.Environment));
+    }
+
+    /// <summary>Host labels describe the service and selected agent, not the client displaying them.</summary>
+    [Fact]
+    public void HostDetails_HostLabelsDescribeServiceWithoutClient()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Vendor = Vendor.Default;
+        view.SelectedAgent = "Coder";
+        view.Diagram.ShowTechnicalLabels = false;
+        Assert.Equal("Agent host", view.Harness.Label);
+        Assert.Equal("Agent service", view.Harness.Subtitle);
+
+        view.Diagram.ShowTechnicalLabels = true;
+        Assert.Equal("Agent host · AiService · Coder", view.Harness.Subtitle);
+        view.SelectedAgent = "Chat";
+        Assert.Equal("Agent host · AiService · Chat", view.Harness.Subtitle);
+    }
+
     [Fact]
     public void HostDetails_SelectsIndividualA2AAgentsAndClearsSelection()
     {
