@@ -1,36 +1,35 @@
 # Agentic Lab
 
-## What Is It?
+Agentic Lab was created to **demystify agentic AI and show how it works**.
+It makes the steps between a question and an answer visible: what the model receives, which tools
+it asks to use, and what comes back. The goal is to make agents easier to understand through
+simple explanations and working examples.
 
-Agentic Lab is an educational application for understanding how AI agents work. It combines
-guided lessons with a live workspace where real agents answer questions, call tools, and expose
-the requests and results behind their answers.
+## How an Agent Works
 
-It is for learners, educators, developers, and teams evaluating agentic systems. Built with
-[.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
-[Aspire](https://aspire.dev/), and Azure OpenAI, it includes a Blazor web app, a console client,
-and an optional React frontend.
+**Agent = Agent host + Model.** The model chooses the next step. The agent host is the code around
+it that supplies context, manages tools and controls execution.
 
-You can:
+1. You ask a question.
+2. The host sends the model your question, instructions, context and available tools.
+3. The model returns an answer or asks to use a tool.
+4. The host checks and runs allowed tool calls, then sends the results back to the model.
 
-- Follow guided lessons about agents, context, tools, and execution boundaries.
-- Inspect captured model requests, responses, tool arguments, and results.
-- Pause and step through real execution, then revisit captured exchanges without running them again.
-- Explore workspace agents, skills, instructions, MCP tools, and A2A delegation.
+This loop continues until the model gives a final answer. A request to use a tool is not permission
+to run it: the host decides what is allowed.
 
-## Why It Exists
+## See It in Action
 
-A chat box shows the question and answer, but hides much of the system in between. Agentic Lab
-makes that system visible so you can understand what an agent knows, what it can do, and what
-controls its actions.
+- Follow guided lessons about agents, tools and context.
+- Run an agent and inspect the model requests, responses, tool calls and results.
+- Pause, step through execution and replay a captured run without running it again.
 
-The central idea is **Agent = Agent host + Model**. The model chooses a next step or an answer;
-the host manages context, instructions, memory, tools, and execution controls. A model's request
-to use a tool is not permission to execute it.
+The captured activity shows what the application sends and receives, not the model's private
+reasoning. Illustrations of model internals are labelled simulations.
 
-Captured activity shows what the application actually sent and received, not the model's private
-reasoning. Inference, embedding, and neural-network illustrations are labelled simulations.
-Read the [vision](VISION.md) for the project's purpose and direction.
+Built with [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
+[Aspire](https://aspire.dev/) and Azure OpenAI. Read the [vision](VISION.md) for more on the project's
+purpose and direction.
 
 ## Prerequisites
 
