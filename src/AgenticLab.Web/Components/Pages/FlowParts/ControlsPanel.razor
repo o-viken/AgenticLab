@@ -15,7 +15,7 @@
         </div>
         <div class="conversation-actions">
             <LabButton Label="New conversation" Icon="new" IconOnly="true" Variant="quiet"
-                       OnClick="Run.NewConversationAsync" Disabled="Run.Running" />
+                       OnClick="NewConversationAsync" Disabled="Run.Running" />
             <button type="button" class="collapse-conversation" title="Collapse the Conversation panel"
                     aria-label="Collapse the Conversation panel" aria-expanded="true" @onclick="OnCollapse">&#8249;</button>
         </div>
@@ -23,6 +23,7 @@
 
     <div class="tab-body conversation-body" id="conversation-panel" role="tabpanel" aria-labelledby="conversation-tab"
          hidden="@(View.ActiveControlsTab != ControlsTab.Chat)">
+        @ExampleContent
         <FlowChat />
     </div>
     <div class="tab-body settings-body" id="settings-panel" role="tabpanel" aria-labelledby="settings-tab"
@@ -47,6 +48,13 @@
     [Parameter] public EventCallback OnCollapse { get; set; }
     /// <summary>Restores the page's default layout without resetting conversation or execution state.</summary>
     [Parameter] public EventCallback OnResetLayout { get; set; }
+
+    /// <summary>Optional example-owned conversation content supplied by the page.</summary>
+    [Parameter] public RenderFragment? ExampleContent { get; set; }
+    /// <summary>Allows the page to await an example's cleanup before resetting the conversation.</summary>
+    [Parameter] public EventCallback OnNewConversation { get; set; }
+
+    private Task NewConversationAsync() => OnNewConversation.HasDelegate ? OnNewConversation.InvokeAsync() : Run.NewConversationAsync();
 
     private int SettingsCount => Run.Catalogs.KnownSkills.Count + Run.Catalogs.KnownInstructions.Count;
 

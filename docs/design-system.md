@@ -9,8 +9,10 @@ the AI service, React or an npm build step.
 - [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css) owns the document-level `--lab-*`
   tokens and local font faces. [App.razor](../src/AgenticLab.Web/Components/App.razor) loads it once.
 - [app.css](../src/AgenticLab.Web/wwwroot/app.css) contains application resets and framework styles.
-- [Components/Shared](../src/AgenticLab.Web/Components/Shared) owns reusable Razor controls and their
-  scoped styles. Each feature component owns its layout in its own scoped stylesheet.
+- [Extensibility/Components](../src/AgenticLab.Extensibility/Components) owns `LabButton`, `LabField`,
+  `LabStatus` and `MiniIcon`, reused by Web and self-contained example panels without a Web dependency.
+  [Web Components/Shared](../src/AgenticLab.Web/Components/Shared) retains the page/dock controls.
+  Each component still owns its scoped styles; this extraction does not introduce another palette.
 - `/design-system` is a development-only, interactive catalogue of real shared controls. It makes no
   backend calls and returns Not Found outside Development. It is not part of production navigation.
 

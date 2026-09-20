@@ -14,4 +14,6 @@ namespace AgenticLab.AiService.Application.Agents;
 /// <param name="Guardrails">The safety mechanisms enforced for this agent, surfaced so the user understands the risk.</param>
 /// <param name="ModelId">The Azure OpenAI deployment the agent runs on, surfaced so clients can show which model answers.</param>
 /// <param name="ToolMappings">For workspace agents, each declared tool token and the backend tool it mapped to; empty for built-in agents.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId, IReadOnlyList<ToolMapping> ToolMappings);
+/// <param name="ExampleId">The enabled module owning this agent, or null for existing agents.</param>
+/// <param name="RequiresExampleUi">Whether clients must supply the module's panel before offering this agent.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId, IReadOnlyList<ToolMapping> ToolMappings, string? ExampleId = null, bool RequiresExampleUi = false);

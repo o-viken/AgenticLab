@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const agentSchema = z.object({
   name: z.string(), description: z.string(), tools: z.array(z.string()),
   requiresWorkspace: z.boolean().default(false), modelId: z.string().nullish(),
+  exampleId: z.string().nullish(), requiresExampleUi: z.boolean().optional(),
 })
 export const agentsSchema = z.object({ agents: z.array(agentSchema), default: z.string() })
 export const vendorSchema = z.object({
@@ -39,7 +40,7 @@ export function readBreakpoint(data: string | null | undefined): Breakpoint {
 }
 
 export function availableVendors(catalogs: Catalogs): Vendor[] {
-  const supported = new Set(catalogs.agents.filter(agent => !agent.requiresWorkspace).map(agent => agent.name))
+  const supported = new Set(catalogs.agents.filter(agent => !agent.requiresWorkspace && !agent.requiresExampleUi).map(agent => agent.name))
   return catalogs.vendors.map(vendor => ({ ...vendor, modes: vendor.modes.filter(mode => supported.has(mode.agent)) }))
     .filter(vendor => vendor.modes.length > 0)
 }

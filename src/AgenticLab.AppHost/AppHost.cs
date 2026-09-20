@@ -35,10 +35,23 @@ builder.AddProject<Projects.AgenticLab_Console>("console")
 
 // Blazor web UI that visualizes the live data flow through the agent. Reaches the AI service
 // via service discovery and is exposed on an external HTTP endpoint.
-builder.AddProject<Projects.AgenticLab_Web>("web")
+var web = builder.AddProject<Projects.AgenticLab_Web>("web")
     .WithReference(aiService)
     .WaitFor(aiService)
     .WithExternalHttpEndpoints();
+
+if (builder.Configuration.GetSection("Examples").GetChildren().Any(example => example.GetValue<bool>("Enabled")))
+{
+    timeMcp.WithReference(aiService);
+    foreach (var setting in builder.Configuration.GetSection("Examples").AsEnumerable().Where(setting => setting.Value is not null))
+    {
+        var name = setting.Key.Replace(":", "__", StringComparison.Ordinal);
+        aiService.WithEnvironment(name, setting.Value);
+        timeMcp.WithEnvironment(name, setting.Value);
+        a2aServer.WithEnvironment(name, setting.Value);
+        web.WithEnvironment(name, setting.Value);
+    }
+}
 
 if (builder.Configuration.GetValue<bool>("ReactFrontend:Enabled"))
 {

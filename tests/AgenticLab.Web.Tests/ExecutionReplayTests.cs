@@ -616,6 +616,49 @@ public sealed class ExecutionReplayTests
         }
     }
 
+    [Fact]
+    public void ExampleHosts_AcceptArbitraryRegisteredKeysWithoutEnumChanges()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetVendors([
+            new("default", "Default", "", []),
+            new("chatgpt", "ChatGPT", "demo", []),
+            new("parcel-operations", "Parcel operations", "Configured model", [new("ParcelCoordinator", "Coordinator")], "parcels", true),
+        ]);
+        view.Roster.SetAgents([new("ParcelCoordinator", "A test extension", [])]);
+        Assert.DoesNotContain(view.Roster.AvailableHosts, host => host.Key == "parcel-operations");
+        view.Roster.SetExamples([new("parcels", "Parcel operations", ["parcel-operations"], ["ParcelCoordinator"], true)
+        {
+            ToolRisks = new Dictionary<string, AgenticLab.Extensibility.Examples.ExampleToolRisk>
+            {
+                ["StoreParcel"] = new("Medium", "Updates the isolated parcel record."),
+            },
+        }]);
+        Assert.Contains(view.Roster.AvailableHosts, host => host.Key == "parcel-operations");
+        var previousVersion = view.ConfigurationVersion;
+        view.HostKey = "parcel-operations";
+        view.SelectedAgent = "ParcelCoordinator";
+        Assert.Equal("risk-medium", view.Agent.ToolRiskClass("StoreParcel"));
+        Assert.Contains("isolated parcel record", view.Agent.ToolRiskTitle("StoreParcel"));
+        Assert.True(view.ConfigurationVersion > previousVersion);
+        Assert.Equal("parcel-operations", view.VendorKey);
+        Assert.Equal("Parcel operations", view.Harness.Label);
+        Assert.Equal("ParcelCoordinator", view.Roster.VendorDefaultAgent);
+        Assert.Equal("parcel-operations", view.Roster.RestoreHost("parcel-operations"));
+        view.Roster.SetExamples([]);
+        Assert.Equal("chatgpt", view.Roster.RestoreHost("parcel-operations"));
+    }
+
+    [Theory]
+    [InlineData("ClaudeCode", "claude-code")]
+    [InlineData("ChatGpt", "chatgpt")]
+    [InlineData("Microsoft365", "microsoft365")]
+    [InlineData("another-community-host", "another-community-host")]
+    public void ExampleHosts_NormalizeLegacyPreferencesAndPreserveNewKeys(string stored, string expected)
+    {
+        Assert.Equal(expected, VendorCatalog.NormalizeKey(stored));
+    }
+
     private sealed class ReplayEnvironment : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "AgenticLab.Web.Tests";

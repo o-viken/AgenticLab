@@ -39,6 +39,11 @@ The development BFF provides `/openapi/v1.json` route metadata and
 [an HTTP request file](../src/AgenticLab.Bff/AgenticLab.Bff.http) for manual exploration.
 No AiService endpoint or CORS change is needed; no Azure key or private service URL is in the bundle.
 
+Agent catalogue entries may include optional `exampleId` and `requiresExampleUi` metadata from
+[example modules](examples.md). React excludes agents requiring a custom example panel, just as it
+excludes workspace-only agents. Missing fields preserve older payload behavior. The BFF allowlist
+does not forward example APIs, and React does not implement their approval or case controls.
+
 ## Run with Aspire
 
 The normal .NET-only workflow remains unchanged. React is disabled unless explicitly requested.

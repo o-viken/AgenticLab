@@ -105,7 +105,8 @@ internal static class ChatEndpoints
         var session = await conversations.GetOrCreateAsync(conversationId, agent, cancellationToken);
 
         // Non-interactive: an AskQuestion tool falls back to stated assumptions instead of blocking.
-        using var scopes = RunScopeSet.Begin(null, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, interactive: false);
+        using var scopes = RunScopeSet.Begin(null, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, interactive: false,
+            conversationId: conversationId, agentName: resolvedName);
         var runOptions = RunScopeSet.BuildRunOptions(supportsSkills, skills, instructions);
 
         var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);

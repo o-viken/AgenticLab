@@ -10,6 +10,14 @@ namespace AgenticLab.Web.Flow;
 /// </summary>
 internal static class VendorCatalog
 {
+    /// <summary>Converts old enum-name preferences while preserving arbitrary registered host keys.</summary>
+    public static string NormalizeKey(string value) => Enum.TryParse<Vendor>(value, true, out var vendor)
+        && Enum.IsDefined(vendor) ? HarnessKey(vendor)! : value;
+
+    /// <summary>Existing branding for built-in hosts; extensions use the neutral host icon.</summary>
+    public static Vendor BuiltIn(string key) => Enum.GetValues<Vendor>()
+        .FirstOrDefault(vendor => HarnessKey(vendor) == key);
+
     /// <summary>
     /// The vendor key sent to the backend so it swaps in this vendor's harness system prompt for the run
     /// (replacing the shared harness while keeping the agent's persona), and the key used to look up the

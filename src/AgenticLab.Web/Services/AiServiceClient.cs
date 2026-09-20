@@ -278,7 +278,7 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false);
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record SkillsRequest(string? Workspace);
@@ -298,7 +298,7 @@ internal sealed record WorkspaceBrowseResponse(IReadOnlyList<WorkspaceEntry> Dir
 internal sealed record WorkspaceEntry(string Path, string Name, string Base);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);
-internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes);
+internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes, string? ExampleId = null, bool RequiresExampleUi = false);
 internal sealed record VendorModeInfo(string Agent, string Label);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);

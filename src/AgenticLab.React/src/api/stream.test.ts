@@ -55,7 +55,8 @@ describe('POST event stream', () => {
     const vendors = availableVendors({ defaultAgent: 'chat', agents: [
       { name: 'chat', description: '', tools: [], requiresWorkspace: false },
       { name: 'coder', description: '', tools: [], requiresWorkspace: true },
-    ], vendors: [{ key: 'test', displayName: 'Test', modes: [{ agent: 'chat', label: 'Chat' }, { agent: 'coder', label: 'Code' }] }] })
+      { name: 'process', description: '', tools: [], requiresWorkspace: false, requiresExampleUi: true },
+    ], vendors: [{ key: 'test', displayName: 'Test', modes: [{ agent: 'chat', label: 'Chat' }, { agent: 'coder', label: 'Code' }, { agent: 'process', label: 'Process' }] }] })
     expect(vendors[0].modes).toEqual([{ agent: 'chat', label: 'Chat' }])
   })
 })

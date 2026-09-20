@@ -1,0 +1,13 @@
+<DynamicComponent @ref="_component" Type="Module.PanelType" Parameters="Parameters" />
+
+@code {
+    private DynamicComponent? _component;
+    /// <summary>An explicitly registered local module, not a remote assembly/type name.</summary>
+    [Parameter, EditorRequired] public IWebExample Module { get; set; } = default!;
+    /// <summary>The page's narrow extension context.</summary>
+    [Parameter, EditorRequired] public ExamplePanelContext Context { get; set; } = default!;
+    private IDictionary<string, object> Parameters => new Dictionary<string, object> { ["Context"] = Context };
+    /// <summary>Awaits module-owned cleanup before the page changes conversation identity.</summary>
+    public Task BeforeResetAsync() => _component?.Instance is IExamplePanel panel
+        ? panel.BeforeResetAsync() : Task.CompletedTask;
+}

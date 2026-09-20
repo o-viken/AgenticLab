@@ -2,6 +2,8 @@ using OpenTelemetry.Metrics;
 using AgenticLab.AiService.Demo.Agents;
 using AgenticLab.AiService.Demo.Tools;
 using AgenticLab.AiService.Demo.Vendors;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Extensibility.Runtime;
 
 namespace AgenticLab.AiService.Startup;
 
@@ -78,6 +80,8 @@ internal static class ServiceRegistration
     /// <summary>The demo agent definitions (first registered is the default) and the catalog that builds them on their chat clients.</summary>
     public static IServiceCollection AddDemoAgents(this IServiceCollection services)
     {
+        services.AddSingleton<ExampleCatalog>();
+        services.AddSingleton<IAgentRunContext, AgentRunContext>();
         services.AddSingleton<IAgentDefinition, ChatAgent>();
         services.AddSingleton<IAgentDefinition, ChatGptAgent>();
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
@@ -127,6 +131,8 @@ internal static class ServiceRegistration
     {
         services.AddSingleton<McpToolProvider>();
         services.AddSingleton<A2AAgentProvider>();
+        services.AddSingleton<IMcpToolSource>(provider => provider.GetRequiredService<McpToolProvider>());
+        services.AddSingleton<IAgentDelegation>(provider => provider.GetRequiredService<A2AAgentProvider>());
         services.AddSingleton<DiscoveryTracer>();
         return services;
     }

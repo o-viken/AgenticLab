@@ -1,3 +1,5 @@
+using AgenticLab.Extensibility.Examples;
+
 namespace AgenticLab.Web.Flow;
 
 /// <summary>
@@ -10,6 +12,36 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     private readonly List<AgentInfo> _agents = new();
     private readonly List<AgentInfo> _workspaceAgents = new();
     private readonly Dictionary<string, VendorInfo> _vendors = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<ExampleManifest> _examples = [];
+
+    /// <summary>Registers locally compiled panels and their resource metadata, never remote component types.</summary>
+    public void SetExamples(IEnumerable<ExampleManifest> examples) => _examples = examples.ToArray();
+
+    /// <summary>The enabled module owning the selected agent, independent of built-in branding.</summary>
+    public ExampleManifest? CurrentExample => _examples.FirstOrDefault(example =>
+        example.AgentNames.Contains(owner.SelectedAgent, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>An example's own tool-risk description, or null for built-in/default classification.</summary>
+    public ExampleToolRisk? RiskFor(string tool) => CurrentExample?.ToolRisks.GetValueOrDefault(tool);
+
+    /// <summary>Backend hosts supported by this client, including arbitrary registered example keys.</summary>
+    public IReadOnlyList<VendorInfo> AvailableHosts => _vendors.Values
+        .Where(vendor => !vendor.RequiresExampleUi || _examples.Any(example => example.Id == vendor.ExampleId))
+        .OrderBy(vendor => Array.FindIndex(VendorCatalog.DisplayOrder, item => VendorCatalog.HarnessKey(item) == vendor.Key) is var index && index >= 0 ? index : int.MaxValue)
+        .ToArray();
+
+    /// <summary>Resources contributed by enabled local modules.</summary>
+    public IEnumerable<ResourceInfo> ExampleResources => _examples.SelectMany(example => example.Resources)
+        .Select(resource => new ResourceInfo(resource.Key, "+", resource.Title, resource.Transport, resource.ToolNames));
+
+    /// <summary>Restores a compatible saved key, falling back when a module is unavailable.</summary>
+    public string RestoreHost(string? stored)
+    {
+        var key = string.IsNullOrEmpty(stored) ? owner.HostKey : VendorCatalog.NormalizeKey(stored);
+        return AvailableHosts.FirstOrDefault(host => host.Key == key)?.Key
+            ?? AvailableHosts.FirstOrDefault(host => host.Key == "chatgpt")?.Key
+            ?? AvailableHosts.FirstOrDefault()?.Key ?? "default";
+    }
 
     /// <summary>The agents the service registered (loaded once on initialise).</summary>
     public IReadOnlyList<AgentInfo> Agents => _agents;
@@ -62,7 +94,7 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     public string VendorDisplayName(Vendor vendor) => VendorInfoFor(vendor)?.DisplayName ?? vendor.ToString();
 
     /// <summary>The friendly display name of the selected vendor (page title and header).</summary>
-    public string VendorName => CurrentVendorInfo?.DisplayName ?? owner.Vendor.ToString();
+    public string VendorName => CurrentVendorInfo?.DisplayName ?? owner.HostKey;
 
     /// <summary>
     /// The agents offered by the current vendor, restricted to those the service actually registered (an

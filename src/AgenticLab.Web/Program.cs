@@ -2,11 +2,14 @@ using OpenTelemetry.Metrics;
 using AgenticLab.Web;
 using AgenticLab.Web.Components;
 using AgenticLab.Web.Flow;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
+builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.Web);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

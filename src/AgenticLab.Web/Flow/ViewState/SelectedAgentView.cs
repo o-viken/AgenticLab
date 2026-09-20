@@ -71,10 +71,16 @@ internal sealed class SelectedAgentView(FlowViewState owner)
     }
 
     /// <summary>The CSS risk class (risk-low/-medium/-high) for a tool, colour-coding it by how much it can do.</summary>
-    public string ToolRiskClass(string tool) => ToolRiskCatalog.CssClass(tool);
+    public string ToolRiskClass(string tool) => owner.Roster.RiskFor(tool)?.Level switch
+    {
+        "High" => "risk-high",
+        "Medium" => "risk-medium",
+        "Low" => "risk-low",
+        _ => ToolRiskCatalog.CssClass(tool),
+    };
 
     /// <summary>A tooltip explaining a tool's risk tier and why.</summary>
-    public string ToolRiskTitle(string tool) => $"{tool} — {ToolRiskCatalog.Reason(tool)}";
+    public string ToolRiskTitle(string tool) => $"{tool} — {owner.Roster.RiskFor(tool)?.Description ?? ToolRiskCatalog.Reason(tool)}";
 
     /// <summary>
     /// The declared token(s) from a workspace agent file that mapped to the given backend tool, or null

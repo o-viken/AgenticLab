@@ -39,7 +39,8 @@ internal sealed class DiagramFocus(FlowRunController owner)
         Replay.Replaying ? (Replay.SelectedStage is { } stage ? FlowEventMapping.ResponseHintFor(stage) : null) : Live.ResponseHint;
 
     /// <summary>The resource currently being used, based on the active tool, or null when none is active.</summary>
-    public ResourceInfo? ActiveResourceInfo => VendorCatalog.ActiveResource(ActiveToolName);
+    public ResourceInfo? ActiveResourceInfo => VendorCatalog.ActiveResource(ActiveToolName)
+        ?? owner.View.Roster.ExampleResources.FirstOrDefault(resource => resource.ToolNames.Contains(ActiveToolName));
 
     /// <summary>The specific tool function that contacted the active resource, or null.</summary>
     public string? ActiveToolName =>

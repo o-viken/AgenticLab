@@ -4,7 +4,18 @@ Part of the [Agentic Lab architecture notes](../AGENTS.md). The two real cross-s
 
 ## MCP server (the TimeKeeper agent)
 
-A real Model Context Protocol integration: [src/AgenticLab.McpServer](../src/AgenticLab.McpServer/Program.cs) is a minimal ASP.NET Core MCP server (`ModelContextProtocol.AspNetCore`, `AddMcpServer().WithHttpTransport().WithToolsFromAssembly()`, `MapMcp()`) exposing one `[McpServerTool]` — `GetCurrentTime` ([Tools/TimeTools.cs](../src/AgenticLab.McpServer/Tools/TimeTools.cs)). The AppHost runs it as the `mcpserver` resource and the AiService references it. At startup [Application/Discovery/McpToolProvider.cs](../src/AgenticLab.AiService/Application/Discovery/McpToolProvider.cs) connects an MCP client over HTTP (endpoint resolved via service discovery, `services:mcpserver:http:0`), lists the tools, and caches them as `AITool`s; failures degrade gracefully to an empty list. The `TimeKeeper` agent ([Demo/Agents/TimeKeeperAgent.cs](../src/AgenticLab.AiService/Demo/Agents/TimeKeeperAgent.cs)) sets `SupportsMcp => true` and exposes those discovered tools. Discovery is surfaced over `GET /mcp` (`McpResponse { Servers: [{ Name, Tools: [{ Name, Description }] }] }`) and as the new `AgentInfo.SupportsMcp` flag; the Web flow page shows an **MCP servers** box in the harness (mirroring the Skills box). It can also be listed in a `.vscode/mcp.json` so VS Code uses it directly.
+A real Model Context Protocol integration: [McpServer](../src/AgenticLab.McpServer/Program.cs)
+uses `ModelContextProtocol.AspNetCore`, `AddMcpServer().WithHttpTransport().WithTools<TimeTools>()`
+and `MapMcp()`. Its always-on [TimeTools](../src/AgenticLab.McpServer/Tools/TimeTools.cs) exposes
+`GetCurrentTime`; `AddExampleTools` registers additional tools only for enabled modules.
+AppHost runs the `mcpserver` resource and AiService references it. At startup
+[McpToolProvider](../src/AgenticLab.AiService/Application/Discovery/McpToolProvider.cs) resolves
+`services:mcpserver:http:0`, connects over HTTP, lists tools and caches them as `AITool` instances.
+Failures degrade to an empty list. [TimeKeeper](../src/AgenticLab.AiService/Demo/Agents/TimeKeeperAgent.cs)
+sets `SupportsMcp => true` and selects only `GetCurrentTime`, never another module's tools.
+`GET /mcp` returns `Servers: [{ Name, Tools: [{ Name, Description }] }]`; the Web host anatomy
+shows the discovered MCP catalogue. The same endpoint can be configured in `.vscode/mcp.json`
+for direct use by VS Code.
 
 MCP uses the v2 SDK's default **stateless HTTP** transport. The time tool needs no transport session
 or unsolicited server-to-client requests, so no stateful opt-in is required. This is independent of
@@ -33,6 +44,20 @@ See [the reference below](#remote-a2a-agents) for visible states and limitations
 live in the existing AiService and Web test projects.
 
 ## Protocol integration tests
+
+### Optional Example Contributions
+
+[Example modules](examples.md) contribute MCP tools and A2A persona descriptors through explicit
+role registrations; their implementations and prompts remain in their own projects. Tool registration
+and metadata listing cannot contact AiService. Example MCP adapters may call its operational API
+only when invoked, after startup, so the reverse service reference adds no circular wait dependency.
+TimeKeeper selects only `GetCurrentTime`, even when other MCP tools are discovered.
+
+Startup resolves the agent catalogue after discovery. Rediscovery refreshes both executable agents
+and their advertised tool metadata. The example delegation gateway exposes typed transport outcomes;
+the original Orchestrator's text-returning `DelegateToAgent` contract remains unchanged. Examples
+enforce their own remote allowlists. The selected example's MCP/A2A lists reflect its capabilities;
+the Discovery page still shows the whole server roster.
 
 [ProtocolIntegrationTests.cs](../tests/AgenticLab.AiService.Tests/ProtocolIntegrationTests.cs)
 starts local Kestrel servers on ephemeral loopback ports using the same MCP/A2A registration APIs

@@ -139,6 +139,13 @@ See the [React setup guide](docs/react-frontend.md#run-with-aspire) for customiz
 The **console** resource does not start automatically. Start it explicitly from Aspire with an
 attached terminal for input, or follow the [standalone console instructions](docs/web-flow-page.md#running-the-console).
 
+### Self-Contained Examples
+
+Optional examples are registered as independent projects, keeping their domain code, UI, assets,
+tests and documentation together. See the [example catalogue and contributor guide](docs/examples.md)
+and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo.
+Examples are disabled by default and reuse the existing hosts when enabled.
+
 ## Documentation
 
 | Guide | What You Will Find |
@@ -151,6 +158,7 @@ attached terminal for input, or follow the [standalone console instructions](doc
 | [Workspace Features](docs/workspace.md) | Workspace agents, skills, custom instructions, and file/terminal tools. |
 | [Protocols](docs/protocols.md) | MCP tools, A2A agents, discovery, and protocol integration tests. |
 | [React Frontend](docs/react-frontend.md) | Optional frontend setup, customization, builds, and browser tests. |
+| [Example Modules](docs/examples.md) | Self-contained community examples, extension contracts and registration. |
 | [Architecture and Conventions](AGENTS.md) | Project structure and implementation guidance for contributors. |
 | [Browser Checks](tools/README.md) | Responsive UI smoke checks and separate browser load-test setup. |
 

@@ -20,10 +20,10 @@
                 <div class="selectors">
                     <span class="selected-vendor" aria-hidden="true"><VendorIcon Vendor="_view.Vendor" /></span>
                     <LabField For="host" Label="Host" Inline="true">
-                        <select id="host" value="@_view.Vendor" title="@HostSummary" disabled="@(_run.Running || !_catalogsLoaded)" @onchange="OnHostChangedAsync">
-                            @foreach (var vendor in VendorCatalog.DisplayOrder)
+                        <select id="host" value="@_view.HostKey" title="@HostSummary" disabled="@(_run.Running || !_catalogsLoaded)" @onchange="OnHostChangedAsync">
+                            @foreach (var vendor in _view.Roster.AvailableHosts)
                             {
-                                <option value="@vendor">@_view.Roster.VendorDisplayName(vendor)</option>
+                                <option value="@vendor.Key">@vendor.DisplayName</option>
                             }
                         </select>
                     </LabField>
@@ -69,7 +69,14 @@
                                Collapsed="_view.Layout.LeftPanelCollapsed"
                                OnToggleCollapse="ToggleLeftPanelAsync"
                                OnResize="SetLeftWidthAsync">
-                        <ControlsPanel OnCollapse="ToggleLeftPanelAsync" OnResetLayout="ResetLayoutAsync" />
+                        <ControlsPanel OnCollapse="ToggleLeftPanelAsync" OnResetLayout="ResetLayoutAsync" OnNewConversation="NewConversationAsync">
+                            <ExampleContent>
+                                @if (SelectedExample is { } example)
+                                {
+                                    <ExamplePanelHost @ref="_examplePanel" @key="example.Manifest.Id" Module="example" Context="PanelContext" />
+                                }
+                            </ExampleContent>
+                        </ControlsPanel>
                     </SidePanel>
 
                     <section class="flow-main-col" aria-label="Live execution">

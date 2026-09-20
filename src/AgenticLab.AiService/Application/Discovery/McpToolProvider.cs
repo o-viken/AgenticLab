@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using AgenticLab.Extensibility.Runtime;
 
 namespace AgenticLab.AiService.Application.Discovery;
 
@@ -12,7 +13,7 @@ namespace AgenticLab.AiService.Application.Discovery;
 /// When the server is unavailable the provider degrades gracefully to an empty tool list instead of
 /// failing the service.
 /// </summary>
-public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToolProvider> logger) : IAsyncDisposable
+public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToolProvider> logger) : IAsyncDisposable, IMcpToolSource
 {
     private McpClient? _client;
     private IList<AITool> _tools = [];
@@ -27,6 +28,10 @@ public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToo
 
     /// <summary>The MCP-discovered tools, ready to be handed to an agent. Empty until discovery runs.</summary>
     public IList<AITool> GetTools() => _tools;
+
+    /// <inheritdoc />
+    public IList<AITool> GetTools(IReadOnlyCollection<string> names) =>
+        _tools.Where(tool => names.Contains(tool.Name, StringComparer.Ordinal)).ToList();
 
     /// <summary>The discovered tools' names and descriptions, surfaced so clients can show what was discovered.</summary>
     public IReadOnlyList<McpToolInfo> ToolInfos => _toolInfos;

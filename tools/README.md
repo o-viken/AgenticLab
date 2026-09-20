@@ -56,6 +56,9 @@ dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 
 ## Load test
 
+Optional example modules own their scenario-specific checks inside their project folders; see
+the [example catalogue](../docs/examples.md). The core smoke script remains domain-neutral.
+
 `flow-loadtest.mjs` exercises the Interactive Server Flow page with concurrent browser contexts.
 The defaults are 10 concurrent users and 3 rounds.
 
