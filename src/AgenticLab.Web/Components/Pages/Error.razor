@@ -1,10 +1,9 @@
 ﻿@page "/Error"
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>Agentic Lab - Error</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<PageNotice Context="Error" Heading="An error occurred while processing your request.">
 
 @if (ShowRequestId)
 {
@@ -13,7 +12,8 @@
     </p>
 }
 
-<h3>Development Mode</h3>
+<details>
+<summary>Development diagnostics</summary>
 <p>
     Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
 </p>
@@ -23,6 +23,9 @@
     For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
     and restarting the app.
 </p>
+
+</details>
+</PageNotice>
 
 @code{
     [CascadingParameter]

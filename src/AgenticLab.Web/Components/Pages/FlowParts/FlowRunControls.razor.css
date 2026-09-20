@@ -1,0 +1,7 @@
+.run-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 24px 14px; border-bottom: 1px solid var(--lab-border); background: var(--lab-surface-muted); }
+.delay { display: flex; align-items: center; gap: 8px; flex: 1 1 170px; min-width: 0; color: var(--lab-muted); font-size: var(--lab-text-xs); }
+.delay input { width: 70px; min-width: 36px; flex: 1 1 50px; max-width: 100px; accent-color: var(--lab-accent); }
+.delay span { font-family: var(--lab-font-mono); min-width: 52px; }
+.transport { margin-left: auto; display: grid; grid-template-columns: repeat(3, var(--lab-control-height)); gap: 2px; flex: 0 0 auto; }
+.run-controls ::deep .breakpoint-status, .run-controls ::deep .breakpoint-error { flex: 1 1 100%; margin: 0; }
+@media (max-width: 500px) { .run-controls { padding-inline: 20px; } }

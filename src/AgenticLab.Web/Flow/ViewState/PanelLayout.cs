@@ -13,6 +13,8 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     /// <summary>The widest a side panel may be dragged.</summary>
     private const int MaxPanelWidth = 640;
 
+    private const int MaxConversationWidth = 960;
+
     /// <summary>The shortest the bottom panel may be dragged.</summary>
     private const int MinPanelHeight = 120;
 
@@ -29,9 +31,9 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     private bool _rightCollapsed;
     private int _leftWidth = 276;
     private int _rightWidth = 260;
+    private bool _adaptiveConversationWidth = true;
     private bool _bottomCollapsed;
-    // The Execution dock is the main way to read a run, so it opens tall enough for its three panes.
-    private int _bottomHeight = 380;
+    private int _bottomHeight = 240;
     private bool _bottomMaximized;
     private bool _discoveryOpen;
 
@@ -60,8 +62,11 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     public int LeftPanelWidth
     {
         get => _leftWidth;
-        set { _leftWidth = Math.Clamp(value, MinPanelWidth, MaxPanelWidth); notify(); }
+        set { _leftWidth = Math.Clamp(value, MinPanelWidth, MaxConversationWidth); _adaptiveConversationWidth = false; notify(); }
     }
+
+    /// <summary>Uses a proportional conversation column until the user explicitly resizes it.</summary>
+    public bool AdaptiveConversationWidth => _adaptiveConversationWidth;
 
     /// <summary>The expanded width (px) of the right panel, clamped to the allowed range.</summary>
     public int RightPanelWidth
@@ -112,14 +117,24 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     internal void RevealRight() => _rightCollapsed = false;
 
     /// <summary>Restores persisted panel state without raising change notifications (used during initial load).</summary>
-    public void Init(bool leftCollapsed, bool rightCollapsed, bool bottomCollapsed, int leftWidth, int rightWidth, int bottomHeight)
+    public void Init(bool leftCollapsed, bool rightCollapsed, bool bottomCollapsed, int leftWidth, int rightWidth, int bottomHeight,
+        bool adaptiveConversationWidth = false)
     {
         _leftCollapsed = leftCollapsed;
         _rightCollapsed = rightCollapsed;
         _bottomCollapsed = bottomCollapsed;
-        _leftWidth = Math.Clamp(leftWidth, MinPanelWidth, MaxPanelWidth);
+        _leftWidth = Math.Clamp(leftWidth, MinPanelWidth, MaxConversationWidth);
         _rightWidth = Math.Clamp(rightWidth, MinPanelWidth, MaxPanelWidth);
         _bottomHeight = Math.Clamp(bottomHeight, MinPanelHeight, MaxPanelHeight);
+        _adaptiveConversationWidth = adaptiveConversationWidth;
+    }
+
+    /// <summary>Restores the proportional workspace without changing run state or independent dock selections.</summary>
+    public void Reset()
+    {
+        Init(false, false, false, 276, 260, 240, adaptiveConversationWidth: true);
+        _bottomMaximized = false;
+        notify();
     }
 
     /// <summary>
@@ -131,10 +146,12 @@ internal sealed class PanelLayout(Action notify, Func<bool> rightPanelEnabled)
     {
         get
         {
-            var left = _leftCollapsed ? RailWidth : _leftWidth;
+            var left = _leftCollapsed ? $"{RailWidth}px" : _adaptiveConversationWidth
+                ? "minmax(0, 1.18fr)"
+                : $"minmax(0, min({_leftWidth}px, 65cqw))";
             var right = !rightPanelEnabled() ? 0 : _rightCollapsed ? RailWidth : _rightWidth;
             var bottom = _bottomCollapsed ? RailHeight : _bottomHeight;
-            return $"--left-w: {left}px; --right-w: {right}px; --bottom-h: {bottom}px;";
+            return $"--left-w: {left}; --right-w: {right}px; --bottom-h: {bottom}px;";
         }
     }
 }

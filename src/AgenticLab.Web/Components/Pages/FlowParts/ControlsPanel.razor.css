@@ -1,100 +1,38 @@
-/* The tabbed Controls panel shell (ControlsPanel): a sticky tab strip over a scrolling tab body.
-   The tab buttons reuse the look of the .mode-toggle segmented control (defined in Flow.razor.css)
-   but as a full-width row of underline tabs. The tab bodies reuse the shared .controls/.control
-   atoms via ::deep. */
-
 .controls-tabs {
+    container: conversation / inline-size;
     display: flex;
     flex-direction: column;
-    gap: .75rem;
     height: 100%;
     min-height: 0;
 }
 
-/* Tab strip ----------------------------------------------------------- */
-/* A minimal icon-over-label nav bar (mirrors the redesign sketch): evenly-spread tabs, each a small
-   line icon above a quiet label; the active tab lifts to the accent colour with a soft underline. */
-.tab-strip {
-    display: flex;
-    gap: 16px;
-    border-bottom: 1px solid var(--panel-border);
-    padding-bottom: .15rem;
-}
-
-.tab-strip .tab {
-    position: relative;
-    flex: 0 1 auto;
-    min-width: 0;
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 0 12px;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: var(--text-dim);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0;
-    cursor: pointer;
-    border-radius: 0;
-    transition: color .15s ease, background .15s ease;
-}
-
-.tab-strip .tab .tab-icon {
-    display: inline-flex;
-}
-
-/* "Conversation" is long for a narrow panel, so let the label shrink rather than wrap the strip. */
-.tab-strip .tab .tab-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.tab-strip .tab .tab-icon svg {
-    width: 19px;
-    height: 19px;
-}
-
-.tab-strip .tab:hover {
-    color: var(--text);
-    background: var(--surface);
-}
-
-.tab-strip .tab.selected {
-    color: var(--accent-soft);
-    border-bottom-color: var(--accent);
-}
-
-.tab-badge {
-    position: absolute;
-    top: .25rem;
-    right: 50%;
-    transform: translateX(1.05rem);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.05rem;
-    height: 1.05rem;
-    padding: 0 .28rem;
-    border-radius: 999px;
-    background: var(--btn-primary-bg);
-    color: var(--btn-primary-text);
-    font-size: .64rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-/* The tab body wraps each tab's content; the children supply their own .controls card. It fills the
-   remaining panel height (so the Chat tab can pin its composer to the bottom) and scrolls any tab
-   whose content is taller than the area. The Chat tab fills it exactly and scrolls its own log. */
+.conversation-head { display: flex; align-items: center; gap: 12px; min-height: 62px; flex: 0 0 auto; padding: 0 24px 0 32px; border-bottom: 1px solid var(--lab-border); }
+.section-number { color: var(--lab-muted); font: var(--lab-text-xs) var(--lab-font-mono); }
+.tab-strip { display: flex; gap: 20px; min-width: 0; align-self: stretch; }
+.tab-strip button { display: inline-flex; align-items: center; flex-shrink: 0; gap: 6px; min-width: 0; padding: 12px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--lab-muted); font: 500 var(--lab-text-md)/1.3 var(--lab-font-sans); cursor: pointer; }
+.tab-strip button[aria-selected="true"] { color: var(--lab-ink); border-bottom-color: var(--lab-accent); }
+.tab-strip button:hover { color: var(--lab-accent); }
+.tab-strip button:focus-visible { outline: var(--lab-focus-ring); outline-offset: -4px; }
+.tab-badge { color: var(--lab-accent); font: var(--lab-text-xs) var(--lab-font-mono); }
+.conversation-actions { margin-left: auto; display: flex; align-items: center; gap: var(--lab-space-1); flex: 0 0 auto; }
+.collapse-conversation { width: 28px; height: 34px; flex: 0 0 28px; padding: 0; border: 0; border-radius: var(--lab-radius-sm); background: transparent; color: var(--lab-muted); font-size: 20px; cursor: pointer; }
+.collapse-conversation:hover { background: var(--lab-surface-hover); }
 .tab-body {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+}
+.conversation-body { overflow: hidden; }
+.settings-body { padding: 24px 32px; }
+.layout-actions { padding-top: var(--lab-space-5); border-top: 1px solid var(--lab-border); }
+@media (max-width: 500px) { .conversation-head { padding-inline: 20px; gap: 10px; } .tab-strip { gap: 14px; } .tab-strip button { font-size: 13px; } .settings-body { padding: 20px; } }
+
+@container conversation (max-width: 360px) {
+    .conversation-head { padding-inline: 12px; gap: 8px; }
+    .section-number, .tab-badge { display: none; }
+    .tab-strip { gap: 12px; }
+    .tab-strip button { font-size: var(--lab-text-sm); }
+    .conversation-actions { gap: 0; }
 }

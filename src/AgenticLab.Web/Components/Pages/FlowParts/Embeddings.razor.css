@@ -113,7 +113,7 @@
 }
 
 .emb-vlabel {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .72rem;
     color: var(--text);
     white-space: nowrap;
@@ -187,7 +187,7 @@
 }
 
 .emb-plabel {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .66rem;
     color: var(--text-dim);
 }
@@ -262,14 +262,14 @@
 }
 
 .emb-detail-tok {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-weight: 700;
     font-size: .8rem;
     color: var(--text);
 }
 
 .emb-detail-coord {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .68rem;
     color: var(--text-dim);
 }
@@ -298,7 +298,7 @@
 }
 
 .emb-num-val {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .72rem;
     font-weight: 700;
 }

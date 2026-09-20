@@ -14,13 +14,11 @@
     padding: 1.25rem 1.25rem 2rem;
     margin-bottom: 1.75rem;
     background-color: var(--surface);
-    background-image: linear-gradient(var(--diagram-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--diagram-grid-line) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: var(--lab-grid-image);
+    background-size: var(--lab-grid-size);
     border: 1px solid var(--panel-border);
     border-radius: 0;
     position: relative;
-    --diagram-grid-line: color-mix(in srgb, var(--panel-border) 35%, var(--surface));
 }
 
 .diagram > .a2a-row { grid-column: 1 / -1; min-width: 0; align-self: stretch; }
@@ -665,7 +663,7 @@
     cursor: pointer;
     font-size: .66rem;
     font-weight: 600;
-    letter-spacing: .3px;
+    letter-spacing: 0;
     padding: .15rem .55rem;
     border-radius: 999px;
     color: var(--llm-chip-text);

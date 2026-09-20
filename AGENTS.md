@@ -31,6 +31,18 @@ Key flow: Console/Web → `POST /chat` or `POST /chat/stream` (with an optional 
 
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
+Blazor's [design system](docs/design-system.md) takes its visual language from React without a React
+runtime or npm build dependency. [design-system.css](src/AgenticLab.Web/wwwroot/design-system.css)
+owns `--lab-*` tokens and locally served IBM Plex fonts; shared Razor controls under
+[Components/Shared](src/AgenticLab.Web/Components/Shared) own reusable presentation and accessibility.
+`AppHeader` is reused by Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
+catalogue and returns 404 in Production. Feature CSS owns layout, not another generic palette.
+Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
+and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
+adaptive conversation sizing; dragging selects pixels. `PanelState` reads legacy six-field preferences
+and writes a seventh adaptive-width flag under the unchanged `theseries-panels` key. Reflow never
+changes run state or saved preferences; Settings exposes Reset layout.
+
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.
@@ -38,11 +50,15 @@ Learn has no Discovery entry. Overlay re-discovery is disabled during the parent
 closing cancels only Discovery's stream. See [docs/protocols.md](docs/protocols.md).
 
 Flow has independent Details and Learn docks, visible simultaneously. `InspectorPanel` owns the
-Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transient width, collapse state
-and one host-section selection. Learn keeps the existing `PanelLayout` right-panel state. Both reuse
+Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transient width, collapse state,
+host-section selection and optional A2A agent selection. Learn keeps the existing `PanelLayout`
+right-panel state. Both reuse
 `SidePanel`, with a separate `SizeVariable` for Details. Selection is independent of diagram and run
 options; `HostSection` renders clickable headings only while **Expand agent host** is enabled,
-and plain labels in the compact host. An already-open inspector survives collapsing the host.
+and plain labels otherwise, including A2A chips, remote headings and catalogue entries.
+A2A details reuse the bounded live/replay projection;
+remote prompts, model settings and tools remain unavailable. An already-open inspector survives
+collapsing the host.
 `HostDetailsBuilder` projects current configuration separately from causally bounded, attributed
 captures. `ConfigurationVersion` and per-fetch generations prevent asynchronous catalogue/prompt
 responses from publishing data for old selections. See [docs/web-flow-page.md](docs/web-flow-page.md).
@@ -61,13 +77,14 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 |------|--------|
 | [docs/agents.md](docs/agents.md) | Chat API, conversation memory and retention, the layered harness + persona prompt, per-vendor harnesses, the agent table, human-in-the-loop questions, per-run tool toggles, per-agent models / `ForceDefaultModel`. |
 | [docs/web-flow-page.md](docs/web-flow-page.md) | The live flow visualization: page shell and panels, perspectives, diagram toggles, conversation surface, captured LLM payloads, prompt signature, the simulated inference / embeddings / network panels, backend-gated stepping, environment & risk view. |
+| [docs/design-system.md](docs/design-system.md) | Blazor tokens, shared components, local assets, accessibility, responsive patterns and the development-only catalogue. |
 | [docs/react-frontend.md](docs/react-frontend.md) | Optional CSR React prototype, BFF routes, startup/build/test commands, scope and frontend customization. |
 | [docs/execution-explorer.md](docs/execution-explorer.md) | The Execution dock (replay of a captured run, bounded archives, resource baseline), chat execution breakpoints and streaming/control API. |
 | [docs/learning.md](docs/learning.md) | The in-app Learn panel (concept content) and the standalone guided `/learn` journey. |
 | [docs/workspace.md](docs/workspace.md) | Workspace skills, custom instructions, workspace-defined agents (YAML + markdown conventions, tool aliases) and the workspace-scoped file/terminal tools. |
 | [docs/protocols.md](docs/protocols.md) | The MCP server, the A2A server and the observable discovery process + Discovery page. |
 | [README.md](README.md) | Purpose, prerequisites, local startup, contribution steps and documentation index. |
-| [tools/README.md](tools/README.md) | The Playwright load-test profile. |
+| [tools/README.md](tools/README.md) | No-model-call browser smoke checks and the separate Playwright load-test profile. |
 
 ## Build and Run
 
@@ -77,6 +94,10 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - Test: `dotnet test AgenticLab.slnx`. AiService's `FlowExecutionTests` and `ProtocolIntegrationTests` cover agent streaming/history/tool filtering and loopback MCP/A2A round trips without Azure credentials. Protocol tests reference the MCP and A2A server projects and use ephemeral ports with a fake model.
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
+- Blazor UI smoke: install temporary Playwright as described in [tools/README.md](tools/README.md), then
+  `THESERIES_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
+  Use a Development Web instance with an available agent catalogue. This does not send chat or run
+  discovery; `/design-system` is also available there for isolated component inspection.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
   `dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
 - React checks: `npm --prefix src/AgenticLab.React test` and `npm --prefix src/AgenticLab.React run build`;
@@ -125,6 +146,11 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
 - Web flow state: add view/preference state to the matching `Flow/ViewState/` collaborator (or a new one) and run-derived state to a `Flow/Run/` collaborator; the two roots only hold the top-level selections and the run lifecycle. Keep the collaborator constructors and the roots' public constructors/`Changed` events stable — the Web tests construct them directly.
 - Diagram visibility is owned by `DiagramOptions`: Basic/Technical presets apply option values atomically, and Custom is derived from those values. Components render from options, never preset identity; display changes must not modify `RunOptions`, capture, conversation or replay state.
 - Blazor components: one scoped `.razor.css` per component that owns its own markup's styles (use `::deep` only for genuinely shared base styles reaching into children); a `@code` block that outgrows a screen moves to a `.razor.cs` partial, and pure presentation math goes to a static class under `Flow/`.
+- Blazor presentation: reuse `--lab-*` tokens and existing `LabButton`, `LabField`, `LabSegmented`,
+  `LabStatus`, `AppHeader`, `PageNotice`, `SidePanel` and icons before adding generic controls. Shared
+  controls take parameters/events, never Flow state. Add a real consumer and a catalogue example for
+  new primitives; follow [docs/design-system.md](docs/design-system.md). Native ARIA boolean attributes
+  must render explicit `"true"`/`"false"` strings, not minimised Razor boolean attributes.
 - Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter) and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()` (see `WikiTool`, `CalculatorTool`, `FileSystemTool`, `TerminalTool`). Tools live under [src/AgenticLab.AiService/Application/Tools](src/AgenticLab.AiService/Application/Tools) (harness/app tools, used by the workspace agents) and [src/AgenticLab.AiService/Demo/Tools](src/AgenticLab.AiService/Demo/Tools) (demo tools); add new ones there the same way. Tools that touch the file system or shell must stay confined to the active `WorkspaceScope` (resolve paths via `WorkspaceScope.ResolvePath`).
 - Add a new agent by inheriting `AgentDefinitionBase` and supplying its name, description, `Persona` (its own system prompt, layered on top of the shared harness prompt), and tool subset under `src/AgenticLab.AiService/Demo/Agents/`, then registering it as a singleton `IAgentDefinition` in [Program.cs](src/AgenticLab.AiService/Program.cs). Declare the name as a `public const string AgentName` and return it from `Name`, so vendor harnesses and other call sites reference the constant instead of repeating the string. Override `RequiresWorkspace => true` when the agent's tools need a workspace root (the endpoints then insist on a `Workspace` path and open a `WorkspaceScope` for the run). Override `SupportsSkills => true` to opt into workspace skills (the endpoints then inject the `<skills>` catalogue per run; see [workspace skills](docs/workspace.md#workspace-skills-the-coder-agent)). Override `RiskLevel` (an `AgentRiskLevel`) and `Guardrails` (an `IReadOnlyList<string>` of human-readable safety mechanisms) to communicate how risky the agent is and what constrains it — both default to `None` / empty in `AgentDefinitionBase`, are surfaced over `GET /agents`, and drive the Environment & risk view's risk meter and guardrails chips. Override `ModelId` (a `string?`, default `null`) to declare a preferred Azure OpenAI deployment in code, though the `Agents:{Name}:Deployment` config value takes precedence (see [per-agent models](docs/agents.md#per-agent-models)). Alternatively, ship an agent **in a workspace** as an `agents/<name>.agent.yaml` file (no code, no redeploy) — it can only use existing backend tools and is discovered + run per request; see [workspace-defined agents](docs/workspace.md#workspace-defined-agents-the-agents-folder).
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service discovery, not hardcoded URLs.

@@ -1,19 +1,11 @@
-/* Conversation part of the left panel (FlowChat). The shared .controls/.control/.chip/.send-icon atoms
-   live in Flow.razor.css; this file adds the conversation layout: a scrollable log of role-labelled
-   entries on contributor-coloured rails, the agent's status chip and note, the ask-question box and the
-   composer pinned to the bottom. */
-
-/* The chat tab fills the tab body and lays its log + composer out top-to-bottom. The shared .controls
-   atom is a right-aligned, padded card row; override it to a full-bleed, full-width stacked column so
-   the bubbles and composer use the whole panel width (the SidePanel body already supplies the chrome). */
-.chat-controls.controls {
+.chat-controls {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
-    gap: .75rem;
+    gap: 0;
     padding: 0;
     margin: 0;
     background: transparent;
@@ -28,15 +20,8 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding-right: .25rem;
-}
-
-/* Anchor the conversation to the bottom (just above the composer) like a typical messenger: the first
-   turn's auto top-margin absorbs any free space, pushing the messages down. When the log overflows the
-   margin collapses and it scrolls normally. */
-.chat-log > .turn:first-child {
-    margin-top: auto;
+    gap: var(--lab-space-6);
+    padding: 28px 32px;
 }
 
 .chat-empty {
@@ -50,43 +35,41 @@
 .turn {
     display: flex;
     flex-direction: column;
-    gap: .5rem;
+    gap: var(--lab-space-5);
 }
 
-/* One message, drawn like a diagram node: a 3px left rail in the contributor colour (user green, agent
-   yellow, errors app red — the same encoding as the harness anatomy) under a plain role label. */
 .entry {
-    padding: .45rem .7rem;
-    border-left: 3px solid var(--contrib-agent);
+    padding: 0 0 0 16px;
+    border-left: 2px solid var(--lab-host);
     max-width: 100%;
 }
 
 .entry.user {
-    border-left-color: var(--contrib-user);
-    background: var(--surface-2);
+    border-left-color: var(--lab-user);
 }
 
 .entry.failed {
-    border-left-color: var(--contrib-app);
+    border-left-color: var(--lab-danger);
 }
 
 .entry-head {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: .5rem;
-    margin-bottom: .2rem;
+    margin-bottom: 8px;
 }
 
 .entry .role {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text);
 }
 
 /* The live LLM round-trip, matching the diagram's loop badge. */
 .entry .turn-meta {
     margin-left: auto;
-    font-size: 12px;
+    font: var(--lab-text-xs) var(--lab-font-mono);
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -98,8 +81,8 @@
 
 .entry p {
     margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: var(--lab-text-md);
+    line-height: 1.8;
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text);
@@ -109,49 +92,7 @@
     color: var(--error);
 }
 
-/* What the agent is doing, in the step list's pill idiom, plus a line naming what it waits on. */
-.status {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    padding: .12rem .45rem;
-    border-radius: 999px;
-    font-size: .65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    white-space: nowrap;
-    background: var(--kind-bg);
-    color: var(--kind-text);
-}
-
-.status.busy { background: var(--llm-chip-bg); color: var(--llm-chip-text); }
-.status.waiting { background: var(--tool-chip-bg); color: var(--tool-chip-text); }
-.status.failed { background: var(--error-bg); color: var(--error-text); }
-
-.status-mark {
-    width: .6rem;
-    height: .6rem;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: status-spin .9s linear infinite;
-}
-
-/* Held on the user (a breakpoint, manual stepping or a pause): keep the ring, stop the motion. */
-.status.held .status-mark {
-    animation: none;
-}
-
-/* Nothing is running at all — a solid dot instead of a ring. */
-.status.waiting .status-mark,
-.status.failed .status-mark {
-    border: 0;
-    background: currentColor;
-    animation: none;
-}
-
-.status-note {
+.entry .status-note {
     margin: .35rem 0 0;
     font-size: 12px;
     color: var(--text-dim);
@@ -164,42 +105,13 @@
     flex-direction: column;
     align-items: stretch;
     gap: .6rem;
-    padding-top: .6rem;
-    border-top: 1px solid var(--panel-border);
+    padding: 20px 32px 24px;
+    border-top: 1px solid var(--lab-border);
+    background: var(--lab-surface);
 }
 
 .chat-composer .control {
     min-width: 0;
-}
-
-/* Labelled agent picker below the message box, using the composer's quiet dropdown styling. */
-.chat-composer .control.agent-select {
-    flex: 0 0 auto;
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: -.15rem;
-}
-
-.chat-composer .control.agent-select select {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: calc(100% - 3.5rem);
-    padding: .15rem 1.4rem .15rem .4rem;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    background-color: transparent;
-    color: var(--text-dim);
-    font-size: .78rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color .15s ease, background-color .15s ease, border-color .15s ease;
-}
-
-.chat-composer .control.agent-select select:hover:not(:disabled),
-.chat-composer .control.agent-select select:focus-visible {
-    color: var(--text);
-    background-color: var(--surface);
-    border-color: var(--panel-border);
 }
 
 /* Beat the shared `.control.message { flex: 1 1 320px }` atom: in this vertical composer that 320px
@@ -210,8 +122,8 @@
 }
 
 .chat-composer #message:focus-visible {
-    outline: none;
-    background: var(--surface-2);
+    outline: var(--lab-focus-ring);
+    outline-offset: 2px;
 }
 
 /* Transport buttons on the left, the round send button pushed to the right. */
@@ -223,14 +135,8 @@
     gap: .4rem;
 }
 
-.composer-actions button.send-icon {
+.send-action {
     margin-left: auto;
-}
-
-/* A failed control request joins the action row on its own line rather than squeezing between buttons. */
-.composer-actions ::deep .breakpoint-error {
-    flex: 1 1 100%;
-    margin: 0;
 }
 
 /* Why the composer cannot send right now (an active turn, or a missing workspace). */
@@ -245,10 +151,9 @@
 /* The inline answer box shown when an agent's AskQuestion tool is waiting for the user's reply. */
 .control.message.ask-question {
     flex: 0 0 auto;
-    padding: .75rem .85rem;
-    border-radius: 4px;
-    border: 1px solid var(--accent);
-    background: rgba(var(--accent-rgb), .08);
+    padding: 16px 32px;
+    border-block: 1px solid var(--lab-border);
+    background: var(--lab-accent-soft);
 }
 
 .control.message.ask-question label {
@@ -269,4 +174,9 @@
 
 .ask-question-row input {
     flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 500px) {
+    .chat-log, .chat-composer, .control.message.ask-question { padding-inline: 20px; }
 }

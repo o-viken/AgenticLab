@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace AgenticLab.Web.Flow;
 
 /// <summary>A read-only detail block; its source distinguishes current choices from historical captures.</summary>
-internal sealed record HostDetailBlock(string Title, string Text, string Source);
+internal sealed record HostDetailBlock(string Title, string Text, string Source, string? A2AAgentName = null);
 
 /// <summary>Builds only the selected layer, without retaining payloads or mutating execution.</summary>
 internal static class HostDetailsBuilder
@@ -50,9 +50,6 @@ internal static class HostDetailsBuilder
 
         switch (section)
         {
-            case HostDetailSection.Client:
-                Add("Client", "Blazor web app: sends the user message and renders streamed replies.", "Set by application");
-                break;
             case HostDetailSection.SystemPrompt:
                 Add("System prompt", view.Harness.HasPromptText ? view.Harness.PromptText : view.Harness.PromptAvailability, "Set by application · " + view.Harness.Label);
                 break;
@@ -90,9 +87,10 @@ internal static class HostDetailsBuilder
                 if (blocks.Count == 0) Add("MCP servers", view.Agent.SupportsMcp ? "No connected tools available." : "Not applicable to this agent.");
                 break;
             case HostDetailSection.A2A:
-                foreach (var agent in run.Catalogs.KnownA2A) Add(agent.Name, agent.Description, "Discovered A2A agent");
-                if (blocks.Count == 0) Add("A2A agents", view.Agent.SupportsA2A ? "No connected agents available." : "Not applicable to this agent.");
-                break;
+                return BuildA2A(run.Replay.DisplayA2A, view.Details.A2AAgentName, view.Agent.SupportsA2A,
+                    exchange is null ? "Discovered A2A agent"
+                        : $"Captured · exchange {exchange.Number} · {exchange.Agent} · {exchange.Vendor ?? "Default"}"
+                            + (string.IsNullOrEmpty(exchange.Workspace) ? "" : $" · {exchange.Workspace}"));
             case HostDetailSection.UserPrompt:
                 Add("User prompt", exchange?.Message ?? "No message submitted.", provenance);
                 break;
@@ -114,5 +112,32 @@ internal static class HostDetailsBuilder
                 break;
         }
         return blocks;
+    }
+
+    /// <summary>Inspects one remote agent or its roster using only the already bounded A2A projection.</summary>
+    public static IReadOnlyList<HostDetailBlock> BuildA2A(A2AFlowView display, string? agentName, bool supportsA2A, string source)
+    {
+        if (agentName is null)
+        {
+            return display.Agents.Count == 0
+                ? [new("A2A agents", supportsA2A ? "No connected agents available." : "Not applicable to this agent.", source)]
+                : display.Agents.Select(item => new HostDetailBlock(item.Agent.Name, item.Agent.Description, source, item.Agent.Name)).ToArray();
+        }
+
+        var agent = display.Agents.FirstOrDefault(item => string.Equals(item.Agent.Name, agentName, StringComparison.OrdinalIgnoreCase));
+        if (agent is null)
+        {
+            return [new(agentName, "This agent is not available in the displayed A2A catalogue.", source)];
+        }
+
+        return
+        [
+            new("Description", agent.Agent.Description, source),
+            new("Protocol", "Agent2Agent (A2A)", "Set by application"),
+            new("Status", agent.Status, source),
+            new("Request", agent.Question ?? "No request captured at this position.", source),
+            new("Result", agent.Result ?? "No result captured at this position.", source),
+            new("Remote configuration", "System prompt, model settings and tools are not exposed by A2A discovery.", "Not exposed by the remote service")
+        ];
     }
 }

@@ -19,10 +19,10 @@ independently of where model inference runs.
 
 ## In this application (Agentic Lab)
 
-The **Agent host** node merges the client and the AI service. Turn on **Expand agent host** to
-break it into colour-coded layers — *application* (system prompt
-+ plumbing), *agent* (persona, tools, settings) and *user* (the prompt) — and watch the
-**Context** bar grow as each turn adds to what the model sees.
+The **Agent host** node represents the AI service, with the client outside its boundary.
+Its expanded anatomy shows colour-coded layers: *application* (system prompt), *agent*
+(persona, tools, settings) and *user* (the prompt and workspace guidance). The **Context**
+bar grows as each turn adds to what the model sees.
 
 Conversation memory is retained in the service with a sliding inactivity expiry; it is not
 permanent model memory. Workspace access and tool selection are enforced by application code.

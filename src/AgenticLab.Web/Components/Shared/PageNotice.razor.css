@@ -1,0 +1,8 @@
+.notice-page { max-width: var(--lab-content-width); margin: 0 auto; min-height: 100dvh; background: var(--lab-surface); border-inline: 1px solid var(--lab-border); }
+main { max-width: 780px; padding: 48px 32px; margin: 0 auto; }
+h2 { margin: 0 0 var(--lab-space-5); font: 500 23px/1.4 var(--lab-font-sans); overflow-wrap: anywhere; }
+.notice-body { color: var(--lab-muted); line-height: 1.8; overflow-wrap: anywhere; }
+.notice-body ::deep code { font-family: var(--lab-font-mono); }
+.notice-body ::deep details { border-top: 1px solid var(--lab-border); margin-top: 32px; padding-top: 20px; }
+.notice-body ::deep summary { cursor: pointer; color: var(--lab-ink); }
+@media (max-width: 500px) { main { padding: 32px 20px; } }

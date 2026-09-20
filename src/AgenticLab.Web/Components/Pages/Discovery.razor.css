@@ -1,75 +1,36 @@
 .discovery-app {
-    --page-gutter: 24px;
-    --page-bg: #f7f8f6;
-    --surface: #ffffff;
-    --text: #1b211d;
-    --text-muted: #56635b;
-    --text-faint: #66736b;
-    --accent: #167052;
-    --border: #d9ded9;
-    --border-soft: #e8ece8;
-    --code-bg: #f0f3f0;
+    --page-gutter: 32px;
+    --page-bg: var(--lab-surface-muted);
+    --surface: var(--lab-surface);
+    --text: var(--lab-ink);
+    --text-muted: var(--lab-muted);
+    --text-faint: var(--lab-muted);
+    --accent: var(--lab-accent);
+    --border: var(--lab-border);
+    --border-soft: var(--lab-border);
+    --code-bg: var(--lab-surface-muted);
 
     min-height: 100vh;
+    max-width: var(--lab-content-width);
+    margin: 0 auto;
+    border-inline: 1px solid var(--lab-border);
     box-sizing: border-box;
-    padding: 0 var(--page-gutter) 1.75rem;
+    padding: 0 0 32px;
     background: var(--page-bg);
     color: var(--text);
-    font-family: Bahnschrift, "Segoe UI Variable", sans-serif;
+    font-family: var(--lab-font-sans);
     font-size: 14px;
     letter-spacing: 0;
 }
 
 .discovery-app.embedded {
     min-height: 0;
-    padding-top: 1px;
-}
-
-.discovery-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin: 0 calc(-1 * var(--page-gutter));
-    padding: 12px var(--page-gutter);
-    border-bottom: 1px solid var(--border);
-}
-
-.discovery-header h1 {
-    margin: 0 0 .35rem;
-    font-family: Cambria, Georgia, serif;
-    font-size: 30px;
-    font-weight: 500;
-    letter-spacing: 0;
-}
-
-.discovery-header-text p {
-    margin: 0;
-    max-width: 62ch;
-    color: var(--text-muted);
-}
-
-.discovery-header-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-}
-
-.back-link {
-    color: var(--accent);
-    text-decoration: none;
-    text-underline-offset: 3px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.back-link:hover {
-    text-decoration: underline;
+    border: 0;
+    padding-top: 0;
 }
 
 @media (max-width: 1199px) {
-    .discovery-app { --page-gutter: 16px; }
+    .discovery-app { --page-gutter: 20px; }
 }
 
 .discovery-toolbar {
@@ -77,7 +38,10 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    margin: 1.5rem 0;
+    margin: 0;
+    padding: 16px var(--page-gutter);
+    border-bottom: 1px solid var(--lab-border);
+    background: var(--lab-surface);
 }
 
 /* Stepping controls (mirrors the flow page's Auto/Step + pace controls). */
@@ -86,30 +50,6 @@
     align-items: center;
     gap: .65rem;
     flex-wrap: wrap;
-}
-
-.mode-toggle {
-    display: inline-flex;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--surface);
-}
-
-.mode-toggle button {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: .82rem;
-    font-weight: 600;
-    padding: .38rem .8rem;
-    cursor: pointer;
-}
-
-.mode-toggle button.selected {
-    background: #edf6f0;
-    color: var(--accent);
-    box-shadow: inset 0 -2px var(--accent);
 }
 
 .delay {
@@ -125,72 +65,10 @@
 }
 
 .delay-val {
+    font-family: var(--lab-font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--text-faint);
     min-width: 3.5rem;
-}
-
-.step-btn {
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    font-weight: 600;
-    font-size: .82rem;
-    padding: .38rem .8rem;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.step-btn.next {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
-.step-btn.stop {
-    border-color: #f0c2c2;
-    color: #b42323;
-}
-
-.step-btn:hover {
-    background: var(--code-bg);
-}
-
-.rediscover {
-    border: none;
-    background: var(--accent);
-    color: #fff;
-    font-weight: 600;
-    font-size: .92rem;
-    padding: .55rem 1.1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: opacity .15s ease, transform .1s ease;
-}
-
-.rediscover:hover:not(:disabled) {
-    opacity: .9;
-}
-
-.rediscover:active:not(:disabled) {
-    transform: translateY(1px);
-}
-
-.rediscover:disabled {
-    opacity: .6;
-    cursor: default;
-}
-
-.rediscover.small {
-    font-size: .8rem;
-    padding: .35rem .75rem;
-    background: var(--surface);
-    color: var(--accent);
-    border: 1px solid var(--accent);
-}
-
-.rediscover.small:hover:not(:disabled) {
-    background: var(--code-bg);
-    opacity: 1;
 }
 
 .startup-flag {
@@ -215,14 +93,15 @@
 }
 
 .last-run {
-    font-size: .82rem;
+    font: var(--lab-text-xs) var(--lab-font-mono);
     color: var(--text-faint);
 }
 
 .discovery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: 1.25rem;
+    gap: var(--lab-space-6);
+    padding: 24px var(--page-gutter) 0;
 }
 
 .source-card {
@@ -248,8 +127,8 @@
 }
 
 .source-title {
-    font-weight: 700;
-    font-size: 1.05rem;
+    font-weight: 500;
+    font-size: var(--lab-text-lg);
 }
 
 .source-subtitle {
@@ -266,7 +145,7 @@
 
 .endpoint-label {
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     font-size: .68rem;
     color: var(--text-faint);
     margin-right: .5rem;
@@ -319,8 +198,8 @@
 }
 
 .discovery-app :focus-visible {
-    outline: 2px solid #315f9e;
-    outline-offset: 3px;
+    outline: var(--lab-focus-ring);
+    outline-offset: var(--lab-focus-offset);
 }
 
 .state-none {
@@ -354,15 +233,17 @@
 .disc-flow {
     --connector: #c2c6d2;
     --accent-flow: var(--accent);
-    --accent-rgb: 79, 70, 229;
+    --accent-rgb: 20, 101, 75;
 
     display: flex;
     align-items: stretch;
     gap: .5rem;
     padding: 1rem .75rem;
-    border: 1px solid var(--border-soft);
-    border-radius: 10px;
-    background: #fcfcfd;
+    border: 0;
+    border-radius: 0;
+    background-color: var(--lab-surface-muted);
+    background-image: var(--lab-grid-image);
+    background-size: var(--lab-grid-size);
 }
 
 .disc-node {
@@ -370,19 +251,21 @@
     width: 8.5rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    text-align: center;
+    text-align: left;
     gap: .15rem;
-    padding: .7rem .5rem;
-    border-radius: 10px;
+    padding: 12px;
+    border-radius: var(--lab-radius-sm);
     border: 1px solid var(--border);
+    border-left: 3px solid var(--lab-host);
     background: var(--surface);
     transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
 .disc-node.server {
-    background: #f6f7f9;
+    border-left-color: var(--lab-tool);
+    background: var(--lab-surface);
 }
 
 @container (max-width: 460px) {
@@ -412,16 +295,25 @@
 .disc-node.active {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .14);
-    background: #eef0fe;
+    background: var(--lab-accent-soft);
 }
 
 .disc-icon {
-    font-size: 1.35rem;
-    line-height: 1;
+    display: block;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    margin-bottom: 4px;
+    background: var(--lab-muted);
+    mask: var(--icon) center / contain no-repeat;
 }
 
+.icon-client { --icon: url('/icons/lucide/workflow.svg'); }
+.icon-tools { --icon: url('/icons/lucide/wrench.svg'); }
+.icon-peer { --icon: url('/icons/lucide/network.svg'); }
+
 .disc-node-title {
-    font-weight: 700;
+    font-weight: 500;
     font-size: .9rem;
 }
 
@@ -549,7 +441,7 @@
 .section-label {
     display: block;
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: 0;
     font-size: .68rem;
     color: var(--text-faint);
     margin-bottom: .5rem;
@@ -621,7 +513,7 @@
     margin-left: auto;
     font-size: .66rem;
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: 0;
     color: var(--text-faint);
     background: #f3f0fb;
     border: 1px solid #d9d3f0;
@@ -637,7 +529,7 @@
 .def-label {
     display: block;
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: 0;
     font-size: .62rem;
     color: var(--text-faint);
     margin: .4rem 0 .2rem;
@@ -737,7 +629,7 @@
 
 .step-kind {
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     font-size: .64rem;
     font-weight: 700;
     color: var(--text-faint);

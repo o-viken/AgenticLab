@@ -63,6 +63,12 @@ UI guard, not cross-client locking. Closing cancels Discovery's own request/stre
 reader to exit, without sending controls to the chat session or resetting its conversation. Snapshot
 and stream completions after disposal do not update the removed view.
 
+Both contexts use the [Blazor design system](design-system.md). The standalone view has `AppHeader`;
+the embedded view does not repeat it. Commands, Auto/Step choices and source states reuse `LabButton`,
+`LabSegmented` and `LabStatus`. The dialog consumes document-level tokens because it is outside the
+Flow root. Pinned local Lucide workflow/wrench/network masks replace font-dependent service symbols.
+This is a presentation change, not a change to discovery timing, session IDs, guards or cancellation.
+
 The shared view shows one card per source (MCP tools, A2A agents), each with a client/server flow
 diagram, directional send/receive arrows, state badge, expandable discovered definitions and step log.
 Its toolbar retains Auto/Step mode, Delay, Next / Pause / Resume / Stop and Re-discover all; each card

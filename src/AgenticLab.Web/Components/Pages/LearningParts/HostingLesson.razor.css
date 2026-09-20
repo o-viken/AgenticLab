@@ -4,13 +4,11 @@
 button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; min-height: 38px; }
 button { cursor: pointer; padding: .45rem .65rem; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
 button:disabled { opacity: .5; cursor: default; }
-button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-button:hover:not(:disabled) { background: #edf3ee; }
-button[aria-pressed="true"] { background: #e8f1eb; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
+button:hover:not(:disabled) { background: var(--lab-accent-soft); }
+button[aria-pressed="true"] { background: var(--lab-accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .reveal-controls { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
-.icon-button { width: 38px; height: 38px; padding: .5rem; flex: 0 0 38px; }
-.beat-count { min-width: 3rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
-.reveal-controls ::deep .mini-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.beat-count { min-width: 3rem; text-align: center; font: var(--lab-text-sm) var(--lab-font-mono); color: var(--muted); }
 .caption { min-height: 3.2em; margin: 1rem 0; color: var(--muted); }
 .option-picker, .readiness-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
 .option-picker button, .readiness-picker button { min-height: 52px; overflow-wrap: anywhere; }

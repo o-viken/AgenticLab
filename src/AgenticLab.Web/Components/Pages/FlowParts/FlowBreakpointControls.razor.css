@@ -1,37 +1,17 @@
-.breakpoint-status {
-    border-top: 1px solid var(--panel-border);
-    padding-top: .65rem;
-    margin-top: .65rem;
-    min-width: 0;
-}
-
-/* In the conversation composer the buttons join the action row beside the send button, and the agent's
-   status note already names the boundary — so unwrap both boxes and let the buttons flow with the row. */
-.breakpoint-status.bare,
-.breakpoint-status.bare .bp-actions {
-    display: contents;
-}
-
-.breakpoint-status p,
+.breakpoint-status,
 .breakpoint-error {
-    font-size: .85rem;
+    min-width: 0;
+    font-size: var(--lab-text-sm);
     line-height: 1.4;
-    margin: 0 0 .6rem;
+    margin: 0;
     overflow-wrap: anywhere;
 }
 
-.breakpoint-status p {
-    color: var(--text);
-    font-weight: 600;
-}
-
-.bp-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
+.breakpoint-status {
+    color: var(--lab-ink);
+    font-weight: 500;
 }
 
 .breakpoint-error {
-    color: var(--contrib-app);
-    margin-top: .6rem;
+    color: var(--lab-danger);
 }

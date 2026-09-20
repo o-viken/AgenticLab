@@ -1,20 +1,63 @@
-# Load test
+# Browser checks
 
-`flow-loadtest.mjs` exercises the current Interactive Server Flow page with concurrent browser contexts.
-It is intentionally outside the solution and does not require Azure credentials to compile. Install
-Playwright in a temporary location before running it:
+The Blazor browser tools live outside the solution. Neither adds npm work to a normal .NET build.
+`web-smoke.mjs` checks presentation/navigation without model calls; `flow-loadtest.mjs` sends real chat
+requests and measures concurrent browser sessions.
+
+## Setup
+
+Install Playwright and Chromium in a temporary location:
 
 ```sh
 mkdir -p /tmp/agentic-lab-loadtest
 npm install --prefix /tmp/agentic-lab-loadtest --no-save --package-lock=false playwright
-NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/flow-loadtest.mjs
+node /tmp/agentic-lab-loadtest/node_modules/playwright/cli.js install chromium
 ```
 
 Start the application first, for example with `dotnet run --project src/AgenticLab.AppHost`, and set
-`THESERIES_URL` to the externally reachable Web URL. The defaults are 10 concurrent users and 3 rounds:
+`THESERIES_URL` to its externally reachable **web** resource, not the React frontend. The example port
+below is illustrative; use the actual URL. The `THESERIES_*` names are retained for compatibility.
 
-The `THESERIES_*` environment variable names are retained for compatibility with existing load-test
-scripts after the Agentic Lab rename.
+## UI smoke
+
+Use a **Development** Web instance with a reachable AI service catalogue. The script creates isolated
+browser contexts; it does not overwrite preferences in your own browser, send chat, reset server
+conversations, or invoke rediscovery. No Azure model request is made by the script.
+The Default host must offer Orchestrator with at least one connected A2A agent for the per-agent
+inspector checks; the normal Aspire setup supplies these agents.
+
+```sh
+THESERIES_URL=http://127.0.0.1:5140 \
+NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+node tools/web-smoke.mjs
+```
+
+Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
+conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
+restoration, reset, Execution maximise/collapse, independent Details/Learn docks, host-only anatomy
+with the Client Learn topic retained, individual A2A
+inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
+dismissal, lesson progression and detailed diagrams, shared-control states, reduced motion and 404
+pages. It checks locally loaded fonts and page/toolbar overflow. Screenshots go to the system temporary
+directory under `agentic-lab-web-smoke`; override with `THESERIES_SCREENSHOTS`.
+
+The development catalogue is checked at `/design-system`. Separately verify a **published Production**
+instance returns 404 there. `dotnet run --no-build` against development output is not a valid production
+asset check; use `dotnet publish` and run the published DLL with its output as the content root.
+
+This is not a replacement for live run verification. Auto/manual pacing, breakpoints, answers,
+pause/resume/stop, replay and workspace-agent changes should also be exercised against a deterministic
+local API or a configured service. A real service may incur model cost. The Web unit suite covers the
+state and replay contracts without credentials:
+
+```sh
+dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
+```
+
+## Load test
+
+`flow-loadtest.mjs` exercises the Interactive Server Flow page with concurrent browser contexts.
+The defaults are 10 concurrent users and 3 rounds.
 
 Users run concurrently; rounds within each user's page run sequentially. The harness waits for Blazor
 interactivity before filling the form and matches each submitted message to its new exchange. A failed

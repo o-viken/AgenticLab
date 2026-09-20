@@ -1,0 +1,18 @@
+<div class="notice-page">
+    <AppHeader Title="Agentic Lab" Context="@Context">
+        <a class="header-link" href="/">Live flow</a>
+    </AppHeader>
+    <main>
+        <h2>@Heading</h2>
+        <div class="notice-body">@ChildContent</div>
+    </main>
+</div>
+
+@code {
+    /// <summary>Short page context for status routes that do not own an interactive run.</summary>
+    [Parameter, EditorRequired] public string Context { get; set; } = string.Empty;
+    /// <summary>A concise explanation of the page's status.</summary>
+    [Parameter, EditorRequired] public string Heading { get; set; } = string.Empty;
+    /// <summary>Route-specific details, preserving the caller's status and error handling.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

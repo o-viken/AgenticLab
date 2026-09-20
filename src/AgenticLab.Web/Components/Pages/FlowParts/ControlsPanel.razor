@@ -1,76 +1,64 @@
-@* The left Controls panel, reorganised from two stacked cards into a tabbed view. A minimal
-   icon-over-label tab strip switches between Chat (FlowChat), Settings (FlowControls) and Workspace
-   (skills + custom instructions). The chat and settings tabs reuse the existing FlowChat/FlowControls
-   components unchanged; the run/view state cascades down to all of them. *@
-
 <div class="controls-tabs">
-    <div class="tab-strip" role="tablist">
-        @foreach (var tab in _tabs)
-        {
-            <button type="button" role="tab"
-                    class="@(View.ActiveControlsTab == tab ? "tab selected" : "tab")"
-                    aria-selected="@(View.ActiveControlsTab == tab)"
-                    @onclick="@(() => View.ActiveControlsTab = tab)">
-                <span class="tab-icon">@Icon(tab)</span>
-                <span class="tab-label">@Label(tab)</span>
-                @if (Badge(tab) is { } badge)
-                {
-                    <span class="tab-badge">@badge</span>
-                }
+    <div class="conversation-head">
+        <span class="section-number" aria-hidden="true">01</span>
+        <div class="tab-strip" role="tablist" aria-label="Conversation workspace" @onkeydown="OnTabKeyDownAsync">
+            <button @ref="_conversationTab" type="button" role="tab" id="conversation-tab" aria-controls="conversation-panel"
+                    aria-selected="@(View.ActiveControlsTab == ControlsTab.Chat ? "true" : "false")"
+                    tabindex="@(View.ActiveControlsTab == ControlsTab.Chat ? 0 : -1)"
+                    @onclick="() => View.ActiveControlsTab = ControlsTab.Chat">Conversation</button>
+            <button @ref="_settingsTab" type="button" role="tab" id="settings-tab" aria-controls="settings-panel"
+                    aria-selected="@(View.ActiveControlsTab == ControlsTab.Settings ? "true" : "false")"
+                    tabindex="@(View.ActiveControlsTab == ControlsTab.Settings ? 0 : -1)"
+                    @onclick="() => View.ActiveControlsTab = ControlsTab.Settings">Settings
+                @if (SettingsCount > 0) { <span class="tab-badge">@SettingsCount</span> }
             </button>
-        }
+        </div>
+        <div class="conversation-actions">
+            <LabButton Label="New conversation" Icon="new" IconOnly="true" Variant="quiet"
+                       OnClick="Run.NewConversationAsync" Disabled="Run.Running" />
+            <button type="button" class="collapse-conversation" title="Collapse the Conversation panel"
+                    aria-label="Collapse the Conversation panel" aria-expanded="true" @onclick="OnCollapse">&#8249;</button>
+        </div>
     </div>
 
-    <div class="tab-body" role="tabpanel">
-        @switch (View.ActiveControlsTab)
-        {
-            case ControlsTab.Chat:
-                <FlowChat />
-                break;
-            case ControlsTab.Settings:
-                <FlowControls />
-                break;
-            case ControlsTab.Telemetry:
-                <ControlsTelemetry />
-                break;
-        }
+    <div class="tab-body conversation-body" id="conversation-panel" role="tabpanel" aria-labelledby="conversation-tab"
+         hidden="@(View.ActiveControlsTab != ControlsTab.Chat)">
+        <FlowChat />
     </div>
+    <div class="tab-body settings-body" id="settings-panel" role="tabpanel" aria-labelledby="settings-tab"
+         hidden="@(View.ActiveControlsTab != ControlsTab.Settings)">
+        <FlowControls />
+        <div class="layout-actions"><LabButton Label="Reset layout" Icon="expand" OnClick="OnResetLayout" /></div>
+    </div>
+    @if (View.ActiveControlsTab == ControlsTab.Telemetry) { <ControlsTelemetry /> }
 </div>
 
 @code {
+    private ElementReference _conversationTab;
+    private ElementReference _settingsTab;
+
     [CascadingParameter]
     private FlowViewState View { get; set; } = default!;
 
     [CascadingParameter]
     private FlowRunController Run { get; set; } = default!;
 
-    private static readonly ControlsTab[] _tabs =
-    {
-        ControlsTab.Chat,
-        ControlsTab.Settings,
-        // Telemetry hidden for now.
-    };
+    /// <summary>Collapses only the conversation column; the page retains and persists its layout.</summary>
+    [Parameter] public EventCallback OnCollapse { get; set; }
+    /// <summary>Restores the page's default layout without resetting conversation or execution state.</summary>
+    [Parameter] public EventCallback OnResetLayout { get; set; }
 
-    private static string Label(ControlsTab tab) => tab switch
-    {
-        ControlsTab.Chat => "Conversation",
-        ControlsTab.Settings => "Settings",
-        ControlsTab.Telemetry => "Telemetry",
-        _ => tab.ToString(),
-    };
+    private int SettingsCount => Run.Catalogs.KnownSkills.Count + Run.Catalogs.KnownInstructions.Count;
 
-    /// <summary>A small, minimal line icon for each tab, shown above its label in the strip.</summary>
-    private static RenderFragment Icon(ControlsTab tab) => tab switch
+    private async Task OnTabKeyDownAsync(KeyboardEventArgs args)
     {
-        ControlsTab.Chat => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" /><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" /></svg>,
-        ControlsTab.Settings => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
-        _ => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9" /></svg>,
-    };
-
-    /// <summary>A small count badge on a tab when it has live content to surface, or null when empty.</summary>
-    private int? Badge(ControlsTab tab) => tab switch
-    {
-        ControlsTab.Settings => Run.Catalogs.KnownSkills.Count + Run.Catalogs.KnownInstructions.Count is var n and > 0 ? n : null,
-        _ => null,
-    };
+        if (args.Key is not ("ArrowLeft" or "ArrowRight" or "Home" or "End")) return;
+        View.ActiveControlsTab = args.Key switch
+        {
+            "Home" => ControlsTab.Chat,
+            "End" => ControlsTab.Settings,
+            _ => View.ActiveControlsTab == ControlsTab.Chat ? ControlsTab.Settings : ControlsTab.Chat
+        };
+        await (View.ActiveControlsTab == ControlsTab.Chat ? _conversationTab : _settingsTab).FocusAsync();
+    }
 }

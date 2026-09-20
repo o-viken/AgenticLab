@@ -1,0 +1,15 @@
+<span class="lab-status @ToneClass" role="status">
+    <span class="status-mark @(Busy ? "busy" : "")" aria-hidden="true"></span>
+    @Label
+</span>
+
+@code {
+    /// <summary>Human-readable status; colour is never the only state indication.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Semantic tone: neutral, success, warning or danger.</summary>
+    [Parameter] public string Tone { get; set; } = "neutral";
+    /// <summary>Animates only the marker and respects reduced-motion preferences.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    private string ToneClass => Tone is "success" or "warning" or "danger" ? Tone : "neutral";
+}

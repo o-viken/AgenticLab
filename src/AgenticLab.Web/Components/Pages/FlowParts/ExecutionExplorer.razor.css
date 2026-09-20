@@ -3,6 +3,7 @@
    dock itself never scrolls as a whole. */
 
 .execution {
+    container: execution / inline-size;
     height: 100%;
     min-height: 0;
     display: flex;
@@ -78,7 +79,7 @@
     background: var(--accent-weak, transparent);
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: 0;
     font-weight: 700;
 }
 
@@ -88,7 +89,7 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: 260px 300px minmax(0, 1fr);
+    grid-template-columns: minmax(160px, .8fr) minmax(200px, 1fr) minmax(240px, 1.2fr);
 }
 
 .exec-pane {
@@ -110,7 +111,7 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: 0;
     color: var(--text-dim);
 }
 
@@ -161,7 +162,7 @@
 .status {
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: 0;
     font-weight: 700;
     padding: 1px 6px;
     border-radius: 4px;
@@ -170,8 +171,8 @@
 }
 
 .status-running {
-    color: var(--contrib-agent);
-    border-color: var(--contrib-agent);
+    color: var(--lab-warning);
+    border-color: var(--lab-warning);
 }
 
 .status-done {
@@ -180,8 +181,8 @@
 }
 
 .status-failed {
-    color: var(--contrib-app);
-    border-color: var(--contrib-app);
+    color: var(--lab-danger);
+    border-color: var(--lab-danger);
 }
 
 .exchange-msg {
@@ -210,7 +211,7 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: 0;
     color: var(--text-dim);
 }
 
@@ -240,12 +241,17 @@
 
 .stage-kind {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
 }
+
+.stage-kind::before { content: ""; width: 3px; height: 12px; background: var(--stage-contributor, var(--lab-border)); }
 
 .stage-name {
     min-width: 0;
@@ -255,17 +261,17 @@
 /* The contributor colours encode who produced the stage, matching the diagram and context stack. */
 .stage-row.kind-received .stage-kind,
 .stage-row.kind-final .stage-kind {
-    color: var(--contrib-user);
+    --stage-contributor: var(--contrib-user);
 }
 
 .stage-row.kind-llm-response .stage-kind,
 .stage-row.kind-tool-call .stage-kind,
 .stage-row.kind-ask-question .stage-kind {
-    color: var(--contrib-agent);
+    --stage-contributor: var(--contrib-agent);
 }
 
 .stage-row.kind-error .stage-kind {
-    color: var(--contrib-app);
+    --stage-contributor: var(--contrib-app);
 }
 
 /* --- Inspector --------------------------------------------------------- */
@@ -350,7 +356,7 @@
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .05em;
+    letter-spacing: 0;
     color: var(--text-dim);
 }
 
@@ -370,7 +376,7 @@
 .stage-section pre,
 .stage-raw {
     margin: 0;
-    font-family: Consolas, "Cascadia Mono", monospace;
+    font-family: var(--lab-font-mono);
     font-size: 12px;
     line-height: 1.45;
     color: var(--text);
@@ -384,29 +390,24 @@
     overflow-x: auto;
 }
 
-/* --- Narrow viewports: stack the panes --------------------------------- */
-
-@media (max-width: 1199px) {
-    .execution {
-        height: auto;
-    }
-
+@container execution (max-width: 800px) {
     .exec-body {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+        grid-template-rows: minmax(150px, .7fr) minmax(180px, 1fr);
+        overflow: auto;
     }
-
-    .exec-pane {
-        overflow-y: visible;
-        max-height: none;
-    }
-
-    .exec-stages,
     .exec-inspector {
+        grid-column: 1 / -1;
         border-left: 0;
         border-top: 1px solid var(--panel-border);
     }
+}
 
-    .inspector-head {
-        position: static;
+@container execution (max-width: 440px) {
+    .exec-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(120px, .6fr) minmax(160px, 1fr) minmax(180px, 1fr);
     }
+    .exec-stages { border-left: 0; border-top: 1px solid var(--panel-border); }
+    .exec-actions { gap: 2px; }
 }

@@ -2,11 +2,11 @@
 
 <section class="hosting-lesson" data-diagram="hosting" data-beat="@_story.Beat" aria-label="Agent hosting and operating models">
     <div class="reveal-controls" role="group" aria-label="Diagram reveals">
-        <button type="button" class="icon-button" title="Previous reveal" aria-label="Previous reveal" disabled="@(!_story.CanPrevious)" @onclick="() => _story.Move(-1)"><MiniIcon Name="prev" /></button>
+        <LabButton Label="Previous reveal" Icon="prev" IconOnly="true" Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
         <span class="beat-count">@(_story.Beat + 1) / @HostingStory.Captions.Count</span>
-        <button type="button" class="icon-button" title="Next reveal" aria-label="Next reveal" disabled="@(!_story.CanNext)" @onclick="() => _story.Move(1)"><MiniIcon Name="next" /></button>
-        <button type="button" disabled="@(!_story.CanNext)" @onclick="_story.Complete"><MiniIcon Name="expand" /> Show complete diagram</button>
-        <button type="button" disabled="@(!_story.CanPrevious)" @onclick="_story.Restart">Restart</button>
+        <LabButton Label="Next reveal" Icon="next" IconOnly="true" Disabled="@(!_story.CanNext)" OnClick="() => _story.Move(1)" />
+        <LabButton Label="Show complete diagram" Icon="expand" Disabled="@(!_story.CanNext)" OnClick="_story.Complete" />
+        <LabButton Label="Restart" Variant="quiet" Disabled="@(!_story.CanPrevious)" OnClick="_story.Restart" />
     </div>
     <p class="caption" role="status" aria-live="polite" aria-atomic="true">@_story.Caption</p>
 

@@ -110,7 +110,7 @@
 }
 
 .inf-tok {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .76rem;
     line-height: 1.4;
     padding: .05rem .15rem;
@@ -220,7 +220,7 @@
 }
 
 .inf-cand-text {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     white-space: pre;
     overflow: hidden;
     text-overflow: ellipsis;

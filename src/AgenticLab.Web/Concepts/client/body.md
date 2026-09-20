@@ -13,8 +13,7 @@ client (web app, console, IDE) doesn't change how the agent thinks.
 
 ## In this application (Agentic Lab)
 
-The **Client** box is an **application** layer (red) — set by the application, not per
-agent. Here the client is the **Blazor web app** you're looking at: it posts your message
-to the AI service and streams the reply back as the flow animates. A console client and an
-IDE could talk to the very same agent service. In the diagram the client is drawn merged
-with the AI service into a single *Agent host* node (or the selected vendor's name).
+Here the client is the **Blazor web app**: it posts your message to the AI service and
+streams the reply back as the flow animates. A console client or an IDE could use the same
+agent service. The client stays outside the agent host and is not an anatomy layer; the
+**Agent host** node represents the AI service.

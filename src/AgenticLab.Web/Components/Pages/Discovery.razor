@@ -1,33 +1,24 @@
 <div class="discovery-app @(Embedded ? "embedded" : "")">
     @if (!Embedded)
     {
-    <header class="discovery-header">
-        <div class="discovery-header-text">
-            <h1>Agentic Lab</h1>
-            <p>Discovery / MCP tools and A2A agents</p>
-        </div>
-        <div class="discovery-header-actions">
-            <a class="back-link" href="/learn" target="_blank" rel="noopener noreferrer"
-               title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
-            <a class="back-link" href="/">Live flow</a>
-            <RepositoryLink />
-        </div>
-    </header>
+    <AppHeader Title="Agentic Lab" Context="Discovery">
+        <a class="header-link" href="/learn" target="_blank" rel="noopener noreferrer"
+           title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
+        <a class="header-link" href="/">Live flow</a>
+    </AppHeader>
     }
 
     <div class="discovery-toolbar">
-        <button class="rediscover" @onclick="() => RediscoverAsync(null)" disabled="@(_running || !AllowRediscovery)"
-                title="@RediscoveryTitle">
-            @(_running ? "Discovering…" : "↻ Re-discover all")
-        </button>
+        <LabButton Label="Re-discover all" Icon="live" Variant="primary" OnClick="() => RediscoverAsync(null)"
+                   Disabled="@(!AllowRediscovery)" Busy="_running" Title="@RediscoveryTitle" />
 
         <div class="stepping">
-            <div class="mode-toggle">
-                <button type="button" class="@(_manual ? "" : "selected")"
+            <LabSegmented Label="Discovery mode">
+                <button type="button" aria-pressed="@(_manual ? "false" : "true")"
                         @onclick="() => SetManualAsync(false)">Auto</button>
-                <button type="button" class="@(_manual ? "selected" : "")"
+                <button type="button" aria-pressed="@(_manual ? "true" : "false")"
                         @onclick="() => SetManualAsync(true)">Step</button>
-            </div>
+            </LabSegmented>
 
             @if (!_manual)
             {
@@ -42,13 +33,13 @@
             {
                 @if (_manual)
                 {
-                    <button class="step-btn next" @onclick="NextAsync">Next ▶</button>
+                    <LabButton Label="Next" Icon="next" OnClick="NextAsync" />
                 }
                 else
                 {
-                    <button class="step-btn" @onclick="TogglePauseAsync">@(_paused ? "Resume" : "Pause")</button>
+                    <LabButton Label="@(_paused ? "Resume" : "Pause")" Icon="@(_paused ? "play" : "pause")" OnClick="TogglePauseAsync" />
                 }
-                <button class="step-btn stop" @onclick="StopAsync">Stop</button>
+                <LabButton Label="Stop" Icon="stop" Variant="danger" OnClick="StopAsync" />
             }
         </div>
 
@@ -70,21 +61,21 @@
                 <header class="source-head">
                     <div class="source-title-row">
                         <span class="source-title">@SourceTitle(source)</span>
-                        <span class="state-badge @StateClass(source)">@StateLabel(_state.GetValueOrDefault(source) ?? "NotRun")</span>
+                        <LabStatus Label="@StateLabel(_state.GetValueOrDefault(source) ?? "NotRun")" Busy="@IsRunningSource(source)"
+                                   Tone="@(StateClass(source) switch { "state-connected" => "success", "state-failed" => "danger", "state-none" => "warning", _ => "neutral" })" />
                     </div>
                     <p class="source-subtitle">@SourceSubtitle(source)</p>
                     <div class="source-head-actions">
-                        <button class="rediscover small" @onclick="() => RediscoverAsync(source)" disabled="@(_running || !AllowRediscovery)"
-                            title="@RediscoveryTitle">
-                            @(IsRunningSource(source) ? "Discovering…" : $"↻ Re-discover {SourceTitle(source).Split(' ')[0]}")
-                        </button>
+                        <LabButton Label="@($"Re-discover {SourceTitle(source).Split(' ')[0]}")" Icon="live"
+                                   OnClick="() => RediscoverAsync(source)" Disabled="@(_running || !AllowRediscovery)"
+                                   Busy="@IsRunningSource(source)" Title="@RediscoveryTitle" />
                     </div>
                 </header>
 
                 <div class="source-body">
                     <div class="disc-flow @(IsRunningSource(source) ? "running" : "")">
                         <div class="disc-node client @ClientNodeClass(source)">
-                            <span class="disc-icon">🖧</span>
+                            <span class="disc-icon icon-client" aria-hidden="true"></span>
                             <span class="disc-node-title">AiService</span>
                             <span class="disc-node-sub">discovery client</span>
                         </div>
@@ -99,7 +90,7 @@
                         </div>
 
                         <div class="disc-node server @ServerNodeClass(source)">
-                            <span class="disc-icon">@ServerIcon(source)</span>
+                            <span class="disc-icon @(source == "mcp" ? "icon-tools" : "icon-peer")" aria-hidden="true"></span>
                             <span class="disc-node-title">@ServerLabel(source)</span>
                             <span class="disc-node-sub">
                                 @if (!string.IsNullOrWhiteSpace(_endpoint.GetValueOrDefault(source)))

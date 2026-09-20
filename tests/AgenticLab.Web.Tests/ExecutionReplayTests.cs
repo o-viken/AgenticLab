@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using AgenticLab.Web;
+using AgenticLab.Web.Components.Pages;
 using AgenticLab.Web.Flow;
 using Xunit;
 
@@ -16,6 +17,136 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Theory]
+    [InlineData("1|0|1|400|300|450", false)]
+    [InlineData("1|0|1|400|300|450|0", false)]
+    [InlineData("1|0|1|400|300|450|1", true)]
+    public void LayoutPreferences_PreserveLegacySizesAndRoundTrip(string stored, bool adaptive)
+    {
+        Assert.True(PanelState.TryParse(stored, out var state));
+        Assert.Equal(new PanelState(true, false, true, 400, 300, 450, adaptive), state);
+        Assert.True(PanelState.TryParse(state.Serialize(), out var restored));
+        Assert.Equal(state, restored);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("0|0|0|276|260")]
+    [InlineData("0|0|0|wide|260|380|1")]
+    [InlineData("0|0|0|276|260|380|invalid")]
+    [InlineData("0|0|0|276|260|380|1|extra")]
+    public void LayoutPreferences_RejectMalformedState(string? stored) =>
+        Assert.False(PanelState.TryParse(stored, out _));
+
+    [Fact]
+    public void LayoutSizing_AdaptsUntilDraggedAndClampsIndependentTracks()
+    {
+        var changes = 0;
+        var layout = new PanelLayout(() => changes++, () => true);
+        Assert.True(layout.AdaptiveConversationWidth);
+        Assert.Contains("--left-w: minmax(0, 1.18fr)", layout.BodyStyle);
+        layout.LeftPanelWidth = 2000;
+        Assert.False(layout.AdaptiveConversationWidth);
+        Assert.Equal(960, layout.LeftPanelWidth);
+        Assert.Contains("min(960px, 65cqw)", layout.BodyStyle);
+        layout.RightPanelWidth = 2000;
+        Assert.Equal(640, layout.RightPanelWidth);
+        layout.LeftPanelCollapsed = true;
+        Assert.Contains("--left-w: 44px", layout.BodyStyle);
+        var beforeReset = changes;
+        layout.Reset();
+        Assert.Equal(beforeReset + 1, changes);
+        Assert.True(layout.AdaptiveConversationWidth);
+        Assert.False(layout.LeftPanelCollapsed);
+        Assert.Equal(240, layout.BottomPanelHeight);
+        layout.Init(false, false, false, 410, 310, 440);
+        Assert.False(layout.AdaptiveConversationWidth);
+        Assert.Equal(410, layout.LeftPanelWidth);
+        Assert.Equal(310, layout.RightPanelWidth);
+        Assert.Equal(440, layout.BottomPanelHeight);
+    }
+
+    [Fact]
+    public void LayoutReset_PreservesDraftOptionsReplayAndIndependentDocks()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Message = "draft";
+        view.Cursor.SelectStage("exchange", 3);
+        view.Options.SetToolEnabled("test", false);
+        view.Concepts.OpenConcept("tools");
+        view.Details.Open(HostDetailSection.Tools);
+        view.Details.Width = 420;
+        view.Layout.LeftPanelWidth = 500;
+        view.Layout.BottomPanelMaximized = true;
+        view.Layout.Reset();
+        Assert.Equal("draft", view.Message);
+        Assert.Equal("exchange", view.Cursor.ExchangeId);
+        Assert.Equal(3, view.Cursor.Sequence);
+        Assert.False(view.Options.IsToolEnabled("test"));
+        Assert.True(view.Layout.RightPanelVisible);
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        Assert.Equal(420, view.Details.Width);
+        Assert.False(view.Layout.BottomPanelMaximized);
+        Assert.True(view.Layout.AdaptiveConversationWidth);
+    }
+
+    /// <summary>The client stays outside the host while application-owned host layers retain their contributor.</summary>
+    [Fact]
+    public void HostDetails_SectionsExcludeClientAndKeepApplicationContributors()
+    {
+        Assert.DoesNotContain("Client", Enum.GetNames<HostDetailSection>());
+        Assert.Equal("app", HostDetailsSelection.Contributor(HostDetailSection.SystemPrompt));
+        Assert.Equal("app", HostDetailsSelection.Contributor(HostDetailSection.Environment));
+    }
+
+    /// <summary>Host labels describe the service and selected agent, not the client displaying them.</summary>
+    [Fact]
+    public void HostDetails_HostLabelsDescribeServiceWithoutClient()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Vendor = Vendor.Default;
+        view.SelectedAgent = "Coder";
+        view.Diagram.ShowTechnicalLabels = false;
+        Assert.Equal("Agent host", view.Harness.Label);
+        Assert.Equal("Agent service", view.Harness.Subtitle);
+
+        view.Diagram.ShowTechnicalLabels = true;
+        Assert.Equal("Agent host · AiService · Coder", view.Harness.Subtitle);
+        view.SelectedAgent = "Chat";
+        Assert.Equal("Agent host · AiService · Chat", view.Harness.Subtitle);
+    }
+
+    [Fact]
+    public void HostDetails_SelectsIndividualA2AAgentsAndClearsSelection()
+    {
+        var reveals = 0;
+        var notifications = 0;
+        var details = new HostDetailsSelection(() => reveals++, () => notifications++);
+        details.OpenA2A("research");
+        Assert.Equal(HostDetailSection.A2A, details.Section);
+        Assert.Equal("research", details.A2AAgentName);
+        Assert.True(details.Active);
+        Assert.Equal(1, details.Activation);
+        Assert.Equal(1, reveals);
+        Assert.Equal(1, notifications);
+
+        details.Collapsed = true;
+        details.OpenA2A("poet");
+        Assert.Equal("poet", details.A2AAgentName);
+        Assert.False(details.Collapsed);
+        Assert.Equal(2, details.Activation);
+
+        details.Open(HostDetailSection.A2A);
+        Assert.Null(details.A2AAgentName);
+        details.OpenA2A("research");
+        details.Open(HostDetailSection.Settings);
+        Assert.Null(details.A2AAgentName);
+        details.OpenA2A("research");
+        details.Close();
+        Assert.False(details.Active);
+        Assert.Null(details.A2AAgentName);
+    }
+
     [Fact]
     public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras()
     {
@@ -552,6 +683,47 @@ public sealed class ExecutionReplayTests
         Assert.Empty(history.Turns);
         Assert.Equal(0, history.PayloadBytes);
         Assert.Throws<ObjectDisposedException>(() => history.Add(turn));
+    }
+
+    [Fact]
+    public void HostDetails_A2AInspectsOnlyTheSelectedAgentAndCausalCapture()
+    {
+        A2AChip[] roster = [new("research", "Research description"), new("poet", "Poetry description")];
+        var question = "Full question\n" + new string('q', 400);
+        var answer = "Full answer\n" + new string('a', 400);
+        var call = Delegation(2, "research-call", "research", question);
+        var result = Event(3, "tool-result", 1, "research-call") with { Data = answer };
+        var other = Delegation(4, "poet-call", "poet", "Unrelated request");
+        var exchange = ExecutionReplayBuilder.Build([new ConversationTurn("a2a", "hello", "Orchestrator", "done", null,
+            [Event(1, "received", 0), call, result, other], A2AAgents: roster)], -1)[0];
+        const string source = "Captured exchange 1";
+        var atCall = A2AFlowBuilder.Build(roster, ExecutionReplayBuilder.PrefixThrough(exchange, 2), false);
+        var details = HostDetailsBuilder.BuildA2A(atCall, "RESEARCH", true, source);
+        Assert.Contains(details, block => block.Title == "Description" && block.Text == "Research description");
+        Assert.Contains(details, block => block.Title == "Status" && block.Text == "Delegation requested");
+        Assert.Contains(details, block => block.Title == "Request" && block.Text == question && block.Source == source);
+        Assert.Contains(details, block => block.Title == "Result" && block.Text == "No result captured at this position.");
+        Assert.DoesNotContain(details, block => block.Text == answer || block.Text.Contains("Poetry") || block.Text == "Unrelated request");
+        Assert.Contains(details, block => block.Title == "Remote configuration" && block.Text.Contains("not exposed"));
+
+        var atResult = A2AFlowBuilder.Build(roster, ExecutionReplayBuilder.PrefixThrough(exchange, 3), false);
+        details = HostDetailsBuilder.BuildA2A(atResult, "research", true, source);
+        Assert.Contains(details, block => block.Title == "Result" && block.Text == answer && block.Source == source);
+        var otherDetails = HostDetailsBuilder.BuildA2A(atResult, "poet", true, source);
+        Assert.Contains(otherDetails, block => block.Title == "Status" && block.Text == "Available");
+        Assert.DoesNotContain(otherDetails, block => block.Text == question || block.Text == answer);
+    }
+
+    [Fact]
+    public void HostDetails_A2ACatalogueLinksAgentsAndHandlesMissingData()
+    {
+        var display = A2AFlowBuilder.Build([new("research", "Research description"), new("poet", "Poetry description")], [], false);
+        var catalogue = HostDetailsBuilder.BuildA2A(display, null, true, "Discovered A2A agent");
+        Assert.Equal(["research", "poet"], catalogue.Select(block => block.A2AAgentName));
+        var missing = Assert.Single(HostDetailsBuilder.BuildA2A(display, "removed", true, "Discovered A2A agent"));
+        Assert.Contains("not available", missing.Text);
+        Assert.Equal("No connected agents available.", Assert.Single(HostDetailsBuilder.BuildA2A(A2AFlowView.Empty, null, true, "Discovery")).Text);
+        Assert.Equal("Not applicable to this agent.", Assert.Single(HostDetailsBuilder.BuildA2A(A2AFlowView.Empty, null, false, "Discovery")).Text);
     }
 
     /// <summary>Each result answers its own call, including repeated and interleaved targets.</summary>

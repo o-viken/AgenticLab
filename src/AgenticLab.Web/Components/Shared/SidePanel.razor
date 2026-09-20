@@ -22,9 +22,12 @@
         @if (Side is PanelSide.Right or PanelSide.Bottom)
         {
             <div class="panel-splitter" @ref="_handle" title="Drag to resize" role="separator"
+                  tabindex="0" aria-label="@($"Resize the {Title} panel")"
                  aria-orientation="@(Side == PanelSide.Bottom ? "horizontal" : "vertical")"></div>
         }
         <div class="panel-inner">
+            @if (ShowHeader)
+            {
             <header class="panel-head">
                 <span class="panel-title">@Title</span>
                 <div class="panel-head-actions">
@@ -35,13 +38,15 @@
                     </button>
                 </div>
             </header>
+            }
             <div class="panel-body">
                 @ChildContent
             </div>
         </div>
         @if (Side == PanelSide.Left)
         {
-            <div class="panel-splitter" @ref="_handle" title="Drag to resize" role="separator" aria-orientation="vertical"></div>
+              <div class="panel-splitter" @ref="_handle" title="Drag to resize" role="separator" aria-orientation="vertical"
+                  tabindex="0" aria-label="@($"Resize the {Title} panel")"></div>
         }
     }
 </aside>
@@ -55,6 +60,9 @@
     [Parameter] public PanelSide Side { get; set; }
     /// <summary>The panel's title, shown in its header and (rotated) on its collapsed rail.</summary>
     [Parameter] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Allows a tabbed child to provide its own header and collapse command without duplicate chrome.</summary>
+    [Parameter] public bool ShowHeader { get; set; } = true;
 
     /// <summary>An optional independent grid-size variable for another panel on the same edge.</summary>
     [Parameter] public string? SizeVariable { get; set; }

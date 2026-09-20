@@ -145,13 +145,14 @@ attached terminal for input, or follow the [standalone console instructions](doc
 |-------|--------------------|
 | [Agents and API](docs/agents.md) | Agent personas, chat API, conversation memory, prompts, and model configuration. |
 | [Web Flow Workspace](docs/web-flow-page.md) | Live visualization, panels, captured context, and execution controls. |
+| [Blazor Design System](docs/design-system.md) | Shared tokens, components, local fonts, accessibility, and the development catalogue. |
 | [Execution Explorer](docs/execution-explorer.md) | Replay, breakpoints, streaming/control API, and retention limits. |
 | [Learning](docs/learning.md) | Guided lessons and the contextual Learn panel. |
 | [Workspace Features](docs/workspace.md) | Workspace agents, skills, custom instructions, and file/terminal tools. |
 | [Protocols](docs/protocols.md) | MCP tools, A2A agents, discovery, and protocol integration tests. |
 | [React Frontend](docs/react-frontend.md) | Optional frontend setup, customization, builds, and browser tests. |
 | [Architecture and Conventions](AGENTS.md) | Project structure and implementation guidance for contributors. |
-| [Load Testing](tools/README.md) | Browser load-test setup and interpretation. |
+| [Browser Checks](tools/README.md) | Responsive UI smoke checks and separate browser load-test setup. |
 
 ## Contributing
 

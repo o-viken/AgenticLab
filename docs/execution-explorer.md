@@ -34,7 +34,18 @@ contexts and reports browser-side timing/heap only; correlate it with Aspire/Ope
 working set, managed heap, allocation rate and the aggregate flow metrics. It is deliberately not part of
 the solution test suite and must not be treated as a CI pass/fail capacity claim.
 
-The bottom **Execution** dock ([Components/Pages/FlowParts/ExecutionExplorer.razor](../src/AgenticLab.Web/Components/Pages/FlowParts/ExecutionExplorer.razor) + scoped css) replaced the old Steps/Reply `FlowOutput` and the `ConversationTranscript` dock. It reuses the same bottom `SidePanel` (collapse to a rail, drag the top edge to resize, state persisted in the existing six-field `theseries-panels` `PanelState`), but is **always rendered** so the rail is discoverable before the first run, and adds a **maximize** toggle (`FlowViewState.Layout.BottomPanelMaximized` → the `.main-panel-body.bottom-max` class; deliberately **not** persisted, so `PanelState` needs no migration). `MaxPanelHeight` and `panels.js`'s `MAX_H` were raised 600 → 900 and the default height is 380. See [the reference below](#execution-panel) for the user-facing behaviour.
+The **Execution** dock sits beneath live flow in the conversation-first workspace.
+[ExecutionExplorer](../src/AgenticLab.Web/Components/Pages/FlowParts/ExecutionExplorer.razor) reuses
+`SidePanel`: collapse to a rail, resize the top edge by pointer or keyboard, and maximise for larger
+payloads. It is always available before a run. Fresh/reset height is 240px, the permitted range remains
+120-900px, and saved heights win. `PanelState` now adds an adaptive conversation-width flag but accepts
+legacy six-field `theseries-panels` values; see [workspace layout](web-flow-page.md).
+`BottomPanelMaximized` remains transient and is not persisted.
+
+Replay commands use shared design-system icon buttons. The three panes reflow by the explorer's own
+width: below 800px the inspector spans a second row; below 440px all panes stack. Internal scrolling
+keeps every pane reachable in a short dock. Contributor rails retain provenance colours while small
+status/stage text uses readable foregrounds. Replay state and causal capture boundaries are unchanged.
 
 The dock holds three panes: the conversation's **exchanges**, the selected exchange's **model turns and their stages**, and a **stage inspector** (a **Data** view of readable blocks, or **Raw**). The grouping is pure and client-side: [Flow/ExecutionModels.cs](../src/AgenticLab.Web/Flow/ExecutionModels.cs) holds `ExecutionExchange`/`ExecutionTurn`/`ExchangeStatus`, [Flow/ExecutionReplayBuilder.cs](../src/AgenticLab.Web/Flow/ExecutionReplayBuilder.cs) groups a run's `FlowEvent`s (`final`/`error` → the exchange's `Outcome`, `Turn <= 0` → `Intake`, the rest by `Turn`) and orders each turn **causally** — `llm-request`, `llm-response`, then the tool calls/results by sequence, because the capture emits a tool call while the response is still streaming — and [Flow/ExecutionStageReader.cs](../src/AgenticLab.Web/Flow/ExecutionStageReader.cs) turns a captured payload into `StageSection`s (system prompt, each re-sent message, tools offered, a call's arguments, a tool's result), reusing `PromptSignatureBuilder.ToStrictJson` because the captured `Data` is display-formatted rather than strict JSON. Anything the capture does not hold is reported as *not captured* rather than reconstructed.
 
@@ -64,8 +75,14 @@ notifications. It does not prefetch further updates, preserving normal manual/au
 The tracer sends `breakpoint` control events immediately, outside display-event gates, and cancellation
 stops and awaits the pending advance before scopes and the session are disposed. The browser consumes
 these notices separately from conversation events, preserving prompt/context totals, and renders the
-shared `FlowBreakpointControls` in both Chat and Settings (its `ShowReason` parameter names the holding
-boundary; the Conversation tab passes `false` because the agent's status note already does). `UserInputScope` preserves an answer submitted
+shared `FlowBreakpointControls` once inside `FlowRunControls` above live flow. Its `ShowReason`
+parameter names the holding boundary; it displays status/errors only. Continue, Next and Stop stay
+in the toolbar's three fixed icon slots, with the same size, order and alignment as ordinary
+Pause/Resume, Next and Stop. Next is disabled during ordinary Auto runs; Pause is disabled during
+ordinary Manual runs. At a breakpoint both release actions are available and disable while a release
+request is pending; Stop remains available. Descriptive tooltips retain the distinction between
+continuing in Auto and advancing into Manual. Breakpoint selection remains in Settings. The conversation
+also retains its derived status note. `UserInputScope` preserves an answer submitted
 before a breakpoint-delayed `AskQuestion` starts waiting, then re-arms after consumption.
 
 The focused [test project](../tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj) uses fake

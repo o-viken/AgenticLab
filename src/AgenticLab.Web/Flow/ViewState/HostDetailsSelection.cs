@@ -3,8 +3,6 @@ namespace AgenticLab.Web.Flow;
 /// <summary>The host layer inspected independently of diagram visibility and execution.</summary>
 public enum HostDetailSection
 {
-    /// <summary>The client and service responsibilities.</summary>
-    Client,
     /// <summary>The selected host's instructions.</summary>
     SystemPrompt,
     /// <summary>Workspace-authored instruction metadata and captured composition.</summary>
@@ -35,6 +33,9 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     /// <summary>The sole selected detail, or null when Details is closed.</summary>
     public HostDetailSection? Section { get; private set; }
 
+    /// <summary>The inspected remote agent, or null for the A2A catalogue and other host sections.</summary>
+    public string? A2AAgentName { get; private set; }
+
     /// <summary>Whether a detail is open, independently of Learn visibility.</summary>
     public bool Active => Section is not null;
 
@@ -62,9 +63,15 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     public int Activation { get; private set; }
 
     /// <summary>Replaces the detail and expands only its own dock without changing the run or Learn.</summary>
-    public void Open(HostDetailSection section)
+    public void Open(HostDetailSection section) => Open(section, null);
+
+    /// <summary>Inspects one remote agent without selecting it as the conversation's agent.</summary>
+    public void OpenA2A(string agentName) => Open(HostDetailSection.A2A, agentName);
+
+    private void Open(HostDetailSection section, string? agentName)
     {
         Section = section;
+        A2AAgentName = agentName;
         _collapsed = false;
         Activation++;
         reveal();
@@ -75,6 +82,7 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     public void Close()
     {
         Section = null;
+        A2AAgentName = null;
         notify();
     }
 
@@ -94,7 +102,7 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     /// <summary>The contributor rail shared with the expanded anatomy.</summary>
     public static string Contributor(HostDetailSection section) => section switch
     {
-        HostDetailSection.Client or HostDetailSection.SystemPrompt or HostDetailSection.Environment => "app",
+        HostDetailSection.SystemPrompt or HostDetailSection.Environment => "app",
         HostDetailSection.Instructions or HostDetailSection.UserPrompt or HostDetailSection.Skills => "user",
         _ => "agent"
     };

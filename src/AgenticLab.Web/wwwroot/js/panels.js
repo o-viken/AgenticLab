@@ -22,8 +22,8 @@ window.agenticLabPanels = (function () {
 
         const vertical = side === "bottom";
         const cssVar = sizeVariable || (vertical ? "--bottom-h" : side === "left" ? "--left-w" : "--right-w");
+        const conversation = side === "left" && cssVar === "--left-w";
         const min = vertical ? MIN_H : MIN_W;
-        const max = vertical ? MAX_H : MAX_W;
         const dragClass = vertical ? "resizing-y" : "resizing";
 
         let start = 0;
@@ -32,9 +32,30 @@ window.agenticLabPanels = (function () {
         let dragging = false;
 
         function readSize() {
-            const raw = getComputedStyle(body).getPropertyValue(cssVar);
-            const n = parseInt(raw, 10);
-            return Number.isNaN(n) ? min : n;
+            const bounds = handle.closest(".side-panel").getBoundingClientRect();
+            return vertical ? bounds.height : bounds.width;
+        }
+
+        function maxSize() {
+            if (vertical) return MAX_H;
+            const available = conversation
+                ? handle.closest(".workspace-grid").getBoundingClientRect().width * .65
+                : body.getBoundingClientRect().width * .25;
+            return Math.max(min, Math.min(conversation ? 960 : MAX_W, available));
+        }
+
+        function applySize(size) {
+            current = Math.max(min, Math.min(maxSize(), size));
+            body.style.setProperty(cssVar, conversation
+                ? `minmax(0, min(${current}px, 65cqw))`
+                : current + "px");
+            updateAria();
+        }
+
+        function updateAria() {
+            handle.setAttribute("aria-valuemin", min);
+            handle.setAttribute("aria-valuemax", Math.round(maxSize()));
+            handle.setAttribute("aria-valuenow", Math.round(readSize()));
         }
 
         function onMove(e) {
@@ -53,9 +74,7 @@ window.agenticLabPanels = (function () {
                 size = side === "left" ? startSize + dx : startSize - dx;
             }
 
-            size = Math.max(min, Math.min(max, size));
-            current = size;
-            body.style.setProperty(cssVar, size + "px");
+            applySize(size);
         }
 
         function onUp(e) {
@@ -79,6 +98,7 @@ window.agenticLabPanels = (function () {
         }
 
         function onDown(e) {
+            if (e.button !== 0) return;
             dragging = true;
             start = vertical ? e.clientY : e.clientX;
             startSize = readSize();
@@ -95,16 +115,38 @@ window.agenticLabPanels = (function () {
             e.preventDefault();
         }
 
-        // A fresh splitter element is created every time a panel re-expands, so there is no
-        // need to de-dupe; just remember the handler for dispose().
-        handle._tsDown = onDown;
+        function onKeyDown(event) {
+            const increase = vertical ? "ArrowUp" : side === "left" ? "ArrowRight" : "ArrowLeft";
+            const decrease = vertical ? "ArrowDown" : side === "left" ? "ArrowLeft" : "ArrowRight";
+            if (![increase, decrease, "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const step = event.shiftKey ? 50 : 20;
+            const size = event.key === "Home" ? min : event.key === "End" ? maxSize()
+                : readSize() + (event.key === increase ? step : -step);
+            applySize(size);
+            dotnetRef.invokeMethodAsync("OnResized", Math.round(current));
+        }
+
+        dispose(handle);
+        handle._tsDispose = function () {
+            dragging = false;
+            body.classList.remove(dragClass);
+            handle.removeEventListener("pointerdown", onDown);
+            handle.removeEventListener("keydown", onKeyDown);
+            handle.removeEventListener("focus", updateAria);
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+        };
         handle.addEventListener("pointerdown", onDown);
+        handle.addEventListener("keydown", onKeyDown);
+        handle.addEventListener("focus", updateAria);
+        updateAria();
     }
 
     function dispose(handle) {
-        if (handle && handle._tsDown) {
-            handle.removeEventListener("pointerdown", handle._tsDown);
-            handle._tsDown = null;
+        if (handle && handle._tsDispose) {
+            handle._tsDispose();
+            handle._tsDispose = null;
         }
     }
 
@@ -112,7 +154,7 @@ window.agenticLabPanels = (function () {
     // already at/near the bottom. Once they scroll up to read earlier messages we stop yanking them
     // back down — so reading history isn't interrupted by re-renders (e.g. typing or a streaming reply).
     function stickToBottom(el) {
-        if (!el) {
+        if (!el || el.getClientRects().length === 0) {
             return;
         }
 
@@ -141,11 +183,16 @@ window.agenticLabPanels = (function () {
     "use strict";
 
     document.addEventListener("keydown", function (e) {
+        const target = e.target;
+        if (target?.matches?.('[role="tab"]') && target.closest(".tab-strip")
+            && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+            e.preventDefault();
+            return;
+        }
         if (e.key !== "Enter" || e.shiftKey || e.isComposing) {
             return;
         }
 
-        const target = e.target;
         if (target && target.matches && target.matches("textarea[data-enter-submit]")) {
             e.preventDefault();
         }
