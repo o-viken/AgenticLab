@@ -52,7 +52,7 @@
             <div class="skill-chips">
                 @foreach (var agent in Run.Catalogs.KnownA2A)
                 {
-                    <span class="skill-chip" title="@agent.Description">@agent.Name</span>
+                    <span class="skill-chip" title="@agent.Description" @key="agent.Name"><HostSection Section="HostDetailSection.A2A" A2AAgentName="@agent.Name" /></span>
                 }
             </div>
         }

@@ -23,6 +23,8 @@ below is illustrative; use the actual URL. The `THESERIES_*` names are retained 
 Use a **Development** Web instance with a reachable AI service catalogue. The script creates isolated
 browser contexts; it does not overwrite preferences in your own browser, send chat, reset server
 conversations, or invoke rediscovery. No Azure model request is made by the script.
+The Default host must offer Orchestrator with at least one connected A2A agent for the per-agent
+inspector checks; the normal Aspire setup supplies these agents.
 
 ```sh
 THESERIES_URL=http://127.0.0.1:5140 \
@@ -32,7 +34,8 @@ node tools/web-smoke.mjs
 
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
 conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
-restoration, reset, Execution maximise/collapse, independent Details/Learn docks, Discovery focus containment and Escape/backdrop
+restoration, reset, Execution maximise/collapse, independent Details/Learn docks, individual A2A
+inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
 dismissal, lesson progression and detailed diagrams, shared-control states, reduced motion and 404
 pages. It checks locally loaded fonts and page/toolbar overflow. Screenshots go to the system temporary
 directory under `agentic-lab-web-smoke`; override with `THESERIES_SCREENSHOTS`.

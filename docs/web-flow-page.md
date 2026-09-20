@@ -15,9 +15,18 @@ The compact host stays quiet: no extra prompt/persona/settings rows or inspect b
 tool, catalogue and risk headings remain plain text. The expanded anatomy exposes System prompt,
 Agent persona, Settings, Client, Custom instructions, User prompt and Context, plus enabled catalogue
 and risk sections. Collapsing the host leaves an already-open Details pane and its selection intact.
-Details shows only the part selected in the anatomy, with one title and its content. There is no
+Details shows only the selected part, with one title and its content. There is no
 section picker, repeated agent heading or visible ownership/source badge. Contributor rails and
 titles are shared with the anatomy; selection styling is separate from execution activity.
+
+A2A agent chips and remote-agent headings open an individual agent in Details, including in the compact
+host. The A2A catalogue's entries also open that agent. Inspection shows its description, protocol,
+delegation status and full captured request/result without changing the conversation's selected agent.
+The remote system prompt, model settings and tools are explicitly unavailable: discovery does not
+expose them. A2A details share the diagram's live or causal replay projection and captured roster, so
+later results and other agents' payloads cannot appear in the selected agent's detail. Missing agents
+show an unavailable state. Selecting another host section or closing Details clears the remote-agent
+selection; collapsing Details retains it. Inspection never delegates a request or refreshes discovery.
 
 Details and Learn are separate panels that can remain visible together: Details beside the flow,
 Learn on the far right. Each has independent width, scrolling and collapse controls. Details starts
@@ -41,7 +50,8 @@ Skills/instructions show their catalogue descriptions and enablement, not unrela
 message payloads. User prompt shows the submitted message, not the unsent draft. Context contains the
 captured conversation content, without a statistics summary. Current/captured provenance (including
 the description fallback) remains in each block's hover title; captured content includes exchange,
-agent, vendor, workspace and request turn. Editing stays in Settings; execution controls sit above live flow. No
+agent, vendor and workspace. Model-request captures also include the request turn; A2A boundaries do
+not imply a captured remote-model turn. Editing stays in Settings; execution controls sit above live flow. No
 additional workspace file reads, model calls or discovery runs are triggered by inspection.
 
 Configuration-specific captures must match the displayed exchange's agent/vendor/workspace to the

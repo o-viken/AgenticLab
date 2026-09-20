@@ -35,6 +35,9 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     /// <summary>The sole selected detail, or null when Details is closed.</summary>
     public HostDetailSection? Section { get; private set; }
 
+    /// <summary>The inspected remote agent, or null for the A2A catalogue and other host sections.</summary>
+    public string? A2AAgentName { get; private set; }
+
     /// <summary>Whether a detail is open, independently of Learn visibility.</summary>
     public bool Active => Section is not null;
 
@@ -62,9 +65,15 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     public int Activation { get; private set; }
 
     /// <summary>Replaces the detail and expands only its own dock without changing the run or Learn.</summary>
-    public void Open(HostDetailSection section)
+    public void Open(HostDetailSection section) => Open(section, null);
+
+    /// <summary>Inspects one remote agent without selecting it as the conversation's agent.</summary>
+    public void OpenA2A(string agentName) => Open(HostDetailSection.A2A, agentName);
+
+    private void Open(HostDetailSection section, string? agentName)
     {
         Section = section;
+        A2AAgentName = agentName;
         _collapsed = false;
         Activation++;
         reveal();
@@ -75,6 +84,7 @@ internal sealed class HostDetailsSelection(Action reveal, Action notify)
     public void Close()
     {
         Section = null;
+        A2AAgentName = null;
         notify();
     }
 

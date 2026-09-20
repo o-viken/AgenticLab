@@ -68,6 +68,7 @@ try {
             await checkConversationHeader(page);
         }
         await checkDocksAndDiscovery(page, viewport.width);
+        await checkA2ADetails(page, viewport.width);
         await checkLearning(page, viewport.width);
         await page.goto(new URL("/discovery", baseUrl).href, { waitUntil: "networkidle" });
         await capture(page, `discovery-${viewport.width}`);
@@ -190,6 +191,72 @@ async function checkDocksAndDiscovery(page, width) {
     await page.mouse.click(2, 2);
     await dialog.waitFor({ state: "hidden" });
     assert.equal(await page.locator("#message").inputValue(), "Preserved while inspecting");
+}
+
+async function checkA2ADetails(page, width) {
+    await openFlow(page);
+    await page.getByRole("combobox", { name: "Host", exact: true }).selectOption({ label: "Default" });
+    await page.waitForFunction(() => [...document.querySelector("#agent").options].some(option => option.label.toLowerCase() === "orchestrator"));
+    const selectedAgent = await page.locator("#agent").evaluate(element => [...element.options].find(option => option.label.toLowerCase() === "orchestrator").value);
+    await page.locator("#agent").selectOption(selectedAgent);
+    await page.getByRole("button", { name: "Technical", exact: true }).click();
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "A2A agents", exact: true }).check();
+    await page.keyboard.press("Escape");
+    const chips = page.locator(".a2a.node-inner .skill-chip .host-section");
+    await chips.first().waitFor();
+    const names = (await chips.allTextContents()).map(name => name.trim());
+    const firstAgent = names[0];
+    const learnVisible = await page.getByRole("checkbox", { name: "Learn", exact: true }).isChecked();
+    await page.locator("#message").fill("Preserved while inspecting A2A");
+    await chips.first().focus();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(name => document.querySelector("#host-detail-heading")?.textContent === name
+        && document.activeElement?.id === "host-detail-heading", firstAgent);
+    assert.equal(await chips.first().getAttribute("aria-expanded"), "true");
+    assert.match(await page.locator("#details-content").innerText(), /Agent2Agent \(A2A\)/);
+    assert.match(await page.locator("#details-content").innerText(), /No request captured at this position/);
+    assert.match(await page.locator("#details-content").innerText(), /model settings and tools are not exposed/);
+    await capture(page, `a2a-details-${width}`);
+
+    await page.getByRole("button", { name: "Collapse the Details panel", exact: true }).click();
+    await page.locator(".details-dock .collapsed").waitFor();
+    assert.equal(await chips.first().getAttribute("aria-expanded"), "false");
+    await chips.first().click();
+    await page.locator("#host-detail-heading").waitFor();
+    assert.equal(await chips.first().getAttribute("aria-expanded"), "true");
+    if (names.length > 1) {
+        await chips.nth(1).click();
+        await page.waitForFunction(name => document.querySelector("#host-detail-heading")?.textContent === name, names[1]);
+        assert.equal(await chips.first().getAttribute("aria-expanded"), "false");
+        assert.equal(await chips.nth(1).getAttribute("aria-expanded"), "true");
+    }
+
+    const remoteHeading = page.locator(".a2a-flow .a2a-agent-title").getByRole("button", { name: firstAgent, exact: true });
+    await remoteHeading.click();
+    await page.waitForFunction(name => document.querySelector("#host-detail-heading")?.textContent === name
+        && document.activeElement?.id === "host-detail-heading", firstAgent);
+    const ids = await page.locator('[id^="host-section-a2a-"]').evaluateAll(elements => elements.map(element => element.id));
+    assert.equal(new Set(ids).size, ids.length, "Remote-agent inspector triggers have unique IDs");
+    await page.keyboard.press("Escape");
+    await page.locator(".details-dock").waitFor({ state: "hidden" });
+    assert.ok(await remoteHeading.evaluate(element => document.activeElement === element), "Closing A2A Details restores the remote heading's focus");
+
+    await page.getByRole("button", { name: "View options", exact: true }).click();
+    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.keyboard.press("Escape");
+    const catalogueHeading = page.locator(".a2a.node-inner").getByRole("button", { name: "A2A agents", exact: true });
+    await catalogueHeading.click();
+    await page.locator("#details-content").getByRole("button", { name: firstAgent, exact: true }).click();
+    await page.waitForFunction(name => document.querySelector("#host-detail-heading")?.textContent === name
+        && document.activeElement?.id === "host-detail-heading", firstAgent);
+    await page.keyboard.press("Escape");
+    await page.locator(".details-dock").waitFor({ state: "hidden" });
+    assert.ok(await catalogueHeading.evaluate(element => document.activeElement === element), "Drilling into an A2A catalogue entry retains the external focus origin");
+    assert.equal(await page.locator("#message").inputValue(), "Preserved while inspecting A2A");
+    assert.equal(await page.locator("#agent").inputValue(), selectedAgent);
+    assert.equal(await page.getByRole("checkbox", { name: "Learn", exact: true }).isChecked(), learnVisible);
 }
 
 async function checkLearning(page, width) {

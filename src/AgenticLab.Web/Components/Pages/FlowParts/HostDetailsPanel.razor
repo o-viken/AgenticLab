@@ -1,12 +1,16 @@
 @if (View.Details.Section is { } section)
 {
-    var heading = HostDetailsSelection.Title(section);
+    var heading = View.Details.A2AAgentName ?? HostDetailsSelection.Title(section);
     <section class="host-details @HostDetailsSelection.Contributor(section)" aria-labelledby="host-detail-heading">
         <h2 id="host-detail-heading" tabindex="-1">@heading</h2>
         @foreach (var block in HostDetailsBuilder.Build(section, View, Run))
         {
             <section class="detail-block" title="@block.Source">
-                @if (block.Title != heading)
+                @if (block.A2AAgentName is { } agentName)
+                {
+                    <h3><HostSection Section="HostDetailSection.A2A" A2AAgentName="@agentName" /></h3>
+                }
+                else if (block.Title != heading)
                 {
                     <h3>@block.Title</h3>
                 }

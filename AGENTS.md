@@ -50,11 +50,15 @@ Learn has no Discovery entry. Overlay re-discovery is disabled during the parent
 closing cancels only Discovery's stream. See [docs/protocols.md](docs/protocols.md).
 
 Flow has independent Details and Learn docks, visible simultaneously. `InspectorPanel` owns the
-Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transient width, collapse state
-and one host-section selection. Learn keeps the existing `PanelLayout` right-panel state. Both reuse
+Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transient width, collapse state,
+host-section selection and optional A2A agent selection. Learn keeps the existing `PanelLayout`
+right-panel state. Both reuse
 `SidePanel`, with a separate `SizeVariable` for Details. Selection is independent of diagram and run
 options; `HostSection` renders clickable headings only while **Expand agent host** is enabled,
-and plain labels in the compact host. An already-open inspector survives collapsing the host.
+and plain labels in the compact host, except individual A2A agents, which stay inspectable from their
+chips, remote headings and catalogue entries. A2A details reuse the bounded live/replay projection;
+remote prompts, model settings and tools remain unavailable. An already-open inspector survives
+collapsing the host.
 `HostDetailsBuilder` projects current configuration separately from causally bounded, attributed
 captures. `ConfigurationVersion` and per-fetch generations prevent asynchronous catalogue/prompt
 responses from publishing data for old selections. See [docs/web-flow-page.md](docs/web-flow-page.md).

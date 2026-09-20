@@ -91,6 +91,37 @@ public sealed class ExecutionReplayTests
     }
 
     [Fact]
+    public void HostDetails_SelectsIndividualA2AAgentsAndClearsSelection()
+    {
+        var reveals = 0;
+        var notifications = 0;
+        var details = new HostDetailsSelection(() => reveals++, () => notifications++);
+        details.OpenA2A("research");
+        Assert.Equal(HostDetailSection.A2A, details.Section);
+        Assert.Equal("research", details.A2AAgentName);
+        Assert.True(details.Active);
+        Assert.Equal(1, details.Activation);
+        Assert.Equal(1, reveals);
+        Assert.Equal(1, notifications);
+
+        details.Collapsed = true;
+        details.OpenA2A("poet");
+        Assert.Equal("poet", details.A2AAgentName);
+        Assert.False(details.Collapsed);
+        Assert.Equal(2, details.Activation);
+
+        details.Open(HostDetailSection.A2A);
+        Assert.Null(details.A2AAgentName);
+        details.OpenA2A("research");
+        details.Open(HostDetailSection.Settings);
+        Assert.Null(details.A2AAgentName);
+        details.OpenA2A("research");
+        details.Close();
+        Assert.False(details.Active);
+        Assert.Null(details.A2AAgentName);
+    }
+
+    [Fact]
     public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras()
     {
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
@@ -626,6 +657,47 @@ public sealed class ExecutionReplayTests
         Assert.Empty(history.Turns);
         Assert.Equal(0, history.PayloadBytes);
         Assert.Throws<ObjectDisposedException>(() => history.Add(turn));
+    }
+
+    [Fact]
+    public void HostDetails_A2AInspectsOnlyTheSelectedAgentAndCausalCapture()
+    {
+        A2AChip[] roster = [new("research", "Research description"), new("poet", "Poetry description")];
+        var question = "Full question\n" + new string('q', 400);
+        var answer = "Full answer\n" + new string('a', 400);
+        var call = Delegation(2, "research-call", "research", question);
+        var result = Event(3, "tool-result", 1, "research-call") with { Data = answer };
+        var other = Delegation(4, "poet-call", "poet", "Unrelated request");
+        var exchange = ExecutionReplayBuilder.Build([new ConversationTurn("a2a", "hello", "Orchestrator", "done", null,
+            [Event(1, "received", 0), call, result, other], A2AAgents: roster)], -1)[0];
+        const string source = "Captured exchange 1";
+        var atCall = A2AFlowBuilder.Build(roster, ExecutionReplayBuilder.PrefixThrough(exchange, 2), false);
+        var details = HostDetailsBuilder.BuildA2A(atCall, "RESEARCH", true, source);
+        Assert.Contains(details, block => block.Title == "Description" && block.Text == "Research description");
+        Assert.Contains(details, block => block.Title == "Status" && block.Text == "Delegation requested");
+        Assert.Contains(details, block => block.Title == "Request" && block.Text == question && block.Source == source);
+        Assert.Contains(details, block => block.Title == "Result" && block.Text == "No result captured at this position.");
+        Assert.DoesNotContain(details, block => block.Text == answer || block.Text.Contains("Poetry") || block.Text == "Unrelated request");
+        Assert.Contains(details, block => block.Title == "Remote configuration" && block.Text.Contains("not exposed"));
+
+        var atResult = A2AFlowBuilder.Build(roster, ExecutionReplayBuilder.PrefixThrough(exchange, 3), false);
+        details = HostDetailsBuilder.BuildA2A(atResult, "research", true, source);
+        Assert.Contains(details, block => block.Title == "Result" && block.Text == answer && block.Source == source);
+        var otherDetails = HostDetailsBuilder.BuildA2A(atResult, "poet", true, source);
+        Assert.Contains(otherDetails, block => block.Title == "Status" && block.Text == "Available");
+        Assert.DoesNotContain(otherDetails, block => block.Text == question || block.Text == answer);
+    }
+
+    [Fact]
+    public void HostDetails_A2ACatalogueLinksAgentsAndHandlesMissingData()
+    {
+        var display = A2AFlowBuilder.Build([new("research", "Research description"), new("poet", "Poetry description")], [], false);
+        var catalogue = HostDetailsBuilder.BuildA2A(display, null, true, "Discovered A2A agent");
+        Assert.Equal(["research", "poet"], catalogue.Select(block => block.A2AAgentName));
+        var missing = Assert.Single(HostDetailsBuilder.BuildA2A(display, "removed", true, "Discovered A2A agent"));
+        Assert.Contains("not available", missing.Text);
+        Assert.Equal("No connected agents available.", Assert.Single(HostDetailsBuilder.BuildA2A(A2AFlowView.Empty, null, true, "Discovery")).Text);
+        Assert.Equal("Not applicable to this agent.", Assert.Single(HostDetailsBuilder.BuildA2A(A2AFlowView.Empty, null, false, "Discovery")).Text);
     }
 
     /// <summary>Each result answers its own call, including repeated and interleaved targets.</summary>
