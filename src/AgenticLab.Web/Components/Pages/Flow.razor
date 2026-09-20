@@ -6,38 +6,81 @@
 <div class="flow-app">
     <CascadingValue Value="_view">
         <CascadingValue Value="_run">
-            <header class="flow-header">
-                <div class="flow-header-text">
-                    <h1>Agentic AI</h1>
-                    <p>Agent workbench</p>
+            <AppHeader Context="Flow workspace">
+                <a class="header-link" href="/learn" target="_blank" rel="noopener noreferrer"
+                   title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
+                <button type="button" class="header-link" aria-haspopup="dialog"
+                        @onclick="() => _view.Layout.DiscoveryOpen = true" title="View MCP and A2A discovery">Discovery</button>
+                <label class="header-check" title="Show or hide the learning panel and contextual info buttons">
+                    <input type="checkbox" @bind="_view.Concepts.ShowConcepts" /> Learn
+                </label>
+            </AppHeader>
+
+            <div class="selection-bar">
+                <div class="selectors">
+                    <span class="selected-vendor" aria-hidden="true"><VendorIcon Vendor="_view.Vendor" /></span>
+                    <LabField For="host" Label="Host" Inline="true">
+                        <select id="host" value="@_view.Vendor" title="@HostSummary" disabled="@(_run.Running || !_catalogsLoaded)" @onchange="OnHostChangedAsync">
+                            @foreach (var vendor in VendorCatalog.DisplayOrder)
+                            {
+                                <option value="@vendor">@_view.Roster.VendorDisplayName(vendor)</option>
+                            }
+                        </select>
+                    </LabField>
+                    <span class="select-divider" aria-hidden="true"></span>
+                    <LabField For="agent" Label="Agent" Inline="true">
+                        <select id="agent" aria-label="Agent" @bind="_view.SelectedAgent" @bind:after="_run.Catalogs.OnAgentChangedAsync"
+                                disabled="@(_run.Running || !_catalogsLoaded)">
+                            @foreach (var agent in _view.Roster.AvailableAgents)
+                            {
+                                <option value="@agent.Name">@agent.Label</option>
+                            }
+                            @if (_view.Roster.WorkspaceAgentChoices.Count > 0)
+                            {
+                                <optgroup label="Workspace agents">
+                                    @foreach (var agent in _view.Roster.WorkspaceAgentChoices)
+                                    {
+                                        <option value="@agent.Name">@agent.Label</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </LabField>
+                    @if (VendorCatalog.ProductConceptId(_view.Vendor) is { } conceptId)
+                    {
+                        <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {_view.Roster.VendorName}")" />
+                    }
                 </div>
-                <div class="flow-header-actions">
-                    <a class="discovery-link" href="/learn" target="_blank" rel="noopener noreferrer"
-                       title="Agent guide (opens in a new tab)" aria-label="Agent guide (opens in a new tab)">Agent guide</a>
-                        <button type="button" class="discovery-link" aria-haspopup="dialog"
-                            @onclick="() => _view.Layout.DiscoveryOpen = true" title="View MCP and A2A discovery">Discovery</button>
-                    <label class="check concept-toggle" title="Show or hide the right learning panel and all the contextual info buttons">
-                        <input type="checkbox" @bind="_view.Concepts.ShowConcepts" /> Learn
-                    </label>
-                    <RepositoryLink />
+                <div class="connection-status">
+                    <LabStatus Label="@(_catalogsLoaded ? "API connected" : _run.Error is not null ? "API unavailable" : "Connecting")"
+                               Tone="@(_catalogsLoaded ? "success" : "neutral")" />
                 </div>
-            </header>
+            </div>
+            @if (!_catalogsLoaded && _run.Error is { } catalogError)
+            {
+                <p class="workspace-error" role="alert">@catalogError</p>
+            }
 
             <div class="flow-shell">
-                <VendorRail OnSelectVendor="SetVendorAsync" />
-
                 <div class="flow-body" style="@(_view.Layout.BodyStyle + _view.Details.PanelStyle)">
-                    <SidePanel Side="PanelSide.Left" Title="Controls"
+                    <main class="primary-workspace" aria-label="Agent workspace">
+                    <div class="workspace-grid">
+                    <SidePanel Side="PanelSide.Left" Title="Conversation" ShowHeader="false"
                                Collapsed="_view.Layout.LeftPanelCollapsed"
                                OnToggleCollapse="ToggleLeftPanelAsync"
                                OnResize="SetLeftWidthAsync">
-                        <ControlsPanel />
+                        <ControlsPanel OnCollapse="ToggleLeftPanelAsync" OnResetLayout="ResetLayoutAsync" />
                     </SidePanel>
 
-                    <section class="flow-main-col" aria-label="Main">
+                    <section class="flow-main-col" aria-label="Live execution">
                         <header class="main-panel-head">
-                            <span class="main-panel-title">Agent flow · @_view.Roster.VendorName</span>
+                            <span class="section-number" aria-hidden="true">02</span>
+                            <h2 class="main-panel-title">Live flow</h2>
+                            <LabStatus Label="@(_run.Status.AgentStatusLabel ?? "Ready")"
+                                       Busy="@(_run.Running && !_run.Paused && !_run.BreakpointPaused && !_run.AwaitingAnswer && _view.Options.Mode == FlowMode.Auto)"
+                                       Tone="@(_run.Status.Activity == AgentActivity.Failed ? "danger" : "neutral")" />
                         </header>
+                        <FlowRunControls />
                         <div class="@_view.Layout.MainBodyClass">
                             <div class="flow-main-panel">
                                 <FlowDiagram />
@@ -49,11 +92,8 @@
                                        OnResize="SetBottomHeightAsync">
                                 <HeaderActions>
                                     <span class="panel-meta">@ExecutionMeta</span>
-                                    <button type="button" class="panel-max" @onclick="_view.Layout.ToggleBottomMaximized"
-                                            title="@MaximizeTitle" aria-label="@MaximizeTitle"
-                                            aria-pressed="@_view.Layout.BottomPanelMaximized">
-                                        <MiniIcon Name="expand" />
-                                    </button>
+                                    <LabButton Label="@MaximizeTitle" Icon="expand" IconOnly="true" Variant="quiet"
+                                               Pressed="_view.Layout.BottomPanelMaximized" OnClick="_view.Layout.ToggleBottomMaximized" />
                                 </HeaderActions>
                                 <ChildContent>
                                     <ExecutionExplorer />
@@ -61,6 +101,8 @@
                             </SidePanel>
                         </div>
                     </section>
+                    </div>
+                    </main>
 
                     @if (_view.Details.Active)
                     {

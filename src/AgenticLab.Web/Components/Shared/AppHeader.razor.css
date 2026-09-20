@@ -1,0 +1,14 @@
+.app-header { flex: 0 0 auto; min-height: 92px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--lab-space-4); padding: 20px 32px; border-bottom: 1px solid var(--lab-border); background: var(--lab-surface); color: var(--lab-ink); }
+.brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.brand-mark { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; background: var(--lab-accent); border-radius: var(--lab-radius-md); }
+.brand-mark span { display: block; width: 24px; height: 24px; background: var(--lab-on-accent); mask: url("/icons/lucide/workflow.svg") center / contain no-repeat; }
+h1 { margin: 0; font: 600 var(--lab-text-title)/1.2 var(--lab-font-sans); letter-spacing: 0; overflow-wrap: anywhere; }
+.header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--lab-space-4); min-width: 0; }
+.edition { display: flex; align-items: center; gap: var(--lab-space-3); color: var(--lab-muted); font-size: var(--lab-text-sm); }
+.edition > span { padding-left: var(--lab-space-3); border-left: 1px solid var(--lab-border); font: var(--lab-text-xs) var(--lab-font-mono); }
+.header-actions ::deep .header-link { border: 0; padding: 0; background: transparent; color: var(--lab-accent); font: 500 var(--lab-text-sm)/1.5 var(--lab-font-sans); text-decoration: none; text-underline-offset: 3px; cursor: pointer; }
+.header-actions ::deep .header-link:hover { text-decoration: underline; }
+.header-actions ::deep .header-check { display: inline-flex; align-items: center; gap: 6px; color: var(--lab-muted); font-size: var(--lab-text-sm); white-space: nowrap; }
+.header-actions ::deep input[type="checkbox"] { accent-color: var(--lab-accent); }
+@media (max-width: 900px) { .app-header { padding: 18px 22px; min-height: 80px; } .edition { display: none; } }
+@media (max-width: 500px) { .app-header { padding: 16px 20px; gap: 12px; } .header-actions { gap: 14px; width: 100%; justify-content: flex-start; } }

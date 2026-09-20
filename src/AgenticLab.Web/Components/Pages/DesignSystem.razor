@@ -1,0 +1,93 @@
+@page "/design-system"
+@rendermode InteractiveServer
+@inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
+
+@if (Environment.IsDevelopment())
+{
+    <PageTitle>Agentic Lab - Design system</PageTitle>
+    <div class="design-system">
+        <AppHeader Title="Agentic Lab" Context="Design system">
+            <a class="header-link" href="/">Live flow</a>
+            <a class="header-link" href="/learn">Agent guide</a>
+        </AppHeader>
+        <main>
+            <section aria-labelledby="palette-title">
+                <header><span class="section-number">01</span><h2 id="palette-title">Colour</h2></header>
+                <dl class="swatches">
+                    @foreach (var colour in Colours)
+                    {
+                        <div><span class="swatch" style="background: var(@colour.Token)" aria-hidden="true"></span><dt>@colour.Name</dt><dd>@colour.Token</dd></div>
+                    }
+                </dl>
+            </section>
+            <section aria-labelledby="type-title">
+                <header><span class="section-number">02</span><h2 id="type-title">Typography</h2></header>
+                <div class="type-samples"><h3>Agentic Lab</h3><p>Agent host, model and tools</p><code>model.request / turn 03</code></div>
+            </section>
+            <section aria-labelledby="commands-title">
+                <header><span class="section-number">03</span><h2 id="commands-title">Commands</h2></header>
+                <div class="examples">
+                    <LabButton Label="Send" Icon="send" Variant="primary" OnClick="CountActivation" />
+                    <LabButton Label="New conversation" Icon="new" OnClick="CountActivation" />
+                    <LabButton Label="Stop" Icon="stop" Variant="danger" OnClick="CountActivation" />
+                    <LabButton Label="Pause" Icon="pause" IconOnly="true" Variant="quiet" OnClick="CountActivation" />
+                    <LabButton Label="Send" Icon="send" Disabled="true" />
+                    <LabButton Label="Send" Icon="send" Busy="true" />
+                    <LabButton Label="Follow live" Icon="live" Pressed="_following" OnClick="() => _following = !_following" />
+                </div>
+                <output aria-live="polite">@_activations activations</output>
+            </section>
+            <section aria-labelledby="inputs-title">
+                <header><span class="section-number">04</span><h2 id="inputs-title">Fields and choices</h2></header>
+                <div class="fields">
+                    <LabField For="sample-name" Label="Name"><input id="sample-name" @bind="_name" /></LabField>
+                    <LabField For="sample-model" Label="Model"><select id="sample-model"><option>Default deployment</option><option>Reasoning deployment</option></select></LabField>
+                    <LabField For="sample-invalid" Label="Workspace" Error="A workspace is required."><input id="sample-invalid" aria-invalid="true" aria-describedby="sample-invalid-description" /></LabField>
+                    <LabField For="sample-disabled" Label="Read-only selection"><input id="sample-disabled" disabled value="Default" /></LabField>
+                </div>
+                <div class="examples">
+                    <LabSegmented Label="Execution mode">
+                        <button type="button" aria-pressed="@(_manual ? "false" : "true")" @onclick="() => _manual = false">Auto</button>
+                        <button type="button" aria-pressed="@(_manual ? "true" : "false")" @onclick="() => _manual = true">Manual</button>
+                    </LabSegmented>
+                    <label class="check"><input type="checkbox" @bind="_checked" /> Learn</label>
+                    <label class="range" for="sample-delay">Delay <input id="sample-delay" type="range" min="0" max="3000" step="50" @bind="_delay" /><output>@_delay ms</output></label>
+                </div>
+            </section>
+            <section aria-labelledby="status-title">
+                <header><span class="section-number">05</span><h2 id="status-title">Status</h2></header>
+                <div class="examples">
+                    <LabStatus Label="Ready" />
+                    <LabStatus Label="Connected" Tone="success" />
+                    <LabStatus Label="Running" Tone="success" Busy="true" />
+                    <LabStatus Label="Waiting for you" Tone="warning" />
+                    <LabStatus Label="Connection failed" Tone="danger" />
+                </div>
+            </section>
+        </main>
+    </div>
+}
+
+@code {
+    private int _activations;
+    private bool _following;
+    private bool _manual;
+    private bool _checked;
+    private int _delay = 500;
+    private string _name = "Research agent";
+    private static readonly (string Name, string Token)[] Colours =
+    [
+        ("Surface", "--lab-surface"), ("Muted surface", "--lab-surface-muted"),
+        ("Ink", "--lab-ink"), ("Accent", "--lab-accent"),
+        ("User", "--lab-user"), ("Host", "--lab-host"),
+        ("Model", "--lab-model"), ("Tool", "--lab-tool"), ("Danger", "--lab-danger")
+    ];
+
+    protected override void OnInitialized()
+    {
+        if (!Environment.IsDevelopment()) Navigation.NotFound();
+    }
+
+    private void CountActivation() => _activations++;
+}

@@ -1,0 +1,30 @@
+.lab-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--lab-space-2);
+    min-height: var(--lab-control-height);
+    padding: 6px 12px;
+    border: 1px solid var(--lab-border);
+    border-radius: var(--lab-radius-sm);
+    background: var(--lab-surface);
+    color: var(--lab-ink);
+    font: 500 var(--lab-text-sm)/1.4 var(--lab-font-sans);
+    cursor: pointer;
+    transition: background var(--lab-duration) var(--lab-easing), border-color var(--lab-duration) var(--lab-easing);
+}
+.lab-button:hover:not(:disabled) { background: var(--lab-surface-hover); border-color: var(--lab-border-strong); }
+.primary { background: var(--lab-accent); border-color: var(--lab-accent); color: var(--lab-on-accent); }
+.primary:hover:not(:disabled) { background: var(--lab-accent-hover); border-color: var(--lab-accent-hover); }
+.quiet { background: transparent; border-color: transparent; color: var(--lab-muted); }
+.danger { color: var(--lab-danger); }
+.danger:hover:not(:disabled) { background: var(--lab-danger-soft); border-color: var(--lab-danger); }
+.lab-button[aria-pressed="true"] { background: var(--lab-accent-soft); border-color: var(--lab-accent); color: var(--lab-accent); }
+.lab-button:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
+.lab-button:disabled { opacity: .5; cursor: not-allowed; }
+.lab-button[aria-busy="true"] { opacity: .8; cursor: progress; }
+.icon-only { width: var(--lab-control-height); height: var(--lab-control-height); flex: 0 0 var(--lab-control-height); padding: 0; }
+.lab-button ::deep .mini-icon, .spinner { width: var(--lab-icon-size); height: var(--lab-icon-size); flex: 0 0 var(--lab-icon-size); }
+.spinner { border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: lab-spin .9s linear infinite; }
+@keyframes lab-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-style: dotted; } }

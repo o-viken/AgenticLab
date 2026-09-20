@@ -1,0 +1,6 @@
+.lab-segmented { display: inline-flex; align-items: stretch; gap: 2px; padding: 3px; background: var(--lab-surface-hover); border-radius: var(--lab-radius-sm); max-width: 100%; flex-wrap: wrap; }
+.lab-segmented ::deep button { min-height: var(--lab-control-compact); min-width: 61px; padding: 4px 10px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--lab-muted); font: 500 var(--lab-text-sm)/1.4 var(--lab-font-sans); cursor: pointer; }
+.lab-segmented ::deep button:hover:not(:disabled) { color: var(--lab-ink); }
+.lab-segmented ::deep button[aria-pressed="true"] { background: var(--lab-surface); color: var(--lab-ink); border-color: var(--lab-border); }
+.lab-segmented ::deep button:focus-visible { outline: var(--lab-focus-ring); outline-offset: 1px; }
+.lab-segmented ::deep button:disabled { opacity: .5; cursor: not-allowed; }

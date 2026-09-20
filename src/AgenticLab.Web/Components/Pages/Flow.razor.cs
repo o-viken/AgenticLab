@@ -32,6 +32,7 @@ public partial class Flow : IDisposable
 
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
+    private bool _catalogsLoaded;
 
     /// <summary>How much the Execution panel has captured, shown in its header.</summary>
     private string ExecutionMeta
@@ -45,6 +46,9 @@ public partial class Flow : IDisposable
 
     private string MaximizeTitle =>
         _view.Layout.BottomPanelMaximized ? "Restore the Execution panel" : "Expand the Execution panel";
+
+    private string HostSummary => _view.Roster.CurrentVendorInfo is { } info
+        ? $"{info.DisplayName}: {info.ModelLabel}; {info.Modes.Count} mode{(info.Modes.Count == 1 ? "" : "s")}" : _view.Roster.VendorName;
 
     protected override void OnInitialized()
     {
@@ -70,6 +74,7 @@ public partial class Flow : IDisposable
             {
                 _view.Roster.SetAgents(response.Agents);
                 _view.InitSelectedAgent(_view.Roster.VendorDefaultAgent ?? response.Default);
+                _catalogsLoaded = true;
             }
 
             await _run.Catalogs.RefreshHarnessPromptAsync();
@@ -106,7 +111,7 @@ public partial class Flow : IDisposable
             if (!string.IsNullOrEmpty(storedPanels) && PanelState.TryParse(storedPanels, out var panels))
             {
                 _view.Layout.Init(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
-                    panels.LeftWidth, panels.RightWidth, panels.BottomHeight);
+                    panels.LeftWidth, panels.RightWidth, panels.BottomHeight, panels.AdaptiveConversationWidth);
                 StateHasChanged();
             }
 
@@ -150,6 +155,10 @@ public partial class Flow : IDisposable
         await _run.Catalogs.RefreshKnownMcpAsync();
         await _run.Catalogs.RefreshKnownA2AAsync();
     }
+
+    private Task OnHostChangedAsync(ChangeEventArgs args) =>
+        Enum.TryParse<Vendor>(args.Value?.ToString(), out var vendor) && vendor != _view.Vendor && !_run.Running
+            ? SetVendorAsync(vendor) : Task.CompletedTask;
 
     private async Task SetVendorAsync(Vendor vendor)
     {
@@ -204,6 +213,12 @@ public partial class Flow : IDisposable
         return SavePanelsAsync();
     }
 
+    private Task ResetLayoutAsync()
+    {
+        _view.Layout.Reset();
+        return SavePanelsAsync();
+    }
+
     private async Task SavePanelsAsync()
     {
         var state = new PanelState(
@@ -212,7 +227,8 @@ public partial class Flow : IDisposable
             _view.Layout.BottomPanelCollapsed,
             _view.Layout.LeftPanelWidth,
             _view.Layout.RightPanelWidth,
-            _view.Layout.BottomPanelHeight);
+            _view.Layout.BottomPanelHeight,
+            _view.Layout.AdaptiveConversationWidth);
         try
         {
             await JS.InvokeVoidAsync("localStorage.setItem", PanelStorageKey, state.Serialize());
@@ -259,13 +275,14 @@ internal readonly record struct PanelState(
     bool BottomCollapsed,
     int LeftWidth,
     int RightWidth,
-    int BottomHeight)
+    int BottomHeight,
+    bool AdaptiveConversationWidth = false)
 {
-    /// <summary>Serialises to a compact <c>L|R|B|leftW|rightW|bottomH</c> string (1/0 for the collapsed flags).</summary>
+    /// <summary>Serialises the original six layout fields plus a 1/0 adaptive conversation-width flag.</summary>
     public string Serialize() =>
-        $"{(LeftCollapsed ? 1 : 0)}|{(RightCollapsed ? 1 : 0)}|{(BottomCollapsed ? 1 : 0)}|{LeftWidth}|{RightWidth}|{BottomHeight}";
+        $"{(LeftCollapsed ? 1 : 0)}|{(RightCollapsed ? 1 : 0)}|{(BottomCollapsed ? 1 : 0)}|{LeftWidth}|{RightWidth}|{BottomHeight}|{(AdaptiveConversationWidth ? 1 : 0)}";
 
-    /// <summary>Parses the <see cref="Serialize"/> format; returns false for any malformed value.</summary>
+    /// <summary>Accepts legacy six-field pixel layouts and the current seven-field format.</summary>
     public static bool TryParse(string? value, out PanelState state)
     {
         state = default;
@@ -275,7 +292,8 @@ internal readonly record struct PanelState(
         }
 
         var parts = value.Split('|');
-        if (parts.Length != 6
+        if (parts.Length is not (6 or 7)
+            || (parts.Length == 7 && parts[6] is not ("0" or "1"))
             || !int.TryParse(parts[3], out var leftWidth)
             || !int.TryParse(parts[4], out var rightWidth)
             || !int.TryParse(parts[5], out var bottomHeight))
@@ -283,7 +301,8 @@ internal readonly record struct PanelState(
             return false;
         }
 
-        state = new PanelState(parts[0] == "1", parts[1] == "1", parts[2] == "1", leftWidth, rightWidth, bottomHeight);
+        state = new PanelState(parts[0] == "1", parts[1] == "1", parts[2] == "1", leftWidth, rightWidth, bottomHeight,
+            parts.Length == 7 && parts[6] == "1");
         return true;
     }
 }

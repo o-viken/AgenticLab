@@ -95,7 +95,7 @@
     font-size: .78rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .03em;
+    letter-spacing: 0;
     color: var(--text-dim);
     margin-bottom: .35rem;
 }
@@ -126,7 +126,7 @@
 }
 
 .tool-mappings code {
-    font-family: var(--mono, ui-monospace, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .82rem;
     background: var(--tool-chip-bg, rgba(127, 127, 127, .12));
     color: var(--tool-chip-text, inherit);
@@ -157,7 +157,7 @@
 .bases-input {
     width: 100%;
     resize: vertical;
-    font-family: var(--mono, ui-monospace, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .85rem;
 }
 
@@ -375,7 +375,7 @@
 .picker-item .repo-badge {
     font-size: .68rem;
     text-transform: uppercase;
-    letter-spacing: .04em;
+    letter-spacing: 0;
     padding: .05rem .35rem;
     border-radius: 999px;
     background: var(--tool-chip-bg, rgba(127, 127, 127, .18));
@@ -383,7 +383,7 @@
 }
 
 .picker-item .repo-path {
-    font-family: var(--mono, ui-monospace, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .72rem;
     color: var(--text-dim);
     white-space: nowrap;

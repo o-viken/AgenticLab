@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using AgenticLab.Web;
+using AgenticLab.Web.Components.Pages;
 using AgenticLab.Web.Flow;
 using Xunit;
 
@@ -16,6 +17,79 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Theory]
+    [InlineData("1|0|1|400|300|450", false)]
+    [InlineData("1|0|1|400|300|450|0", false)]
+    [InlineData("1|0|1|400|300|450|1", true)]
+    public void LayoutPreferences_PreserveLegacySizesAndRoundTrip(string stored, bool adaptive)
+    {
+        Assert.True(PanelState.TryParse(stored, out var state));
+        Assert.Equal(new PanelState(true, false, true, 400, 300, 450, adaptive), state);
+        Assert.True(PanelState.TryParse(state.Serialize(), out var restored));
+        Assert.Equal(state, restored);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("0|0|0|276|260")]
+    [InlineData("0|0|0|wide|260|380|1")]
+    [InlineData("0|0|0|276|260|380|invalid")]
+    [InlineData("0|0|0|276|260|380|1|extra")]
+    public void LayoutPreferences_RejectMalformedState(string? stored) =>
+        Assert.False(PanelState.TryParse(stored, out _));
+
+    [Fact]
+    public void LayoutSizing_AdaptsUntilDraggedAndClampsIndependentTracks()
+    {
+        var changes = 0;
+        var layout = new PanelLayout(() => changes++, () => true);
+        Assert.True(layout.AdaptiveConversationWidth);
+        Assert.Contains("--left-w: minmax(0, 1.18fr)", layout.BodyStyle);
+        layout.LeftPanelWidth = 2000;
+        Assert.False(layout.AdaptiveConversationWidth);
+        Assert.Equal(960, layout.LeftPanelWidth);
+        Assert.Contains("min(960px, 65cqw)", layout.BodyStyle);
+        layout.RightPanelWidth = 2000;
+        Assert.Equal(640, layout.RightPanelWidth);
+        layout.LeftPanelCollapsed = true;
+        Assert.Contains("--left-w: 44px", layout.BodyStyle);
+        var beforeReset = changes;
+        layout.Reset();
+        Assert.Equal(beforeReset + 1, changes);
+        Assert.True(layout.AdaptiveConversationWidth);
+        Assert.False(layout.LeftPanelCollapsed);
+        Assert.Equal(240, layout.BottomPanelHeight);
+        layout.Init(false, false, false, 410, 310, 440);
+        Assert.False(layout.AdaptiveConversationWidth);
+        Assert.Equal(410, layout.LeftPanelWidth);
+        Assert.Equal(310, layout.RightPanelWidth);
+        Assert.Equal(440, layout.BottomPanelHeight);
+    }
+
+    [Fact]
+    public void LayoutReset_PreservesDraftOptionsReplayAndIndependentDocks()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Message = "draft";
+        view.Cursor.SelectStage("exchange", 3);
+        view.Options.SetToolEnabled("test", false);
+        view.Concepts.OpenConcept("tools");
+        view.Details.Open(HostDetailSection.Tools);
+        view.Details.Width = 420;
+        view.Layout.LeftPanelWidth = 500;
+        view.Layout.BottomPanelMaximized = true;
+        view.Layout.Reset();
+        Assert.Equal("draft", view.Message);
+        Assert.Equal("exchange", view.Cursor.ExchangeId);
+        Assert.Equal(3, view.Cursor.Sequence);
+        Assert.False(view.Options.IsToolEnabled("test"));
+        Assert.True(view.Layout.RightPanelVisible);
+        Assert.Equal(HostDetailSection.Tools, view.Details.Section);
+        Assert.Equal(420, view.Details.Width);
+        Assert.False(view.Layout.BottomPanelMaximized);
+        Assert.True(view.Layout.AdaptiveConversationWidth);
+    }
+
     [Fact]
     public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras()
     {

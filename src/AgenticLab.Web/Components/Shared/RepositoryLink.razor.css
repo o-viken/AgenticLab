@@ -2,12 +2,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
-    border-radius: 4px;
+    flex: 0 0 var(--lab-control-height);
+    width: var(--lab-control-height);
+    height: var(--lab-control-height);
+    border-radius: var(--lab-radius-sm);
 }
 
-.repository-link:hover { background: #e8f1eb; }
-.repository-link:focus-visible { outline: 2px solid #315f9e; outline-offset: 4px; }
+.repository-link:hover { background: var(--lab-surface-hover); }
+.repository-link:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
 .repository-link img { display: block; }

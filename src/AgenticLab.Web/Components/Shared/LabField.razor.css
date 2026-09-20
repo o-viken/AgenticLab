@@ -1,0 +1,17 @@
+.lab-field { display: grid; gap: var(--lab-space-2); min-width: 0; }
+.lab-field label { color: var(--lab-muted); font: var(--lab-text-sm)/1.4 var(--lab-font-sans); }
+.field-input { min-width: 0; }
+.field-input ::deep :is(input:not([type="checkbox"]):not([type="range"]), select, textarea) {
+    width: 100%; min-width: 0; min-height: var(--lab-control-height); padding: 6px 10px;
+    border: 1px solid var(--lab-border); border-radius: var(--lab-radius-sm);
+    color: var(--lab-ink); background: var(--lab-surface); font: var(--lab-text-md)/1.5 var(--lab-font-sans);
+}
+.field-input ::deep :is(input, select, textarea):focus-visible { outline: var(--lab-focus-ring); outline-offset: 2px; }
+.field-input ::deep :disabled { opacity: .5; cursor: not-allowed; }
+.field-input ::deep textarea { resize: vertical; }
+.inline { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--lab-space-3); }
+.lab-field.inline .field-input ::deep select { background: transparent; border-color: transparent; font-size: 13px; font-weight: 500; }
+.field-description { color: var(--lab-muted); font-size: var(--lab-text-sm); line-height: 1.5; }
+.invalid-field .field-description { color: var(--lab-danger); }
+.lab-field.invalid-field .field-input ::deep :is(input, select, textarea) { border-color: var(--lab-danger); }
+@media (max-width: 500px) { .inline { grid-template-columns: minmax(0, 1fr); gap: 2px; } .lab-field.inline .field-input ::deep select { padding-left: 0; } }

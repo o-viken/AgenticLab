@@ -4,18 +4,9 @@
 button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
 button { cursor: pointer; min-height: 40px; }
 button:disabled { opacity: .45; cursor: default; }
-button:hover:not(:disabled) { background: #e8f1eb; }
-button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-.icon-button { display: grid; place-items: center; width: 40px; flex: 0 0 40px; padding: 0; }
-.foundation-lesson ::deep .mini-icon { width: 18px; height: 18px; flex: 0 0 18px; }
-.complete-button { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .4rem .7rem; margin-left: auto; }
-.restart-button { padding: .4rem .7rem; }
-.beat-count { min-width: 3rem; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
-@container (max-width: 420px) {
-    .story-toolbar { display: grid; grid-template-columns: 40px minmax(3rem, 1fr) 40px auto; }
-    .complete-button { grid-column: 1 / -1; margin-left: 0; }
-    .restart-button { grid-column: 4; grid-row: 1; }
-}
+button:hover:not(:disabled) { background: var(--lab-accent-soft); }
+button:focus-visible, select:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
+.beat-count { min-width: 3rem; text-align: center; font: var(--lab-text-sm) var(--lab-font-mono); color: var(--muted); }
 .story-caption { min-height: 4.8em; margin: 1rem 0; max-width: 95ch; line-height: 1.6; color: var(--ink); }
 .reveal { transition: opacity 240ms ease; }
 .unrevealed { visibility: hidden; opacity: 0; pointer-events: none; }
@@ -25,7 +16,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); out
 .anatomy-mode { min-height: 44px; }
 .anatomy-agent-name { display: block; padding: .65rem 0; }
 .anatomy-part { min-width: 0; padding: .85rem; border: 1px solid var(--line); border-left: 3px solid var(--app); background: var(--surface); overflow-wrap: anywhere; font-size: 13px; line-height: 1.55; }
-.anatomy-part h3 { margin: .35rem 0 .75rem; font: 500 22px Cambria, Georgia, serif; }
+.anatomy-part h3 { margin: .35rem 0 .75rem; font: 500 22px var(--lab-font-sans); }
 .anatomy-part p { margin: .65rem 0; }
 .anatomy-part small { display: block; color: var(--muted); font-size: 12px; }
 .anatomy-part .anatomy-owner { display: flex; align-items: center; gap: .5rem; min-height: 24px; margin: 0; color: var(--muted); font-size: 11px; }
@@ -43,7 +34,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); out
 .anatomy-tool-selection { display: grid; gap: .45rem; list-style: none; margin: 0; padding: 0; }
 .anatomy-tool-selection li { display: flex; align-items: baseline; gap: .4rem; min-height: 2.6em; }
 .anatomy-tool-selection .not-selected { color: var(--muted); }
-.tool-marker { white-space: pre; font-family: Consolas, monospace; flex: 0 0 3ch; }
+.tool-marker { white-space: pre; font-family: var(--lab-font-mono); flex: 0 0 3ch; }
 .selected .tool-marker { color: var(--accent); font-weight: 700; }
 .anatomy-settings { grid-area: 2 / 3; border-left-color: var(--agent); min-height: 420px; }
 .anatomy-model { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: .5rem; border-bottom: 1px solid var(--line); padding-bottom: .75rem; }
@@ -81,7 +72,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); out
 .purpose:nth-child(3) { border-color: var(--agent); }
 .purpose:nth-child(4) { border-color: var(--app); }
 .purpose-number { font-size: 12px; color: var(--muted); }
-.purpose strong { font: 500 24px Cambria, Georgia, serif; }
+.purpose strong { font: 500 24px var(--lab-font-sans); }
 .purpose > span:last-child { color: var(--muted); line-height: 1.5; min-height: 3em; overflow-wrap: anywhere; }
 .foundation-connectors { color: var(--accent); font-size: 26px; text-align: center; padding-bottom: .65rem; }
 .shared-foundation { border-top: 2px solid var(--accent); border-bottom: 1px solid var(--line); padding: 1.25rem 0; }
@@ -95,7 +86,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--blue); out
 .responsibilities { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin: 1.25rem 0; }
 .responsibilities span { text-align: center; border-bottom: 2px solid var(--line); padding: .65rem .2rem; overflow-wrap: anywhere; }
 .foundation-cycle { margin-top: 1.5rem; }
-.foundation-cycle h3 { font: 500 20px Cambria, Georgia, serif; margin: 0 0 .75rem; }
+.foundation-cycle h3 { font: 500 20px var(--lab-font-sans); margin: 0 0 .75rem; }
 .cycle-diagram { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 70px minmax(0, 1fr) 28px minmax(0, 1fr); grid-template-rows: auto 28px auto 52px; }
 .cycle-step { display: flex; flex-direction: column; gap: .4rem; min-width: 0; padding: .75rem; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--app); }
 .cycle-step small { color: var(--app); font-size: 11px; }
@@ -147,9 +138,9 @@ h3 { font-size: 18px; font-weight: 500; margin: .5rem 0; overflow-wrap: anywhere
 .outcome-line { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .example-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
 .example-picker button { flex: 1; min-width: 75px; padding: .65rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; }
-.example-picker button[aria-pressed='true'] { color: var(--accent); border-bottom-color: var(--accent); background: #e8f1eb; }
+.example-picker button[aria-pressed='true'] { color: var(--accent); border-bottom-color: var(--accent); background: var(--lab-accent-soft); }
 .example-context { min-height: 100px; padding: 1rem 0 .5rem; }
-.example-context h3 { font: 500 22px Cambria, Georgia, serif; }
+.example-context h3 { font: 500 22px var(--lab-font-sans); }
 .example-context p { color: var(--muted); line-height: 1.6; font-size: 13px; margin-bottom: 0; }
 .example-context .application-examples { margin: 0 0 .75rem; color: var(--ink); overflow-wrap: anywhere; }
 .example-caveat { margin: .5rem 0 1rem; font-size: 12px; color: var(--muted); line-height: 1.6; }
@@ -194,7 +185,6 @@ dd { margin: 0 0 .5rem; min-height: 3em; overflow-wrap: anywhere; }
 }
 @container (max-width: 420px) {
     .story-toolbar { gap: .4rem; }
-    .complete-button { margin-left: 0; }
     .story-caption { min-height: 8em; font-size: 13px; }
     .purpose-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .foundation-connectors { grid-template-columns: minmax(0, 1fr); }

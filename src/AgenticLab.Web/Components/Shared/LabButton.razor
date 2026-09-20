@@ -1,0 +1,44 @@
+<button @attributes="AdditionalAttributes" type="@Type" class="lab-button @VariantClass @(IconOnly ? "icon-only" : "")"
+        disabled="@(Disabled || Busy)" aria-label="@Label" aria-busy="@(Busy ? "true" : null)"
+        aria-pressed="@(Pressed?.ToString().ToLowerInvariant())" title="@(Title ?? (IconOnly ? Label : null))"
+        @onclick="OnClick">
+    @if (Busy)
+    {
+        <span class="spinner" aria-hidden="true"></span>
+    }
+    else if (Icon is not null)
+    {
+        <MiniIcon Name="@Icon" />
+    }
+    @if (!IconOnly)
+    {
+        <span>@Label</span>
+    }
+</button>
+
+@code {
+    /// <summary>The visible command text and accessible name, also used for icon-only tooltips.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>An existing MiniIcon glyph; omit for a text command.</summary>
+    [Parameter] public string? Icon { get; set; }
+    /// <summary>Hides the visible label while retaining a fixed square target and accessible name.</summary>
+    [Parameter] public bool IconOnly { get; set; }
+    /// <summary>Visual intent: primary, secondary, quiet or danger. Unknown values use secondary.</summary>
+    [Parameter] public string Variant { get; set; } = "secondary";
+    /// <summary>Prevents activation without removing the command from the layout.</summary>
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Shows a progress indicator and prevents duplicate activation.</summary>
+    [Parameter] public bool Busy { get; set; }
+    /// <summary>Optional toggle state; ordinary commands leave this unset.</summary>
+    [Parameter] public bool? Pressed { get; set; }
+    /// <summary>An optional description that replaces the default icon-only tooltip.</summary>
+    [Parameter] public string? Title { get; set; }
+    /// <summary>Native button type; commands default to button rather than submitting a form.</summary>
+    [Parameter] public string Type { get; set; } = "button";
+    /// <summary>Invoked on activation; application state remains owned by the caller.</summary>
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    /// <summary>Additional native attributes such as id, aria-controls or popovertarget.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string VariantClass => Variant is "primary" or "quiet" or "danger" ? Variant : "secondary";
+}

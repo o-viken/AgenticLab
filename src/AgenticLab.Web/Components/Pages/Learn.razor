@@ -6,16 +6,9 @@
 <PageTitle>Agentic Lab - @_stage.Title</PageTitle>
 
 <div class="learn-app">
-    <header class="learn-header">
-        <div>
-            <h1>Agentic AI</h1>
-            <p>Agent guide / Fundamentals to operations</p>
-        </div>
-        <nav class="page-links" aria-label="Agentic Lab pages">
-            <a href="/">Live flow</a>
-            <RepositoryLink />
-        </nav>
-    </header>
+    <AppHeader Context="Agent guide">
+        <a class="header-link" href="/">Live flow</a>
+    </AppHeader>
 
     <main class="learn-workspace">
         <nav class="stage-rail" aria-label="Learning stages">
@@ -52,12 +45,12 @@
             {
                 <div class="architecture intro-lesson">
                 <div class="intro-toolbar" role="group" aria-label="Introduction steps">
-                    <button type="button" title="Previous step" aria-label="Previous step"
-                            disabled="@(_introStep == 0)" @onclick="() => MoveIntroduction(-1)"><MiniIcon Name="prev" /></button>
+                        <LabButton Label="Previous step" Icon="prev" IconOnly="true"
+                               Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-1)" />
                     <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
-                    <button type="button" title="Next step" aria-label="Next step"
-                            disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" @onclick="() => MoveIntroduction(1)"><MiniIcon Name="next" /></button>
-                    <button type="button" class="intro-restart" disabled="@(_introStep == 0)" @onclick="() => _introStep = 0">Restart</button>
+                        <LabButton Label="Next step" Icon="next" IconOnly="true"
+                               Disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" OnClick="() => MoveIntroduction(1)" />
+                        <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => _introStep = 0" />
                 </div>
                 <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
                     @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
@@ -179,7 +172,7 @@
                         <article class="concept-detail" aria-labelledby="concept-title">
                             <header class="concept-detail-heading">
                                 <h3 id="concept-title" tabindex="-1" @ref="_conceptHeading">@active.Title</h3>
-                                <button type="button" class="close-topic" @onclick="CloseConcept">Close topic</button>
+                                <LabButton Label="Close topic" Icon="close" IconOnly="true" Variant="quiet" OnClick="CloseConcept" />
                             </header>
                             <p class="concept-summary">@active.Summary</p>
                             <div class="concept-body">@((MarkupString)active.BodyHtml)</div>

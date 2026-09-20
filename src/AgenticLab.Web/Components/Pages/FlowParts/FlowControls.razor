@@ -1,26 +1,4 @@
-@* The control part of the left panel: per-tool toggles, the optional workspace input, the auto-step
-   delay and the stepping mode. Reads and writes the shared view/run state. The vendor picker lives in
-   the left-edge VendorRail; the agent picker and chat (message box, run buttons, answer box) live in
-   the sibling FlowChat component. *@
-
 <section class="controls settings-controls">
-    <div class="control">
-        <label for="delay">Auto step delay <span>@View.Options.StepDelayMs ms</span></label>
-        <input id="delay" type="range" min="0" max="3000" step="50"
-               @bind="View.Options.StepDelayMs" @bind:event="oninput" @bind:after="Run.SetDelayAsync"
-               disabled="@(View.Options.Mode == FlowMode.Manual)" />
-    </div>
-
-    <div class="control">
-        <label>Stepping</label>
-        <div class="mode-toggle">
-            <button type="button" class="@(View.Options.Mode == FlowMode.Auto ? "selected" : "")"
-                    disabled="@Run.Running" @onclick="@(() => View.Options.Mode = FlowMode.Auto)">Auto</button>
-            <button type="button" class="@(View.Options.Mode == FlowMode.Manual ? "selected" : "")"
-                    disabled="@Run.Running" @onclick="@(() => View.Options.Mode = FlowMode.Manual)">Manual</button>
-        </div>
-    </div>
-
     <fieldset class="control breakpoints-control">
         <legend>Breakpoints</legend>
         <div class="breakpoint-grid">
@@ -34,7 +12,6 @@
                 </label>
             }
         </div>
-        <FlowBreakpointControls />
     </fieldset>
 
     @* Tools always occupies its own full-width row (with a placeholder when the agent

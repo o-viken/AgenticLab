@@ -6,11 +6,11 @@
             <p role="status">Paused: @Run.Status.BreakpointReason</p>
         }
         <div class="bp-actions">
-            <button type="button" class="chip" @onclick="Run.ContinueAsync" disabled="@Run.BreakpointControlPending"
-                    title="Continue in Auto until the next breakpoint"><MiniIcon Name="play" />Continue</button>
-            <button type="button" class="chip" @onclick="Run.NextAsync" disabled="@Run.BreakpointControlPending"
-                    title="Advance and switch to Manual stepping"><MiniIcon Name="next" />Next</button>
-            <button type="button" class="chip danger" @onclick="Run.StopAsync"><MiniIcon Name="stop" />Stop</button>
+            <LabButton Label="Continue" Icon="play" OnClick="Run.ContinueAsync" Disabled="Run.BreakpointControlPending"
+                   Title="Continue in Auto until the next breakpoint" />
+            <LabButton Label="Next" Icon="next" OnClick="Run.NextAsync" Disabled="Run.BreakpointControlPending"
+                   Title="Advance and switch to Manual stepping" />
+            <LabButton Label="Stop" Icon="stop" Variant="danger" OnClick="Run.StopAsync" />
         </div>
     </div>
 }

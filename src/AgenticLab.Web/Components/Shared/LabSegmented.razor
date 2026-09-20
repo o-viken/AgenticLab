@@ -1,0 +1,8 @@
+<div class="lab-segmented" role="group" aria-label="@Label">@ChildContent</div>
+
+@code {
+    /// <summary>Accessible name for a small group of mutually exclusive choices.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Native buttons with aria-pressed state and caller-owned selection callbacks.</summary>
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+}

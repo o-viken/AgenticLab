@@ -3,13 +3,12 @@
 @* The Execution explorer: what the run actually did, as captured. Three panes — the conversation's
    exchanges, the selected exchange's model round-trips and their stages, and the data captured at the
    selected stage. Selecting anything here only changes what is displayed; it never runs, re-runs or
-   advances real execution (that stays with the composer's controls). *@
+    advances real execution (that stays with the live flow controls). *@
 
 @{
     var exchanges = Run.Projections.Exchanges;
     var selected = Run.Replay.SelectedExchange;
     var stage = Run.Replay.SelectedStage;
-    var liveClass = Run.Replay.Replaying ? "chip" : "chip on";
     var dataTabClass = View.Cursor.ShowRawStage ? "" : "selected";
     var rawTabClass = View.Cursor.ShowRawStage ? "selected" : "";
 }
@@ -25,7 +24,7 @@
     }
     @if (exchanges.Count == 0)
     {
-        <p class="empty">Nothing has run yet. Send a message and every step it takes is captured here.</p>
+        <p class="empty">No activity yet.</p>
     }
     else
     {
@@ -51,18 +50,12 @@
                 {
                     <span class="replay-badge" title="Showing a captured stage, not the live run">Replay</span>
                 }
-                <button type="button" class="chip" disabled="@(!Run.Replay.CanStepBack)" @onclick="Run.Replay.StepBack"
-                        title="Show the previous captured stage" aria-label="Previous stage">
-                    <MiniIcon Name="prev" /> Previous
-                </button>
-                <button type="button" class="chip" disabled="@(!Run.Replay.CanStepForward)" @onclick="Run.Replay.StepForward"
-                        title="Show the next captured stage" aria-label="Next stage">
-                    <MiniIcon Name="next" /> Next
-                </button>
-                <button type="button" class="@liveClass" @onclick="View.Cursor.FollowLive"
-                        title="Follow the newest stage of the current run" aria-label="Follow the live run">
-                    <MiniIcon Name="live" /> Live
-                </button>
+                <LabButton Label="Previous stage" Icon="prev" IconOnly="true" Variant="quiet"
+                           Disabled="@(!Run.Replay.CanStepBack)" OnClick="Run.Replay.StepBack" />
+                <LabButton Label="Next stage" Icon="next" IconOnly="true" Variant="quiet"
+                           Disabled="@(!Run.Replay.CanStepForward)" OnClick="Run.Replay.StepForward" />
+                <LabButton Label="Follow the live run" Icon="live" IconOnly="true" Variant="quiet"
+                           Pressed="@(!Run.Replay.Replaying)" OnClick="View.Cursor.FollowLive" />
             </div>
         </div>
 

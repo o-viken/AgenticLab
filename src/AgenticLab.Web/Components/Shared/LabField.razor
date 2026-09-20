@@ -1,0 +1,23 @@
+<div class="lab-field @(Inline ? "inline" : "") @(Error is not null ? "invalid-field" : "")">
+    <label for="@For">@Label</label>
+    <div class="field-input">@ChildContent</div>
+    @if (Error is not null || Hint is not null)
+    {
+        <span id="@(For + "-description")" class="field-description">@(Error ?? Hint)</span>
+    }
+</div>
+
+@code {
+    /// <summary>The native input id to associate with the visible label.</summary>
+    [Parameter, EditorRequired] public string For { get; set; } = string.Empty;
+    /// <summary>The visible label for the caller-supplied input.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    /// <summary>Places label and input on one row until the container becomes narrow.</summary>
+    [Parameter] public bool Inline { get; set; }
+    /// <summary>Optional help text; associate it using aria-describedby on the input.</summary>
+    [Parameter] public string? Hint { get; set; }
+    /// <summary>Validation text replacing the hint; the input should also set aria-invalid.</summary>
+    [Parameter] public string? Error { get; set; }
+    /// <summary>A native input, select or textarea retaining the caller's binding and validation.</summary>
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+}

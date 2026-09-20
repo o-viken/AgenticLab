@@ -1,0 +1,20 @@
+<header class="app-header">
+    <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <h1>@Title</h1>
+    </div>
+    <div class="header-actions">
+        <span class="edition">@Context <span>Blazor</span></span>
+        @ChildContent
+        <RepositoryLink />
+    </div>
+</header>
+
+@code {
+    /// <summary>The page's existing product heading, independent of navigation and run state.</summary>
+    [Parameter] public string Title { get; set; } = "Agentic AI";
+    /// <summary>A compact page identifier next to the implementation label.</summary>
+    [Parameter, EditorRequired] public string Context { get; set; } = string.Empty;
+    /// <summary>Page-specific links and actions, rendered inside the page's interactive boundary.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

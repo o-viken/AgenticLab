@@ -191,7 +191,7 @@
 
 .net-nn-note b {
     color: var(--text);
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
 }
 
 .net-predict {
@@ -200,7 +200,7 @@
 }
 
 .net-predict-tok {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-weight: 700;
     color: var(--text);
     background: color-mix(in srgb, var(--contrib-agent) 22%, transparent);
@@ -294,7 +294,7 @@
 }
 
 .net-otok {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .74rem;
     white-space: pre-wrap;
     max-width: 100%;
@@ -368,7 +368,7 @@
 }
 
 .net-knob {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .62rem;
     color: var(--text-dim);
     background: var(--surface-2);
@@ -406,7 +406,7 @@
 }
 
 .net-cand-text {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .72rem;
     color: var(--text);
     white-space: pre;
@@ -435,7 +435,7 @@
 }
 
 .net-cand-num {
-    font-family: var(--mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+    font-family: var(--lab-font-mono);
     font-size: .68rem;
     color: var(--text-dim);
     text-align: right;

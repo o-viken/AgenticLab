@@ -41,7 +41,7 @@ Skills/instructions show their catalogue descriptions and enablement, not unrela
 message payloads. User prompt shows the submitted message, not the unsent draft. Context contains the
 captured conversation content, without a statistics summary. Current/captured provenance (including
 the description fallback) remains in each block's hover title; captured content includes exchange,
-agent, vendor, workspace and request turn. Editing and execution controls remain in Controls. No
+agent, vendor, workspace and request turn. Editing stays in Settings; execution controls sit above live flow. No
 additional workspace file reads, model calls or discovery runs are triggered by inspection.
 
 Configuration-specific captures must match the displayed exchange's agent/vendor/workspace to the
@@ -67,32 +67,20 @@ host role. A2A agents use the same host/model labels. The model requests a next 
 checks permissions and executes permitted actions. Technical harness/LLM references below,
 component names, event kinds and concept IDs remain unchanged; these are presentation-only labels.
 
-**Corporate workbench styling (current).** The approved [V8 preview](../design/mockups/v8-corporate-workbench.html)
-is implemented in the Web UI; see [the reference below](#corporate-workbench) for the user-facing behavior.
-All harnesses share the Default off-white/forest-green/charcoal palette, with Bahnschrift UI text and Cambria/Georgia product
-headings. Logos distinguish vendors; vendor-driven agent selection and harness prompts remain unchanged. Flow uses flush,
-divider-led panels, 4px controls, an **Agentic AI** header and a **Learn** checkbox (formerly **Show concept info**).
-Learn and React also display **Agentic AI** as their heading. Discovery and browser titles retain
-**Agentic Lab**, the project name.
-Flow, Learn and Discovery use the guide's stacked title/subtitle and plain navigation links. Their
-headers also share a GitHub icon link to `https://github.com/o-viken/the-series`, opening in a new
-tab with an accessible label and tooltip. `RepositoryLink` owns the control and its scoped styles;
-the bundled Octicons mark and license live under Web's `wwwroot`.
-Flow's neutral header spans the full window above `.flow-shell`, which lays out the vendor rail
-beside `.flow-body`.
-The rail starts below the header, stays visible on desktop, and becomes a horizontal strip below the header
-on narrow screens. These shell details supersede the earlier full-height rail description below.
-New-session side widths are 276px/260px; persisted widths
-still win. The shell and vendor rail stack below 1200px (superseding the earlier 1000px threshold described below),
-and `.flow-main-panel` is an inline-size container: at 620px or less the diagram stacks nodes and remaps its
-boundary overlays. SidePanel splitters and storage format are unchanged. Shared visual styles live in
-Flow.razor.css and component-scoped CSS; Discovery retains its own matching tokens. The live diagram
-matches the guided Learn diagram's 24px grid, square left-aligned nodes with colored edges, and plain
-dashed boundary labels. Its pulse changes only the focus ring, not node geometry; stacked send/receive
-arrows stay attached and animate vertically. These styles remain in FlowDiagram.razor.css, preserving
-vendor tokens and execution-state classes. Main node icons use pinned
-Lucide 0.468.0 SVG masks from `wwwroot/icons/lucide` with the upstream license, not a runtime CDN. Semantic
-contributor colors are preserved; reduced motion suppresses visual effects, not backend event pacing.
+**Shared design system.** Blazor now follows the React frontend's visual language across Flow, Learn,
+Discovery and status pages. The [design system](design-system.md) owns document-level `--lab-*` tokens,
+locally served IBM Plex Sans/Mono fonts and reusable Razor controls. Each component still owns its scoped
+layout CSS. `AppHeader` provides a common product mark and page actions; `LabButton`, `LabField`,
+`LabSegmented` and `LabStatus` provide consistent commands, inputs, choices and state indicators.
+The development-only `/design-system` catalogue exercises these actual components without backend calls.
+It returns 404 outside Development. No React runtime, CDN or npm build step is added to Web.
+
+The workspace uses white/neutral surfaces, green commands, fine dividers and a shared 18px dotted
+diagram grid. Semantic contributor, chart and risk colours remain distinct from branding. Flow and
+Learn retain the **Agentic AI** heading; Discovery and browser titles retain **Agentic Lab**.
+The shared repository link still opens `https://github.com/o-viken/the-series` in a new tab.
+Font notices and pinned Lucide/Octicons assets remain local under `wwwroot`.
+Reduced motion suppresses visual effects, never backend event pacing.
 
 The Prompt signature, Inference, Embeddings and Neural network sections follow the same flush,
 divider-led workbench treatment in their own scoped CSS, reusing the Flow tokens. Chart role colors
@@ -115,9 +103,64 @@ Inference, Embeddings, Neural network and `ContextSize` telemetry stay live. Liv
 Received-entry previews use the actual exchange message, and final answers use the agent contributor
 color. Focused replay tests cover prefix ordering, future-content exclusion and absent captures.
 
-**Web flow page structure.** The flow page is decomposed for separation of concerns rather than living in one giant file. The route-`/` shell is [Components/Pages/Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor) (markup) with its logic in the [Flow.razor.cs](../src/AgenticLab.Web/Components/Pages/Flow.razor.cs) code-behind; the shell just composes the child components and cascades two page-scoped state containers. The shell places a full-height **vendor rail** (`VendorRail`) down the far-left edge of `.flow-app`, then a `.flow-shell` column holding the header and a three-column grid (`.flow-body`): a left **Controls** panel, the centre **Main** panel (`.flow-main-col`, a titled bordered panel like the side panels), and a right **Learn** panel — a Discord/Slack-style brand rail beside a VS Code-style workbench. The centre Main panel's body is itself split top-to-bottom into a **flow** area (`.flow-main-panel`, holding the diagram `FlowDiagram`) and a docked **bottom Execution panel** (the `ExecutionExplorer`, always rendered so its rail is discoverable before the first run) — mirroring VS Code's editor-area + bottom panel. Each panel is a reusable [Components/Shared/SidePanel.razor](../src/AgenticLab.Web/Components/Shared/SidePanel.razor) (`Side`, `Title`, `Collapsed`, `OnToggleCollapse`, `OnResize`, `ChildContent`): it can **collapse to a thin rail** and **drag-resize** via a splitter on its docked edge. Left/Right panels resize **width** (splitter on the inner edge); the **Bottom** panel resizes **height** (splitter on its top edge, dragging up to grow). The sizes are CSS variables (`--left-w` / `--right-w` / `--bottom-h`) on `.flow-body` (emitted by `FlowViewState.Layout.BodyStyle`); a collapsed panel reports a rail width/height and a hidden panel reports `0`, so the centre flow reclaims the space. Resizing is driven by [wwwroot/js/panels.js](../src/AgenticLab.Web/wwwroot/js/panels.js) (`agenticLabPanels.initResizer`), which updates the CSS variable live during a pointer drag (horizontal for the side panels, vertical for the bottom panel) and reports the final size back to .NET via `[JSInvokable] SidePanel.OnResized`. Panel state — `LeftPanelCollapsed`/`RightPanelCollapsed`/`BottomPanelCollapsed`, `LeftPanelWidth`/`RightPanelWidth` (clamped 240–640 px) and `BottomPanelHeight` (clamped 120–900 px) — lives on `FlowViewState.Layout` (a `PanelLayout` collaborator) and is persisted in `localStorage` (key `theseries-panels`, a compact `L|R|B|leftW|rightW|bottomH` `PanelState` string, restored in `OnAfterRenderAsync` alongside the vendor). The page is a **fixed-height app shell**: `.flow-app` is a `100vh` flex **row** — the full-height `VendorRail` plus a `.flow-shell` flex column (which owns the page padding) whose header (the title row) stays pinned on top while `.flow-body` fills the remaining height and never scrolls itself — instead each region scrolls independently (the left/right panels' own bodies, the centre **Main** panel's flow area, and the docked bottom Conversation panel). On viewports below 1000px the shell drops to normal document scroll: `.flow-app` stacks (the vendor rail flips to a horizontal icon strip on top), the grid collapses to a single stacked column and the header becomes `position: sticky` so it stays on top. Those containers live under [src/AgenticLab.Web/Flow](../src/AgenticLab.Web/Flow): `FlowViewState` (view/preference state — the top-level selections plus feature collaborators under `Flow/ViewState/`: `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the run lifecycle and the SSE call, with derived state on collaborators under `Flow/Run/`: `Projections`, `Replay`, `Focus`, `Status`, `Catalogs`). Components read them as `View.Layout.X` / `Run.Replay.Y`. They are plain objects instantiated in the code-behind (not DI, so they share the circuit lifetime), cascaded via `CascadingValue`, and raise `Changed` events the page bridges to `StateHasChanged` — once per streamed `FlowEvent`, so each step of a run animates as it happens (the per-event render *is* the visualiser, so renders are deliberately not coalesced). To keep that per-event render cheap, `Run.Projections` (`RunProjections`) **caches** the LINQ-heavy derived collections (`HistoryEntries`, `CurrentEntries`, `ContextSize`, `TotalTurns`, the prompt signature, inference/embeddings views and the explorer's exchanges), recomputing them only when the events/turns change (the controller's `StateVersion` counter bumped by `BumpState()`, consumed lazily by `EnsureComputed()`) rather than rebuilding them on every render. Pure helpers sit alongside them (`FlowModels.cs` enums/records, `VendorCatalog`, `FlowEventMapping`, `SkillParsing`). The presentational pieces are child components under [Components/Pages/FlowParts](../src/AgenticLab.Web/Components/Pages/FlowParts) — `ControlsPanel` (the left panel's **tabbed shell**: a minimal icon-over-label tab strip switching between `FlowChat` and `FlowControls` — `ControlsTelemetry` exists but is hidden — driven by `FlowViewState.ActiveControlsTab`/the `ControlsTab` enum), `FlowChat` (the **Conversation** tab: the agent picker, message box, run/stepping buttons, the inline answer box and the conversation log), `FlowControls` (the **Settings** tab: auto-step delay, stepping mode, tool toggles, the optional workspace input + repo picker, and the workspace's discovered **skills** and **custom instructions** as compact expandable lists with per-item on/off toggles — skills default on, instructions default off — the vendor picker lives in `VendorRail` and the agent picker in `FlowChat`), `ControlsTelemetry` (the **Telemetry** tab: live run figures — `TotalTurns`, `ContextSize`, `PersonaChars`/`ToolsChars`, event count), `FlowDiagram` (with `HarnessNode`/`HarnessAnatomy`/`EnvironmentPanel`/`ContextStack`), `ExecutionExplorer` (the bottom Execution dock), plus `VendorIcon`, `VendorRail` (the left-edge brand rail) and `ConceptInfoButton` — each reading the containers via `[CascadingParameter]`. Each component owns its scoped CSS; the diagram's visual styling is centralised in `FlowDiagram.razor.css` (its sub-components are markup-only and styled there via `::deep`), while the root `Flow.razor.css` keeps only the theme tokens, page header, shared atoms (`::deep`) and global `@keyframes`. (Note: the components folder is named `FlowParts/`, not `Flow/`, so its namespace does not collide with the `Flow` page type; and because Razor components compile to public classes, types crossing their public `[Parameter]` boundaries — `Vendor`, `FlowEvent` — are public while the internal containers are only passed as `private` cascading parameters.)
+**Web flow page structure.** [Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor)
+composes a shared header, a **Host / Agent** selection bar and `.flow-body`. The selection bar replaces
+the rendered vendor rail and composer agent picker, preserving `SetVendorAsync`, catalogue refreshes,
+workspace-agent choices and the saved vendor. Selectors are locked while a run is active.
 
-**Conversation surface.** The left panel's **Conversation** tab ([FlowParts/FlowChat.razor](../src/AgenticLab.Web/Components/Pages/FlowParts/FlowChat.razor)) shares the diagram's visual language: each message is an `.entry` drawn like a node — a plain role label over the text on a 3px contributor-coloured left rail (user green `--contrib-user`, agent yellow `--contrib-agent`, errors app red `--contrib-app`), with the user's own message on a `--surface-2` tint. It does not repeat its own title (the tab names it). While a turn is active the agent's entry announces itself with a **status chip** (`AgentStatusLabel` — *In progress* / *Waiting for you* / *Paused* / *Error*, in the Steps list's uppercase pill idiom, with a spinning ring that freezes whenever the run is held on the user), the live **turn meta** (`TurnMeta`, the same LLM round-trip figure as the diagram's loop badge) and a one-line **status note** (`AgentStatusNote`) saying **where the run has got to and what it waits on** — e.g. `Message received — waiting for Next` under manual stepping, or `Before model request — waiting for Next` at a breakpoint. The "where" half is `ProgressLabel`, mapped from the latest `FlowEvent` by `FlowEventMapping.ProgressLabelFor` and deliberately worded with the **same execution boundaries as the breakpoints** (*Before model request*, *After model response*, *Before tool execution: &lt;tool&gt;*, *After tool result: &lt;tool&gt;*) so the live status and the Settings tab's breakpoint list read alike. All of these are pure derivations of the run state, resolved in announcement order by `FlowRunController.Status.Activity` (the `AgentActivity` enum in [Flow/FlowModels.cs](../src/AgenticLab.Web/Flow/FlowModels.cs)); `ComposerHint` adds the matching note under the composer (*A turn is active…*, or the missing-workspace warning). The composer's transport controls — New conversation / Next / Pause / Resume / Stop plus the breakpoint Continue / Next / Stop — are compact icon+label `button.chip`s in one wrapping row, with a round accent `button.send-icon` pushed to its right; the icons come from the shared [Components/Shared/MiniIcon.razor](../src/AgenticLab.Web/Components/Shared/MiniIcon.razor). The `.chip`, `.send-icon` and `.mini-icon` atoms and the `status-spin` keyframe live with the other shared atoms in [Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css), so both components style them the same way.
+The primary `.workspace-grid` places Conversation/Settings beside live flow. `ControlsPanel` owns
+compact, keyboard-navigable tabs and keeps `FlowChat` mounted while Settings is selected. Chat owns
+the log, draft, user-answer input, New conversation and Send. `FlowControls` retains breakpoints,
+tools, workspace/repo selection, skills and custom instructions. Skills remain on by default;
+instructions remain opt-in. Telemetry is still deliberately hidden.
+`FlowRunControls` above the diagram owns Auto/Manual, delay, pause/resume, Next and Stop; its shared
+`FlowBreakpointControls` also shows the holding reason and Continue/Next/Stop. These components call
+the existing controller methods. `ExecutionExplorer` sits below live flow and remains available before
+the first run. Details and Learn are separate auxiliary docks, never mutually exclusive.
+
+The desktop shell is centred, at most 1600px wide, with independently scrolling regions. A fresh or
+reset workspace divides available primary space approximately 1.18:1. Below 900px of **primary
+container** width it stacks Conversation before live flow. Below 1200px **viewport** width, Details
+and Learn stack separately below the primary workspace. Desktop auxiliary tracks are constrained to
+25% each so extreme saved widths cannot consume all primary space. The diagram retains its own 620px
+container reflow. Responsive CSS does not alter preferences, selections, draft, capture or replay state.
+
+`SidePanel` still owns collapse and resize. Its optional `ShowHeader` lets Conversation's tab strip
+provide the header without duplication. Splitters support pointer dragging, arrow keys (20px, or
+50px with Shift), Home and End; inappropriate horizontal splitters disappear in stacked layouts.
+[panels.js](../src/AgenticLab.Web/wwwroot/js/panels.js) measures the rendered panel at drag start, updates
+the existing CSS variables on `.flow-body`, and reports final sizes through `OnResized`.
+Conversation width is clamped to 240-960px and at most 65% of primary space; auxiliary widths remain
+240-640px and Execution height 120-900px. Fresh/reset Execution height is 240px and Learn width 260px.
+
+`PanelLayout.AdaptiveConversationWidth` is true initially; dragging Conversation switches to a pixel
+preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the unchanged
+`theseries-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
+sizes/collapse flags. **Reset layout** in Settings deliberately restores adaptive sizing without
+resetting the run, draft, replay cursor, Details selection or Learn visibility. Details remains
+page-lifetime state, not persisted. Execution maximise is also transient.
+
+State ownership is unchanged: the page code-behind creates and cascades `FlowViewState` and
+`FlowRunController`, subscribing to their `Changed` events for per-event renders. View collaborators
+under `Flow/ViewState` own layout, concepts, options, workspace preferences, diagram, cursor, roster,
+agent and harness selections. Run collaborators under `Flow/Run` own projections, replay, focus,
+status and catalogues. `RunProjections` caches derived collections by `StateVersion` rather than
+rebuilding them on every render. Pure builders remain beside them under `Flow/`.
+Feature components stay under `FlowParts` to avoid colliding with the `Flow` page type. Public
+parameter types remain public; internal state travels through private cascading parameters. Shared
+design controls are presentation-only and do not depend on either state root.
+
+**Conversation surface.** [FlowChat](../src/AgenticLab.Web/Components/Pages/FlowParts/FlowChat.razor)
+renders a flat, top-aligned thread with 2px actor-coloured rails, readable line spacing and an anchored
+composer. User, host reply and error markers use design-system actor/status tokens; the separate
+context-provenance colours retain their meanings in the anatomy, capture and charts.
+`LabStatus` presents the controller's existing `AgentStatusLabel`, with `TurnMeta` and
+`AgentStatusNote` describing the current boundary or wait. `FlowEventMapping.ProgressLabelFor` and
+`FlowRunController.Status.Activity` still derive those labels; no execution state is inferred from CSS.
+Held and reduced-motion states do not animate. `ComposerHint` retains missing-workspace and active-run
+feedback. New conversation, Send and the pending-question answer use shared `LabButton` controls.
+Keyboard submission and scroll-follow behaviour remain; selecting Settings does not recreate the
+chat log or scroll it while hidden. Replies remain escaped text, not a new HTML/Markdown renderer.
 
 The Blazor web app animates a real agent run. [src/AgenticLab.Web](../src/AgenticLab.Web/Program.cs) calls
 `POST /chat/stream` on the AI service;
@@ -215,15 +258,12 @@ harness re-sends the whole conversation each turn (cleared by **New conversation
 kept **identical to the Prompt signature's current total** — both report the conversation content in the
 latest `llm-request` (system prompt + every re-sent user/assistant/tool message, excluding the static tool
 catalogue and JSON structure): `FlowRunController.Projections.ContextSize` simply returns
-`PromptSignatureView.CurrentChars`, so the two numbers always agree. The **Vendor** rail selects among
+`PromptSignatureView.CurrentChars`, so the two numbers always agree. The **Host** selector offers
 **Default**, **GitHub Copilot**, **Claude Code**, **Claude**, **ChatGPT**, **Gemini** and **Microsoft 365
-Copilot**. Logos distinguish the harnesses; all use the same Default workbench palette. The Vendor picker is a
-full-height **icon rail** (`VendorRail`; `Flow.razor` passes `OnSelectVendor="SetVendorAsync"`) down the
-far-left edge of `.flow-app`: one brand logo (`VendorIcon`) per vendor in `VendorCatalog.DisplayOrder`, with
-the non-brand **Default** mark pinned at the top above a divider. The active vendor shows a
-left-edge accent pill; hovering an icon reveals a tooltip card with the vendor's display name, simulated model
-label and mode count (from `FlowViewState.Roster.VendorInfoFor`), plus — when **Show concept info** is on —
-the product ⓘ. It replaced the earlier `<select>` dropdown that sat in the settings card. Each vendor also
+Copilot**, in `VendorCatalog.DisplayOrder`. The selected logo remains beside the selector; its native
+tooltip retains the model label and mode count. When **Learn** is enabled the selected host's product
+concept remains accessible through the adjacent info button. All hosts share the design-system palette.
+The selector invokes `SetVendorAsync`, retaining persistence and catalogue refreshes. Each vendor also
 **curates which agents the Agent picker offers**, mirroring that product's "modes": the roster comes from the
 vendor definition's `Modes` (loaded via `GET /vendors`) for every vendor including the non-brand **Default** —
 each entry a `(backend agent name, display label)` pair: **Default** → `wiki` (`WikiAssistant`) + `chat`
@@ -234,8 +274,8 @@ each entry a `(backend agent name, display label)` pair: **Default** → `wiki` 
 vendor's roster (skipping any name the service didn't register), the Agent `<select>` shows the labels, and
 switching vendor auto-selects that vendor's first agent (`VendorDefaultAgent`) and refreshes the known skills.
 The shared palette is defined in
-[Components/Pages/Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css): the Default tokens
-live on `.flow-app`, with no vendor-specific overrides. The vendor choice persists in `localStorage` (key
+[design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css); feature aliases live on `.flow-app`
+without vendor-specific overrides. The vendor choice persists in `localStorage` (key
 `theseries-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
 roster). The contributor colours (app/agent/user = red/yellow/green) are deliberately left un-themed because
 they encode a fixed concept rather than branding; they are defined once as shared
@@ -255,43 +295,18 @@ apart.
 
 **Backend-gated stepping (telemetry-synced).** Pacing happens on the *server* so the animation lines up with the real agent execution (and its OpenTelemetry spans), not just a client-side replay. Each run gets a `FlowSession` tracked in a `FlowControlRegistry` ([Application/Flow/FlowSession.cs](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs)); `FlowTracer.StreamAsync` awaits `FlowSession.WaitForStepAsync` *before emitting each event*, so the next real step does not start until the session is allowed to advance. The session is created synchronously inside the `/chat/stream` endpoint (keyed by a client-supplied `SessionId`) so that control calls cannot race ahead of it. The UI drives it via `POST /chat/control` (`FlowControlRequest { SessionId, Action, Manual?, DelayMs?, Answer? }`) with actions `next`, `pause`, `resume`, `stop` (and `answer`, which delivers the user's reply to a tool that asked a question — see [asking the user a question](agents.md#asking-the-user-a-question-human-in-the-loop)). **Auto** mode paces with a server-side `DelayMs`/`stepDelayMs` between steps (adjustable live, plus pause/resume); **Manual** mode blocks each step until the user clicks *Next*. Two implementation notes keep long pauses alive: the Web `AiServiceClient` registration calls `.RemoveAllResilienceHandlers()` (otherwise the shared resilience handler's ~30s timeout/retries would abort a paused stream), and the AiService disables Kestrel's `MinResponseDataRate` so an idle SSE response is not aborted.
 
-**Environment & risk view.** A single **Environment & risk** toggle (the "Where it runs" diagram control, `_showEnvironment` in [Components/Pages/Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor)) makes *where each part of the system runs* and *how risky the selected agent is* explicit. Like every display option, it is always available and independent of the selected preset. When on it adds: per-node **location badges** — the User node shows `🖥️ Your browser`, the LLM node shows `☁️ Cloud service`, and the merged Harness/Application node shows either `💻 Your machine — file + shell access` (for a workspace agent) or `🖧 Server process — no local access` (otherwise); a dashed **`🔒 Your environment` trust boundary** overlay drawn around the parts that run on the user's own machine; and an **`EnvironmentPanel()`** under the harness node that renders a three-segment **risk meter** (filled per the agent's level — High=3, Medium=2, Low=1, None=0) plus a **guardrails** box listing the agent's enforced safety mechanisms as chips (with an empty-state when it has none). When **Show concept info** is also on, the panel adds three learn pills → the `where-agents-run`, `environment` and `sandbox` concepts, and the risk meter / guardrails box carry ⓘ buttons → the `agent-risk` and `guardrails` concepts. The data is **authoritative from the backend**, not derived client-side: each `IAgentDefinition` declares an `AgentRiskLevel RiskLevel` (`None`/`Low`/`Medium`/`High`, see [Application/Agents/IAgentDefinition.cs](../src/AgenticLab.AiService/Application/Agents/IAgentDefinition.cs)) and an `IReadOnlyList<string> Guardrails` of human-readable mechanisms; [Application/Agents/AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) defaults them to `None` / empty and each concrete agent overrides them (e.g. `Coder` → `High` with the workspace-confinement, command-allowlist, shell-operator-rejection, timeout and files-only guardrails; `M365Copilot` → `Medium` because its `SendMail` tool sends email on the user's behalf; the read-only and sample-data agents → `Low`; `ChatAgent` keeps `None`). `GET /agents` carries both (`AgentInfo.RiskLevel` as a string and `AgentInfo.Guardrails`, see [Application/Agents/AgentCatalog.cs](../src/AgenticLab.AiService/Application/Agents/AgentCatalog.cs)); the Web client mirrors them on its own `AgentInfo` record ([Services/AiServiceClient.cs](../src/AgenticLab.Web/Services/AiServiceClient.cs)). All styling (the `env-*`, `risk-*` and `guardrail-*` classes and CSS variables) is themed via the `.flow-app` tokens in [Components/Pages/Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css), so the badges, meter and boundary share the same palette across vendors.
+**Environment & risk view.** A single **Environment & risk** toggle (the "Where it runs" diagram control, `_showEnvironment` in [Components/Pages/Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor)) makes *where each part of the system runs* and *how risky the selected agent is* explicit. Like every display option, it is always available and independent of the selected preset. When on it adds: per-node **location badges** — the User node shows `🖥️ Your browser`, the LLM node shows `☁️ Cloud service`, and the merged Harness/Application node shows either `💻 Your machine — file + shell access` (for a workspace agent) or `🖧 Server process — no local access` (otherwise); a dashed **`🔒 Your environment` trust boundary** overlay drawn around the parts that run on the user's own machine; and an **`EnvironmentPanel()`** under the harness node that renders a three-segment **risk meter** (filled per the agent's level — High=3, Medium=2, Low=1, None=0) plus a **guardrails** box listing the agent's enforced safety mechanisms as chips (with an empty-state when it has none). When **Learn** is also on, the panel adds three learn pills → the `where-agents-run`, `environment` and `sandbox` concepts, and the risk meter / guardrails box carry ⓘ buttons → the `agent-risk` and `guardrails` concepts. The data is **authoritative from the backend**, not derived client-side: each `IAgentDefinition` declares an `AgentRiskLevel RiskLevel` (`None`/`Low`/`Medium`/`High`, see [Application/Agents/IAgentDefinition.cs](../src/AgenticLab.AiService/Application/Agents/IAgentDefinition.cs)) and an `IReadOnlyList<string> Guardrails` of human-readable mechanisms; [Application/Agents/AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) defaults them to `None` / empty and each concrete agent overrides them (e.g. `Coder` → `High` with the workspace-confinement, command-allowlist, shell-operator-rejection, timeout and files-only guardrails; `M365Copilot` → `Medium` because its `SendMail` tool sends email on the user's behalf; the read-only and sample-data agents → `Low`; `ChatAgent` keeps `None`). `GET /agents` carries both (`AgentInfo.RiskLevel` as a string and `AgentInfo.Guardrails`, see [Application/Agents/AgentCatalog.cs](../src/AgenticLab.AiService/Application/Agents/AgentCatalog.cs)); the Web client mirrors them on its own `AgentInfo` record ([Services/AiServiceClient.cs](../src/AgenticLab.Web/Services/AiServiceClient.cs)). All styling (the `env-*`, `risk-*` and `guardrail-*` classes and CSS variables) is themed via the `.flow-app` tokens in [Components/Pages/Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css), so the badges, meter and boundary share the same palette across vendors.
 
 ## Corporate workbench
 
-Every harness in the Web app uses the [Corporate Workbench design](../design/mockups/v8-corporate-workbench.html):
-off-white surfaces, forest-green actions, a serif product heading and flat, divider-led panels.
-Flow and Discovery share this visual treatment. Vendor logos distinguish harnesses without changing colors.
-Harness prompts, agent choices and saved vendor preferences are preserved.
+This heading is retained for existing links. The [V8 mockup](../design/mockups/v8-corporate-workbench.html)
+is a historical design, superseded by the React-inspired [Blazor design system](design-system.md)
+and conversation-first workspace described above. All advanced diagram, learning and execution
+features remain available. Inference, embeddings and neural-network views remain simulations, not
+captured model internals.
 
-Prompt signature, Inference, Embeddings and Neural network use the same flat sections,
-compact headers and controls. Their role colors, signed red/blue vectors and token linking
-are preserved. Narrow panes reflow the signature bars; reduced motion reveals answer tokens
-without animation and suppresses the network's visual effects without changing playback controls.
-Inference, embeddings and the network remain simulations, not captured model internals.
-
-The Conversation composer places the **Agent** selector below the message box, above the send controls.
-The message box, workspace path and repo base folders fields indicate focus with a subtle background tint, without an extra outline.
-
-Flow, Agent guide and React use an **Agentic AI** heading; Discovery retains **Agentic Lab**.
-The Blazor headers keep their subtitles and plain navigation links. The Flow header stays neutral across vendor selections and spans the full
-window. All three headers use 12-pixel vertical padding, with 24-pixel horizontal gutters on desktop
-and 16-pixel gutters below 1200 pixels. The harness/vendor rail begins below the Flow header,
-beside the workspace on desktop and as a horizontal
-strip above the panels below 1200 pixels.
-
-The live Flow diagram follows the Agent guide's visual language: a subtle 24-pixel grid, square nodes
-with compact left-aligned icons and colored edges, plain dashed boundaries, and divider-led tool
-sections. The Agent boundary explicitly labels **Agent = Agent host + Model**. Active nodes pulse
-without moving or resizing; directional arrows retain their live animations and align vertically
-when the diagram stacks. Perspectives, breakpoints and panel persistence are unchanged.
-
-The Controls and Learn panels start at 276 and 260 pixels wide; saved panel sizes still take precedence.
-Below 1200 pixels the workbench stacks into a scrolling page. The diagram also stacks when its own pane
-is 620 pixels wide or narrower, including after panel resizing. Contributor colors retain their meanings,
-and reduced-motion preferences disable visual animations without changing execution pacing.
-The main diagram uses locally bundled [Lucide icons and license](../src/AgenticLab.Web/wwwroot/icons/lucide/LICENSE),
-with no runtime CDN dependency.
+Run the no-model-call browser smoke check in [tools/README.md](../tools/README.md) for responsive
+layouts, saved preferences, independent docks, focus restoration and the development catalogue.
 
 ## Running the Console
 

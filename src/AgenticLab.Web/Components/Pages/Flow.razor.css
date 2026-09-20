@@ -5,49 +5,50 @@
    green) are intentionally NOT themed — they encode a fixed concept.
    ============================================================ */
 .flow-app {
-     --page-bg: #f7f8f6;
+    --mono: var(--lab-font-mono);
+     --page-bg: var(--lab-page);
      --shadow: none;
-     --text: #1b211d;
-     --text-muted: #56635b;
-     --text-dim: #56635b;
-     --text-faint: #66736b;
-     --heading: #1b211d;
-     --accent: #167052;
-     --accent-rgb: 22, 112, 82;
-     --accent-soft: #167052;
-     --accent-bright: #218461;
-     --accent-strong: #115a42;
-     --accent-weak: #edf6f0;
-     --accent-ink: #115a42;
-     --link-accent: #167052;
-    --surface: #ffffff;
-    --surface-2: #f0f3f0;
-    --surface-panel: #ffffff;
-    --panel-border: #d9ded9;
-    --border: #cbd3cc;
-    --border-soft: #e8ece8;
-    --input-bg: #ffffff;
-    --btn-primary-bg: #167052;
-    --btn-primary-text: #ffffff;
-    --btn-secondary-bg: #f0f3f0;
-    --code-bg: #f0f3f0;
-    --label-bg: rgba(255, 255, 255, .92);
+     --text: var(--lab-ink);
+     --text-muted: var(--lab-muted);
+     --text-dim: var(--lab-muted);
+     --text-faint: var(--lab-muted);
+     --heading: var(--lab-ink);
+     --accent: var(--lab-accent);
+     --accent-rgb: 20, 101, 75;
+     --accent-soft: var(--lab-accent);
+     --accent-bright: var(--lab-accent);
+     --accent-strong: var(--lab-accent-hover);
+     --accent-weak: var(--lab-accent-soft);
+     --accent-ink: var(--lab-accent-hover);
+     --link-accent: var(--lab-accent);
+    --surface: var(--lab-surface);
+    --surface-2: var(--lab-surface-muted);
+    --surface-panel: var(--lab-surface);
+    --panel-border: var(--lab-border);
+    --border: var(--lab-border-strong);
+    --border-soft: var(--lab-border);
+    --input-bg: var(--lab-surface);
+    --btn-primary-bg: var(--lab-accent);
+    --btn-primary-text: var(--lab-on-accent);
+    --btn-secondary-bg: var(--lab-surface-muted);
+    --code-bg: var(--lab-surface-muted);
+    --label-bg: color-mix(in srgb, var(--lab-surface) 92%, transparent);
 
-    --node-bg: #ffffff;
-    --node-border: #d9ded9;
-    --node-subtitle: #56635b;
-    --node-harness-bg: #ffffff;
-    --node-anatomy-bg: #ffffff;
-    --node-llm-bg: #ffffff;
-    --node-llm-border: #d9ded9;
-    --node-user-bg: #ffffff;
-    --node-user-border: #d9ded9;
-    --node-user-subtitle: #167052;
-    --node-application-bg: #ffffff;
-    --node-application-border: #d9ded9;
-    --node-client-border: #d9ded9;
-    --node-resource-bg: #f0f3f0;
-    --node-resource-border: #d9ded9;
+    --node-bg: var(--lab-surface);
+    --node-border: var(--lab-border);
+    --node-subtitle: var(--lab-muted);
+    --node-harness-bg: var(--lab-surface);
+    --node-anatomy-bg: var(--lab-surface);
+    --node-llm-bg: var(--lab-surface);
+    --node-llm-border: var(--lab-border);
+    --node-user-bg: var(--lab-surface);
+    --node-user-border: var(--lab-border);
+    --node-user-subtitle: var(--lab-accent);
+    --node-application-bg: var(--lab-surface);
+    --node-application-border: var(--lab-border);
+    --node-client-border: var(--lab-border);
+    --node-resource-bg: var(--lab-surface-muted);
+    --node-resource-border: var(--lab-border);
 
     --tools-bg: #eaf6ee;
     --tools-border: #bfe3cb;
@@ -58,8 +59,8 @@
     --skill-chip-bg: #eef3f9;
     --skill-chip-border: #cad7e7;
 
-    --harness-boundary: rgba(22, 112, 82, .45);
-    --harness-boundary-text: #167052;
+    --harness-boundary: color-mix(in srgb, var(--lab-accent) 45%, transparent);
+    --harness-boundary-text: var(--lab-accent);
     --agent-boundary: rgba(49, 95, 158, .45);
     --agent-boundary-text: #315f9e;
 
@@ -94,34 +95,38 @@
     --llm-chip-text: #315f9e;
     --tool-chip-bg: #eaf6ee;
     --tool-chip-text: #2a7d49;
-    --kind-bg: #f0f3f0;
-    --kind-text: #56635b;
+    --kind-bg: var(--lab-surface-muted);
+    --kind-text: var(--lab-muted);
     --error-bg: #fbe3e3;
     --error-text: #c0392b;
-    --error: #e5484d;
+    --error: var(--lab-danger);
     --workspace-text: #8a6516;
-    --anatomy-heading: #1b211d;
-    --check-text: #56635b;
-    --response-hint-bg: #edf6f0;
+    --anatomy-heading: var(--lab-ink);
+    --check-text: var(--lab-muted);
+    --response-hint-bg: var(--lab-accent-soft);
     --loop-bg: #eef3f9;
-    --code-text: #1b211d;
+    --code-text: var(--lab-ink);
 
     /* Contributor palette (who supplies a piece of context: application / agent / user). Encodes a
        fixed concept, not branding, so it is defined once here and never themed per vendor. Shared by
        the harness anatomy, the Context chips and the Prompt signature so they never drift apart.
        The agent tone is a warm gold-yellow (not an acid neon) so dark text/markers stay readable on it. */
-    --contrib-app: #ff5252;
-    --contrib-agent: #e6c84a;
-    --contrib-user: #82e000;
+    --contrib-app: var(--lab-contributor-app);
+    --contrib-agent: var(--lab-contributor-agent);
+    --contrib-user: var(--lab-contributor-user);
 
     box-sizing: border-box;
     height: 100dvh;
+    min-height: 640px;
+    max-width: var(--lab-content-width);
+    margin: 0 auto;
+    border-inline: 1px solid var(--lab-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     color: var(--text);
     background: var(--page-bg);
-    font-family: Bahnschrift, "Segoe UI Variable", sans-serif;
+    font-family: var(--lab-font-sans);
     font-size: 14px;
     letter-spacing: 0;
 }
@@ -136,98 +141,30 @@
     padding: 0;
 }
 
-.flow-header h1 {
-    margin: 0 0 .35rem;
-    font-family: Cambria, Georgia, serif;
-    font-size: 30px;
-    color: #1b211d;
-    letter-spacing: 0;
-    font-weight: 500;
-}
+.selection-bar { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: var(--lab-space-4); padding: 12px 32px; border-bottom: 1px solid var(--lab-border); background: var(--lab-surface-muted); }
+.selectors { display: flex; align-items: center; gap: var(--lab-space-5); min-width: 0; }
+.selectors ::deep .lab-field { flex: 0 1 260px; }
+.selectors ::deep .concept-info { position: static; flex: 0 0 auto; }
+.selected-vendor { width: 24px; height: 24px; flex: 0 0 24px; color: var(--lab-accent); }
+.selected-vendor ::deep svg { width: 24px; height: 24px; display: block; }
+.select-divider { height: 20px; width: 1px; flex: 0 0 1px; background: var(--lab-border); }
+.connection-status { white-space: nowrap; }
+.workspace-error { margin: 0; padding: 12px 32px; background: var(--lab-danger-soft); color: var(--lab-danger); overflow-wrap: anywhere; }
 
-.flow-header p {
-    margin: 0;
-    color: #56635b;
-    font-size: 14px;
-}
-
-.flow-header {
-    flex: 0 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 12px 24px;
-    background: #f7f8f6;
-    color: #1b211d;
-    border-bottom: 1px solid #d9ded9;
-}
-
-.flow-header-text {
-    min-width: 0;
-}
-
-.concept-toggle {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    white-space: nowrap;
-}
-
-.flow-header-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1.25rem;
-}
-
-.flow-header input[type="checkbox"] {
-    accent-color: #167052;
-}
-
-.discovery-link {
-    border: 0;
-    padding: 0;
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-    flex: 0 0 auto;
-    color: #167052;
-    text-decoration: none;
-    text-underline-offset: 3px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.discovery-link:hover {
-    text-decoration: underline;
-}
-
-.flow-header :focus-visible {
-    outline: 2px solid #315f9e;
-    outline-offset: 4px;
-}
-
-/* ============================================================
-   Page body layout. Three columns — a left (controls) panel, the
-   centre flow, and a right (learning) panel — driven by the
-   --left-w / --right-w CSS variables that the panels' splitters
-   resize. A collapsed or hidden panel reports a rail width (or 0).
-   The centre column itself stacks a main panel (the flow) over a
-   bottom (conversation) panel whose height is driven by --bottom-h.
-   ============================================================ */
 .flow-body {
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
     display: grid;
-    grid-template-columns: var(--left-w, 320px) minmax(0, 1fr) var(--details-w, 0px) var(--right-w, 0px);
+    grid-template-columns: minmax(0, 1fr) min(var(--details-w, 0px), 25%) min(var(--right-w, 0px), 25%);
     gap: 0;
     align-items: stretch;
 }
+
+.primary-workspace { min-width: 0; min-height: 0; overflow: auto; container: workspace / inline-size; }
+.workspace-grid { display: grid; grid-template-columns: var(--left-w, minmax(0, 1.18fr)) minmax(0, 1fr); height: 100%; min-width: 0; min-height: 0; }
+.workspace-grid ::deep .side-left > .panel-inner > .panel-body { padding: 0; overflow: hidden; scrollbar-gutter: auto; }
 
 .details-dock,
 .learn-dock {
@@ -236,17 +173,15 @@
     overflow: hidden;
 }
 
-.details-dock { grid-column: 3; }
-.learn-dock { grid-column: 4; }
+.details-dock { grid-column: 2; }
+.learn-dock { grid-column: 3; }
 
-/* The centre column is its own "Main" panel (header + border), matching the side panels' chrome.
-   It stacks a main panel (the flow) over the bottom (conversation) panel inside its body. */
 .flow-main-col {
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
-    background: var(--surface);
+    background: var(--lab-surface-muted);
     border: 0;
     border-radius: 0;
     box-shadow: var(--shadow);
@@ -258,17 +193,20 @@
     display: flex;
     align-items: center;
     gap: .5rem;
-    min-height: 52px;
-    padding: 8px 18px;
-    border-bottom: 1px solid var(--panel-border);
+    min-height: 62px;
+    padding: 16px 24px;
 }
 
 .main-panel-title {
+    margin: 0;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     letter-spacing: 0;
     color: var(--heading);
 }
+
+.section-number { font: var(--lab-text-xs) var(--lab-font-mono); color: var(--lab-muted); margin-right: var(--lab-space-1); }
+.main-panel-head ::deep .lab-status { margin-left: auto; }
 
 /* A quiet count next to a SidePanel's title (passed in as its HeaderActions). */
 .panel-meta {
@@ -283,7 +221,7 @@
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -296,10 +234,10 @@
     --flow-toolbar-offset: calc(-1 * var(--flow-panel-padding));
     flex: 1 1 auto;
     min-width: 0;
-    min-height: 0;
+    min-height: 240px;
     overflow-y: auto;
     padding: var(--flow-panel-padding) 24px;
-    background: var(--page-bg);
+    background: var(--lab-surface-muted);
     scrollbar-gutter: stable;
     container-type: inline-size;
 }
@@ -321,36 +259,6 @@
     height: auto;
 }
 
-/* Expand/restore control in the Execution panel's header. */
-.panel-max {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-}
-
-.panel-max:hover {
-    background: var(--surface-2);
-    color: var(--text);
-}
-
-.panel-max[aria-pressed="true"] {
-    color: var(--accent);
-    border-color: var(--panel-border);
-}
-
-.panel-max ::deep .mini-icon {
-    width: 14px;
-    height: 14px;
-}
-
 /* While a splitter is being dragged, suppress text selection across the page. */
 .flow-body.resizing { cursor: col-resize; }
 .flow-body.resizing-y { cursor: row-resize; }
@@ -364,23 +272,15 @@
     max-height: 100%;
 }
 
-/* Narrow viewports: drop the fixed-height shell and let the whole page scroll, keeping the
-   header pinned on top. Each column flows inline at its natural height. */
 @media (max-width: 1199px) {
     .flow-app {
-        flex-direction: column;
         height: auto;
+        min-height: 100dvh;
         overflow: visible;
     }
 
     .flow-shell {
-        flex-direction: column;
         overflow: visible;
-        padding: 0;
-    }
-
-    .flow-header {
-        padding: 12px 16px;
     }
 
     .flow-body {
@@ -388,25 +288,43 @@
         overflow: visible;
     }
 
-    .flow-main-col {
-        overflow: visible;
-    }
-
-    .main-panel-body,
-    .flow-main-panel {
-        --flow-toolbar-offset: 0px;
-        overflow: visible;
-    }
-
-    .flow-app ::deep .side-left,
+    .primary-workspace { overflow: visible; }
+    .workspace-grid { height: max(640px, calc(100dvh - 152px)); }
+    .details-dock, .learn-dock { overflow: visible; }
     .flow-app ::deep .side-right {
-        max-height: none;
-        margin-bottom: 0;
-    }
-
-    .flow-app ::deep .side-bottom {
         height: auto;
+        max-height: none;
     }
+    .flow-app ::deep .side-right .panel-splitter { display: none; }
+    .flow-app ::deep .side-right.collapsed { height: 44px; }
+    .flow-app ::deep .side-right .panel-rail { flex-direction: row; padding: 8px 20px; }
+    .flow-app ::deep .side-right .rail-title { writing-mode: horizontal-tb; }
+}
+
+@container workspace (max-width: 899px) {
+    .workspace-grid { display: flex; flex-direction: column; height: auto; min-height: 100%; }
+    .workspace-grid ::deep .side-left { height: min(600px, 65dvh); min-height: 360px; flex: 0 0 auto; }
+    .workspace-grid ::deep .side-left.collapsed { height: 44px; min-height: 44px; }
+    .workspace-grid ::deep .side-left .panel-splitter { display: none; }
+    .workspace-grid ::deep .side-left .panel-rail { flex-direction: row; padding: 8px 20px; }
+    .workspace-grid ::deep .side-left .rail-title { writing-mode: horizontal-tb; }
+    .flow-main-col { min-height: 680px; overflow: visible; border-top: 1px solid var(--lab-border); }
+    .main-panel-body { overflow: visible; }
+    .flow-main-panel { --flow-toolbar-offset: 0px; overflow: visible; }
+    .main-panel-body.bottom-max .flow-main-panel { max-height: none; }
+    .main-panel-body.bottom-max ::deep .side-bottom { min-height: 500px; }
+}
+
+@media (max-width: 900px) {
+    .selection-bar { padding-inline: 20px; }
+    .connection-status { display: none; }
+    .selectors { flex: 1; gap: 12px; }
+    .selectors ::deep .lab-field { flex: 1 1 0; }
+}
+@media (max-width: 500px) {
+    .selected-vendor { display: none; }
+    .main-panel-head { padding-inline: 20px; }
+    .flow-main-panel { padding-inline: 16px; }
 }
 
 /* ============================================================
@@ -516,7 +434,7 @@
 .flow-app ::deep .control label .message-hint {
     color: var(--text-dim);
     text-transform: none;
-    letter-spacing: normal;
+    letter-spacing: 0;
     font-size: .72rem;
     opacity: .8;
 }

@@ -26,13 +26,6 @@ public sealed partial class Discovery
         _ => "server",
     };
 
-    private string ServerIcon(string source) => source switch
-    {
-        "mcp" => "🧩",
-        "a2a" => "🤝",
-        _ => "🖥️",
-    };
-
     private string StateClass(string source) => _state.GetValueOrDefault(source) switch
     {
         "Connected" => "state-connected",

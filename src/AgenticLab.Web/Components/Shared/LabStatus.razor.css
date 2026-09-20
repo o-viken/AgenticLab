@@ -1,0 +1,8 @@
+.lab-status { display: inline-flex; align-items: center; gap: 7px; color: var(--lab-muted); font: var(--lab-text-xs)/1.5 var(--lab-font-sans); }
+.status-mark { width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; background: currentColor; }
+.success { color: var(--lab-accent); }
+.warning { color: var(--lab-warning); }
+.danger { color: var(--lab-danger); }
+.busy { background: transparent; box-shadow: 0 0 0 1px currentColor; animation: status-pulse 1.4s ease-in-out infinite; }
+@keyframes status-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .busy { animation: none; } }
