@@ -107,7 +107,7 @@ does not modify the existing four image-publishing targets.
 The first screen is a conversation-led split view with a compact live flow and current-run activity.
 Host/agent choices come from the API; workspace-dependent agents are excluded in this first slice.
 The model node shows real deployment metadata, not a simulated vendor model.
-The header's GitHub icon opens [the project repository](https://github.com/o-viken/the-series) in a
+The header's GitHub icon opens [the project repository](https://github.com/o-viken/agenticlab) in a
 new tab without replacing the workspace. The locally bundled mark comes from
 [GitHub Octicons](https://github.com/primer/octicons), with its MIT license in `public/licenses`.
 

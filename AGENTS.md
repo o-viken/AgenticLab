@@ -131,8 +131,8 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
 ## Conventions
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
-  `agentic-lab-react`. Keep existing GitHub URLs and `the-series-*` container image names until a
-  separate external migration. Preserve the AppHost `UserSecretsId`, `theseries-*` browser preference
+  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links. Keep
+  `the-series-*` container image names until a separate external migration. Preserve the AppHost `UserSecretsId`, `theseries-*` browser preference
   keys and `THESERIES_*` load-test variables for compatibility. Generic "agentic AI" is a subject,
   not an obsolete product name.
 

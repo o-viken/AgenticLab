@@ -11,7 +11,7 @@ async function send(page: Page, message: string) {
 }
 
 test('repository link opens GitHub separately without losing the draft', async ({ page, context }, testInfo) => {
-  const repository = 'https://github.com/o-viken/the-series'
+  const repository = 'https://github.com/o-viken/agenticlab'
   await context.route(repository, route => route.fulfill({ contentType: 'text/html', body: '<title>Agentic Lab on GitHub</title>' }))
   await open(page)
   const message = page.getByRole('textbox', { name: 'Message', exact: true })
