@@ -162,8 +162,11 @@ public partial class Flow : IDisposable
 
     private async Task SetVendorAsync(Vendor vendor)
     {
+        if (vendor == _view.Vendor || _run.Running) return;
+
         _view.Vendor = vendor;
         _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;
+        await _run.NewConversationAsync();
         try
         {
             await JS.InvokeVoidAsync("localStorage.setItem", VendorStorageKey, vendor.ToString());

@@ -95,19 +95,21 @@ export function useFlowRun(transport: FlowApi = api) {
     void transport.control({ sessionId: snapshot.sessionId, action: 'stop' }, AbortSignal.timeout(5000)).catch(() => {})
   }
 
-  async function reset() {
-    if (current.current.running || current.current.resetting) return
+  async function reset(): Promise<boolean> {
+    if (current.current.running || current.current.resetting) return false
     const version = ++generation.current
     const controller = new AbortController()
     resetController.current = controller
     update({ type: 'reset-start' })
     try {
       if (conversation.current) await transport.reset(conversation.current, AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]))
-      if (version !== generation.current) return
+      if (version !== generation.current) return false
       conversation.current = crypto.randomUUID()
       update({ type: 'reset' })
+      return true
     } catch (error) {
       if (version === generation.current && !controller.signal.aborted) update({ type: 'reset-error', error: errorMessage(error) })
+      return false
     } finally { if (version === generation.current) resetController.current = null }
   }
 
