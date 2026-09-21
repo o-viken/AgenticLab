@@ -157,7 +157,7 @@ attached terminal for input, or follow the [standalone console instructions](doc
 
 Contributions can improve code, tests, documentation, lessons, or examples.
 
-1. [Open an issue](https://github.com/o-viken/the-series/issues) with a reproducible bug report or a
+1. [Open an issue](https://github.com/o-viken/agenticlab/issues) with a reproducible bug report or a
    proposed improvement. Discuss substantial changes before investing in implementation.
 2. Fork the repository and create a branch for your change. Read [AGENTS.md](AGENTS.md) and the
    relevant feature guide before editing.

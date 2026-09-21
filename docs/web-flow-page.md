@@ -90,7 +90,7 @@ It returns 404 outside Development. No React runtime, CDN or npm build step is a
 The workspace uses white/neutral surfaces, green commands, fine dividers and a shared 18px dotted
 diagram grid. Semantic contributor, chart and risk colours remain distinct from branding. Flow and
 Learn retain the **Agentic AI** heading; Discovery and browser titles retain **Agentic Lab**.
-The shared repository link still opens `https://github.com/o-viken/the-series` in a new tab.
+The shared repository link opens `https://github.com/o-viken/agenticlab` in a new tab.
 Font notices and pinned Lucide/Octicons assets remain local under `wwwroot`.
 Reduced motion suppresses visual effects, never backend event pacing.
 

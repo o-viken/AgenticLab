@@ -19,7 +19,7 @@ internal static class ServiceRegistration
         services.AddHttpClient("wikipedia", client =>
         {
             client.BaseAddress = new Uri("https://en.wikipedia.org");
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("AgenticLab-WikiAssistant/1.0 (https://github.com/Equinor/the-series)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("AgenticLab-WikiAssistant/1.0 (https://github.com/o-viken/agenticlab)");
         });
         services.AddSingleton(sp =>
             new WikiTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("wikipedia")));
@@ -36,7 +36,7 @@ internal static class ServiceRegistration
         services.AddHttpClient("webfetch", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("AgenticLab-WebFetch/1.0 (https://github.com/Equinor/the-series)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("AgenticLab-WebFetch/1.0 (https://github.com/o-viken/agenticlab)");
         });
         services.AddSingleton(sp =>
             new WebFetchTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("webfetch")));
