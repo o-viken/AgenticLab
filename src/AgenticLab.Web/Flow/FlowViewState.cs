@@ -18,7 +18,7 @@ internal sealed class FlowViewState
     private string? _selectedAgent;
     private string _workspace = string.Empty;
     private ControlsTab _activeControlsTab = ControlsTab.Chat;
-    private string _hostKey = "chatgpt";
+    private string _hostKey = "default";
 
     public FlowViewState(ConceptCatalog concepts)
     {
@@ -113,14 +113,7 @@ internal sealed class FlowViewState
     /// <summary>Layout follows visible nodes, not the last preset applied.</summary>
     public string DiagramClass => Diagram.ShowModel ? "p-full" : "p-simple";
 
-    /// <summary>The currently selected vendor/brand (persisted by the page in localStorage).</summary>
-    public Vendor Vendor
-    {
-        get => VendorCatalog.BuiltIn(_hostKey);
-        set => HostKey = VendorCatalog.HarnessKey(value)!;
-    }
-
-    /// <summary>The catalogue-provided host key; examples do not extend the built-in branding enum.</summary>
+    /// <summary>The catalogue-provided host key, persisted independently of optional module branding.</summary>
     public string HostKey
     {
         get => _hostKey;

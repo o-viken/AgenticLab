@@ -11,7 +11,7 @@ namespace AgenticLab.AiService.Demo.Agents;
 public sealed class ChatAgent : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
-    public const string AgentName = nameof(ChatAgent);
+    public const string AgentName = SharedAgentNames.Chat;
 
     /// <inheritdoc />
     public override string Name => AgentName;

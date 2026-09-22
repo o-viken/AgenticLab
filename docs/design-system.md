@@ -16,6 +16,12 @@ the AI service, React or an npm build step.
 - `/design-system` is a development-only, interactive catalogue of real shared controls. It makes no
   backend calls and returns Not Found outside Development. It is not part of production navigation.
 
+Branded host assets belong to optional example RCLs, not a Web enum or palette. Their manifests
+provide local `_content/<assembly>/host.svg` paths; `VendorIcon` renders a fixed-size current-color
+mask with a neutral fallback. The selector owns its 24px slot, the rail its 21px slot, and diagram
+icons remain 20px. Default uses the existing core icon. Module branding never changes the shared
+tokens, actor colours, layout, capture or replay state; see [example modules](examples.md).
+
 ## Tokens
 
 | Family | Purpose |

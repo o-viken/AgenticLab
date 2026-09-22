@@ -23,6 +23,9 @@ public enum ExampleHost
 public sealed record ExampleManifest(string Id, string DisplayName, IReadOnlyList<string> HostKeys,
     IReadOnlyList<string> AgentNames, bool RequiresUi = false)
 {
+    /// <summary>Optional presentation for owned host keys; never makes a host available by itself.</summary>
+    public IReadOnlyDictionary<string, ExampleHostPresentation> HostPresentation { get; init; } =
+        new Dictionary<string, ExampleHostPresentation>();
     /// <summary>Tool-backed resources shown by the flow diagram.</summary>
     public IReadOnlyList<ExampleResource> Resources { get; init; } = [];
     /// <summary>Globally unique MCP names contributed by this module.</summary>
@@ -31,6 +34,14 @@ public sealed record ExampleManifest(string Id, string DisplayName, IReadOnlyLis
     public IReadOnlyList<string> RemoteAgentNames { get; init; } = [];
     /// <summary>Module-owned descriptions of side effects for otherwise unknown tool names.</summary>
     public IReadOnlyDictionary<string, ExampleToolRisk> ToolRisks { get; init; } = new Dictionary<string, ExampleToolRisk>();
+}
+
+/// <summary>Local RCL icon, ordering and Learn link for a host, independent of its agent ownership.</summary>
+public sealed record ExampleHostPresentation(string? IconPath = null, int DisplayOrder = int.MaxValue,
+    string? ProductConceptId = null)
+{
+    /// <summary>Old saved selection names accepted only while this host is available.</summary>
+    public IReadOnlyList<string> LegacyKeys { get; init; } = [];
 }
 
 /// <summary>A presentation risk level (Low, Medium or High) and the actual enforced side-effect boundary.</summary>

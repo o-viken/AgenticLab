@@ -32,13 +32,15 @@ public static class ExampleRegistration
         if (!Regex.IsMatch(manifest.Id, "^[a-z][a-z0-9-]{1,39}$"))
             throw new InvalidOperationException("Example IDs must be lowercase route-safe names.");
         if (!configuration.GetValue<bool>($"Examples:{manifest.Id}:Enabled")) return services;
+        ValidatePresentation(manifest);
 
         foreach (var existing in services.Where(descriptor => descriptor.ServiceType == typeof(IExampleModule))
                      .Select(descriptor => ((IExampleModule)descriptor.ImplementationInstance!).Manifest))
         {
             if (existing.Id == manifest.Id || Overlap(existing.HostKeys, manifest.HostKeys)
                 || Overlap(existing.AgentNames, manifest.AgentNames) || Overlap(existing.McpToolNames, manifest.McpToolNames)
-                || Overlap(existing.RemoteAgentNames, manifest.RemoteAgentNames))
+                || Overlap(existing.RemoteAgentNames, manifest.RemoteAgentNames)
+                || Overlap(SelectionKeys(existing), SelectionKeys(manifest)))
                 throw new InvalidOperationException($"Example '{manifest.Id}' conflicts with '{existing.Id}'.");
         }
 
@@ -78,6 +80,38 @@ public static class ExampleRegistration
             module.AddMcpTools(builder);
         return builder;
     }
+
+    private static void ValidatePresentation(ExampleManifest manifest)
+    {
+        var selections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["default"] = "default",
+        };
+        foreach (var key in manifest.HostKeys)
+        {
+            if (!selections.TryAdd(key, key))
+                throw new InvalidOperationException($"Example '{manifest.Id}' repeats or reserves host key '{key}'.");
+        }
+        foreach (var (key, presentation) in manifest.HostPresentation)
+        {
+            if (!manifest.HostKeys.Contains(key, StringComparer.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Example '{manifest.Id}' does not own host '{key}'.");
+            if (presentation.IconPath is { } path &&
+                (!Regex.IsMatch(path, "^_content/[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+\\.svg$")
+                    || path.Split('/').Contains("..")))
+                throw new InvalidOperationException("Host icons must be local RCL SVG assets.");
+            foreach (var alias in presentation.LegacyKeys)
+            {
+                if (string.IsNullOrWhiteSpace(alias)
+                    || selections.TryGetValue(alias, out var owner) && !string.Equals(owner, key, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Example '{manifest.Id}' has an ambiguous host alias '{alias}'.");
+                selections[alias] = key;
+            }
+        }
+    }
+
+    private static IEnumerable<string> SelectionKeys(ExampleManifest manifest) =>
+        manifest.HostKeys.Concat(manifest.HostPresentation.Values.SelectMany(presentation => presentation.LegacyKeys));
 
     private static bool Overlap(IEnumerable<string> first, IEnumerable<string> second) =>
         first.Intersect(second, StringComparer.OrdinalIgnoreCase).Any();

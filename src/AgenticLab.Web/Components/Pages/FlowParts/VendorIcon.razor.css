@@ -1,0 +1,12 @@
+.vendor-icon {
+    display: block;
+    width: var(--host-icon-size, 1em);
+    height: var(--host-icon-size, 1em);
+    flex: 0 0 var(--host-icon-size, 1em);
+}
+
+.brand-icon {
+    background-color: currentColor;
+    mask: var(--host-icon) center / contain no-repeat;
+    mask-mode: alpha;
+}

@@ -106,7 +106,7 @@ public sealed class ExecutionReplayTests
     public void HostDetails_HostLabelsDescribeServiceWithoutClient()
     {
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
-        view.Vendor = Vendor.Default;
+        view.HostKey = "default";
         view.SelectedAgent = "Coder";
         view.Diagram.ShowTechnicalLabels = false;
         Assert.Equal("Agent host", view.Harness.Label);
@@ -192,7 +192,7 @@ public sealed class ExecutionReplayTests
         view.SelectedAgent = "Other";
         Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 2, true));
         view.SelectedAgent = "Chat";
-        view.Vendor = Vendor.Default;
+        view.HostKey = "another-host";
         Assert.Null(HostDetailsBuilder.RequestFor(view, exchange, 2, true));
     }
 
@@ -336,7 +336,7 @@ public sealed class ExecutionReplayTests
         Assert.Equal(3, view.Cursor.Sequence);
         Assert.False(view.Options.IsToolEnabled("test"));
         view.SelectedAgent = "another agent";
-        view.Vendor = Vendor.Default;
+        view.HostKey = "default";
         Assert.Equal(HostDetailSection.Tools, view.Details.Section);
         view.Details.Close();
         Assert.False(view.Layout.RightPanelVisible);
@@ -598,7 +598,7 @@ public sealed class ExecutionReplayTests
         using var handler = new ReplayHandler { ResetStatus = resetStatus };
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
-        view.Vendor = Vendor.Default;
+        view.HostKey = "default";
         view.Roster.SetAgents([new AgentInfo("Chat", "chat", []), new AgentInfo("Research", "research", [])]);
         view.Roster.SetVendors([new VendorInfo("chatgpt", "ChatGPT", "model", [new VendorModeInfo("Chat", "Chat")])]);
         using var run = new FlowRunController(new AiServiceClient(http), view, new());
@@ -640,7 +640,7 @@ public sealed class ExecutionReplayTests
 
         await ChangeVendorAsync("chatgpt");
         Assert.Equal(previousId, Assert.Single(handler.ResetIds));
-        Assert.Equal(Vendor.ChatGpt, view.Vendor);
+        Assert.Equal("chatgpt", view.HostKey);
         Assert.Equal("Chat", view.SelectedAgent);
         Assert.Empty(run.Projections.Exchanges);
         Assert.Empty(run.Turns);
@@ -727,7 +727,7 @@ public sealed class ExecutionReplayTests
         Assert.Equal("ParcelCoordinator", view.Roster.VendorDefaultAgent);
         Assert.Equal("parcel-operations", view.Roster.RestoreHost("parcel-operations"));
         view.Roster.SetExamples([]);
-        Assert.Equal("chatgpt", view.Roster.RestoreHost("parcel-operations"));
+        Assert.Equal("default", view.Roster.RestoreHost("parcel-operations"));
     }
 
     [Theory]
@@ -737,7 +737,75 @@ public sealed class ExecutionReplayTests
     [InlineData("another-community-host", "another-community-host")]
     public void ExampleHosts_NormalizeLegacyPreferencesAndPreserveNewKeys(string stored, string expected)
     {
-        Assert.Equal(expected, VendorCatalog.NormalizeKey(stored));
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetExamples([
+            new AgenticLab.Examples.ChatGpt.ChatGptExample().Manifest,
+            new AgenticLab.Examples.ClaudeCode.ClaudeCodeExample().Manifest,
+            new Copilot365Example().Manifest,
+        ]);
+        view.Roster.SetVendors([
+            new("default", "Default", "", []),
+            new(expected, "Available example", "demo", []),
+        ]);
+        Assert.Equal(expected, view.Roster.RestoreHost(stored));
+        view.Roster.SetVendors([new("default", "Default", "", [])]);
+        Assert.Equal("default", view.Roster.RestoreHost(stored));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("unknown")]
+    [InlineData("ChatGpt")]
+    [InlineData("ClaudeCode")]
+    [InlineData("Microsoft365")]
+    public void ExampleHosts_InitialAndUnavailableSelectionsUseDefault(string? stored)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        Assert.Equal("default", view.HostKey);
+        Assert.Equal("default", view.Roster.RestoreHost(stored));
+        view.Roster.SetExamples([new AgenticLab.Examples.ChatGpt.ChatGptExample().Manifest]);
+        view.Roster.SetVendors([new("default", "Default", "", [])]);
+        Assert.Equal("default", Assert.Single(view.Roster.AvailableHosts).Key);
+        Assert.Equal("default", view.Roster.RestoreHost(stored));
+        Assert.Null(view.Roster.CurrentHostPresentation);
+    }
+
+    [Fact]
+    public void ExampleHosts_BrandingFollowsHostOwnershipNotSharedAgentOwnership()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        var manifests = new[]
+        {
+            new AgenticLab.Examples.Claude.ClaudeExample().Manifest,
+            new Copilot365Example().Manifest,
+            new AgenticLab.Examples.Gemini.GeminiExample().Manifest,
+            new AgenticLab.Examples.ClaudeCode.ClaudeCodeExample().Manifest,
+            new AgenticLab.Examples.Copilot.CopilotExample().Manifest,
+            new AgenticLab.Examples.ChatGpt.ChatGptExample().Manifest,
+        };
+        view.Roster.SetExamples(manifests);
+        view.Roster.SetVendors([
+            .. manifests.Select(manifest => new VendorInfo(manifest.HostKeys[0], manifest.DisplayName, "demo", [], manifest.Id)),
+            new("community", "Community", "demo", []),
+            new("default", "Default", "", []),
+        ]);
+        Assert.Equal(new[] { "default", "chatgpt", "gemini", "copilot", "claude-code", "claude", "microsoft365", "community" },
+            view.Roster.AvailableHosts.Select(host => host.Key));
+        view.HostKey = "claude";
+        view.SelectedAgent = AgenticLab.Extensibility.Agents.SharedAgentNames.Chat;
+        Assert.Null(view.Roster.CurrentExample);
+        Assert.Equal("claude", view.Roster.CurrentHostPresentation?.ProductConceptId);
+        Assert.Equal("_content/AgenticLab.Examples.Claude/host.svg", view.Roster.CurrentHostPresentation?.IconPath);
+        Assert.Equal("claude", view.Roster.RestoreHost("CLAUDE"));
+        view.HostKey = "community";
+        Assert.Null(view.Roster.CurrentHostPresentation);
+        Assert.Equal("community", view.Roster.RestoreHost("community"));
+        view.Roster.SetExamples([]);
+        Assert.Null(view.Roster.PresentationFor("claude"));
+        Assert.Contains(view.Roster.AvailableHosts, host => host.Key == "claude");
+        view.Roster.SetVendors([new("community", "Community", "demo", [])]);
+        Assert.Equal("community", view.Roster.RestoreHost("missing"));
     }
 
     [Theory]
@@ -748,7 +816,7 @@ public sealed class ExecutionReplayTests
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
         VendorInfo[] builtInHosts = [new("default", "Default", "", []), new("chatgpt", "ChatGPT", "demo", [])];
         view.Roster.SetVendors(builtInHosts);
-        Assert.Equal("chatgpt", view.Roster.RestoreHost(stored));
+        Assert.Equal("default", view.Roster.RestoreHost(stored));
         Assert.DoesNotContain(view.Roster.AvailableHosts, host => host.Key == "microsoft365");
         Assert.Null(VendorCatalog.ActiveResource("SendMail"));
         Assert.Equal(ToolRisk.Low, ToolRiskCatalog.Classify("SendMail"));
@@ -769,7 +837,7 @@ public sealed class ExecutionReplayTests
 
         view.Roster.SetExamples([]);
         view.Roster.SetVendors(builtInHosts);
-        Assert.Equal("chatgpt", view.Roster.RestoreHost(stored));
+        Assert.Equal("default", view.Roster.RestoreHost(stored));
         Assert.Null(view.Roster.RiskFor("SendMail"));
         Assert.Empty(view.Roster.ExampleResources);
     }

@@ -1,13 +1,13 @@
 <div class="node harness @Run.Focus.NodeClass("harness")">
     <ConceptInfoButton Id="harness" Title="Learn about the agent host" />
     <span class="icon">
-        @if (View.Vendor == Vendor.Default)
+        @if (View.Roster.CurrentHostPresentation?.IconPath is not { } iconPath)
         {
             <span class="diagram-icon icon-harness" aria-hidden="true"></span>
         }
         else
         {
-            <VendorIcon Vendor="View.Vendor" />
+            <VendorIcon IconPath="@iconPath" />
         }
     </span>
     <span class="title">@View.Harness.Label</span>

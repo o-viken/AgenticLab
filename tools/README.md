@@ -15,8 +15,8 @@ node /tmp/agentic-lab-loadtest/node_modules/playwright/cli.js install chromium
 ```
 
 Start the application first, for example with `dotnet run --project src/AgenticLab.AppHost`, and set
-`THESERIES_URL` to its externally reachable **web** resource, not the React frontend. The example port
-below is illustrative; use the actual URL. The `THESERIES_*` names are retained for compatibility.
+`AGENTICLAB_URL` to its externally reachable **web** resource, not the React frontend. The example port
+below is illustrative; use the actual URL. Only the `AGENTICLAB_*` variable names are supported.
 
 ## UI smoke
 
@@ -27,10 +27,32 @@ The Default host must offer Orchestrator with at least one connected A2A agent f
 inspector checks; the normal Aspire setup supplies these agents.
 
 ```sh
-THESERIES_URL=http://127.0.0.1:5140 \
+AGENTICLAB_URL=http://127.0.0.1:5140 \
 NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
 node tools/web-smoke.mjs
 ```
+
+AppHost's normal Development configuration uses
+`AGENTICLAB_HOSTS=default,chatgpt,copilot,microsoft365`. For a Default-only profile, restart with
+`--Examples:chatgpt:Enabled=false --Examples:copilot:Enabled=false --Examples:copilot365:Enabled=false`
+and use `AGENTICLAB_HOSTS=default`. For the full branded-host profile, enable the host examples:
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- \
+	--Examples:chatgpt:Enabled=true --Examples:gemini:Enabled=true \
+	--Examples:copilot:Enabled=true --Examples:claude-code:Enabled=true \
+	--Examples:claude:Enabled=true --Examples:copilot365:Enabled=true
+```
+
+Against that Web URL, set `AGENTICLAB_HOSTS` to
+`default,chatgpt,gemini,copilot,claude-code,claude,microsoft365`. This optional comma-separated list
+asserts the exact available order; the script otherwise checks the returned choices generically.
+Set `AGENTICLAB_HOST_ALIASES='{"ChatGpt":"chatgpt","ClaudeCode":"claude-code","Microsoft365":"microsoft365"}'`
+to check legacy host values too; use `"default"` for each expected value in the disabled profile.
+The smoke check restores selections in isolated contexts without resetting server conversations,
+checks canonical keys case-insensitively and verifies an unavailable saved host falls back to Default.
+Module logos are fetched from local RCL URLs, decoded to check nonblank pixels, checked for stable
+dimensions, and captured at desktop/mobile widths. No vendor identities are hardcoded in the script.
 
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
 conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
@@ -39,7 +61,7 @@ with the Client Learn topic retained, individual A2A
 inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
 dismissal, lesson progression and detailed diagrams, shared-control states, reduced motion and 404
 pages. It checks locally loaded fonts and page/toolbar overflow. Screenshots go to the system temporary
-directory under `agentic-lab-web-smoke`; override with `THESERIES_SCREENSHOTS`.
+directory under `agentic-lab-web-smoke`; override with `AGENTICLAB_SCREENSHOTS`.
 
 The development catalogue is checked at `/design-system`. Separately verify a **published Production**
 instance returns 404 there. `dotnet run --no-build` against development output is not a valid production
@@ -60,7 +82,8 @@ Optional example modules own their scenario-specific checks inside their project
 the [example catalogue](../docs/examples.md). The core smoke script remains domain-neutral.
 
 `flow-loadtest.mjs` exercises the Interactive Server Flow page with concurrent browser contexts.
-The defaults are 10 concurrent users and 3 rounds.
+The defaults are 10 concurrent users and 3 rounds. `AGENTICLAB_WARMUP_MS` sets the startup wait
+(default 1000 ms), and `AGENTICLAB_MESSAGE` sets the message prefix (default `Load test message`).
 
 Users run concurrently; rounds within each user's page run sequentially. The harness waits for Blazor
 interactivity before filling the form and matches each submitted message to its new exchange. A failed
@@ -68,9 +91,9 @@ round is reported with its user/round and stops that user's remaining rounds. Ag
 this sends real model requests and can incur cost; use a fake API for an initial harness smoke test.
 
 ```sh
-THESERIES_URL=http://127.0.0.1:5140 \
-THESERIES_USERS=25 \
-THESERIES_ROUNDS=5 \
+AGENTICLAB_URL=http://127.0.0.1:5140 \
+AGENTICLAB_USERS=25 \
+AGENTICLAB_ROUNDS=5 \
 NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
 node tools/flow-loadtest.mjs
 ```

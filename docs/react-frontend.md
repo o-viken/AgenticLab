@@ -44,6 +44,14 @@ Agent catalogue entries may include optional `exampleId` and `requiresExampleUi`
 excludes workspace-only agents. Missing fields preserve older payload behavior. The BFF allowlist
 does not forward example APIs, and React does not implement their approval or case controls.
 
+AppHost's Development defaults enable ChatGPT, GitHub Copilot and Copilot 365 alongside Default.
+Other environments start with only Default. Enable additional hosts with `Examples:<id>:Enabled=true`
+on AppHost, or disable a Development default with `Examples:<id>:Enabled=false`. The existing
+catalogue-driven selector picks up supported modes without new BFF routes. Hosts with only
+workspace-dependent modes (Copilot and Claude Code) remain excluded from this prototype; enabling a
+module does not bypass the existing agent filters. Branded Blazor assets remain module-owned and
+do not add a React build dependency to the .NET hosts.
+
 ## Run with Aspire
 
 The normal .NET-only workflow remains unchanged. React is disabled unless explicitly requested.

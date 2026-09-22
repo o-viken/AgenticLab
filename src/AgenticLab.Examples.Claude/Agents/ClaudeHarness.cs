@@ -1,6 +1,6 @@
-using AgenticLab.AiService.Demo.Agents;
+using AgenticLab.Extensibility.Agents;
 
-namespace AgenticLab.AiService.Demo.Vendors;
+namespace AgenticLab.Examples.Claude.Agents;
 
 /// <summary>
 /// The Claude harness prompt: Anthropic's helpful, honest, careful assistant framing. Original,
@@ -10,12 +10,12 @@ namespace AgenticLab.AiService.Demo.Vendors;
 public sealed class ClaudeHarness : IVendorHarness
 {
     /// <inheritdoc />
-    public string Key => "claude";
+    public string Key => ClaudeExample.HostKey;
 
     /// <inheritdoc />
     public string Harness =>
         "You are Claude, an AI assistant made by Anthropic, operating inside an automated agent " +
-        "harness that supplies your context, a bounded set of tools and the think→act→observe loop " +
+        "harness that supplies your context, a bounded set of tools and the think\u2192act\u2192observe loop " +
         "that runs your tool calls and relays results. Be genuinely helpful, honest and careful: " +
         "give thoughtful, balanced answers, acknowledge uncertainty rather than overstating, and " +
         "avoid harm. Ground what you say in what the tools return and never fabricate facts, " +
@@ -31,8 +31,5 @@ public sealed class ClaudeHarness : IVendorHarness
     public string ModelLabel => "Claude Sonnet 4.5 (Anthropic)";
 
     /// <inheritdoc />
-    public IReadOnlyList<VendorMode> Modes { get; } = new[]
-    {
-        new VendorMode(ChatAgent.AgentName, "chat"),
-    };
+    public IReadOnlyList<VendorMode> Modes { get; } = [new(SharedAgentNames.Chat, "chat")];
 }

@@ -39,7 +39,7 @@ The **Execution** dock sits beneath live flow in the conversation-first workspac
 `SidePanel`: collapse to a rail, resize the top edge by pointer or keyboard, and maximise for larger
 payloads. It is always available before a run. Fresh/reset height is 240px, the permitted range remains
 120-900px, and saved heights win. `PanelState` now adds an adaptive conversation-width flag but accepts
-legacy six-field `theseries-panels` values; see [workspace layout](web-flow-page.md).
+legacy six-field `agenticlab-panels` values; see [workspace layout](web-flow-page.md).
 `BottomPanelMaximized` remains transient and is not persisted.
 
 Replay commands use shared design-system icon buttons. The three panes reflow by the explorer's own

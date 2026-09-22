@@ -145,8 +145,7 @@
 .selectors { display: flex; align-items: center; gap: var(--lab-space-5); min-width: 0; }
 .selectors ::deep .lab-field { flex: 0 1 260px; }
 .selectors ::deep .concept-info { position: static; flex: 0 0 auto; }
-.selected-vendor { width: 24px; height: 24px; flex: 0 0 24px; color: var(--lab-accent); }
-.selected-vendor ::deep svg { width: 24px; height: 24px; display: block; }
+.selected-vendor { --host-icon-size: 24px; width: 24px; height: 24px; flex: 0 0 24px; color: var(--lab-accent); }
 .select-divider { height: 20px; width: 1px; flex: 0 0 1px; background: var(--lab-border); }
 .connection-status { white-space: nowrap; }
 .workspace-error { margin: 0; padding: 12px 32px; background: var(--lab-danger-soft); color: var(--lab-danger); overflow-wrap: anywhere; }

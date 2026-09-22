@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
-const baseUrl = process.env.THESERIES_URL ?? 'http://localhost:5140';
+const baseUrl = process.env.AGENTICLAB_URL ?? 'http://localhost:5140';
 const screenshots = path.join(tmpdir(), 'agentic-lab-windfarm-smoke');
 mkdirSync(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });

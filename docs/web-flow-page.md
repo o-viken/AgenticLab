@@ -6,8 +6,8 @@ agent execution. See also [Execution and breakpoints](execution-explorer.md) and
 ## Example Panels
 
 Self-contained [example modules](examples.md) can supply a compact panel above the conversation.
-The host selector is driven by catalogue keys, not a closed branding enum. The unchanged
-`theseries-vendor` preference accepts legacy enum names and new keys; unavailable modules fall back
+The host selector is driven by catalogue keys, not a closed branding enum. The
+`agenticlab-vendor` preference accepts legacy enum names and catalogue keys; unavailable modules fall back
 to a supported host. Modes requiring a panel appear only when that module is registered locally.
 
 `ExamplePanelHost` renders a locally registered component through a narrow `ExamplePanelContext`:
@@ -19,9 +19,11 @@ replay. Module metadata supplies tool resource/risk labels without core domain-n
 
 ## Live flow visualization
 
-**Rename compatibility.** Agentic Lab retains the `theseries-vendor`, `theseries-panels`,
-`theseries-workspace-bases` and `theseries-workspace-recent` local-storage keys so existing preferences
-survive the rename on the same browser origin. Routes, concept IDs and lesson permalinks are unchanged.
+**Browser preferences.** Agentic Lab uses the `agenticlab-vendor`, `agenticlab-panels`,
+`agenticlab-workspace-bases` and `agenticlab-workspace-recent` local-storage keys. Preferences saved
+under previous product-name keys are not migrated: host, layout and workspace preferences start from
+defaults after the rename. Previous entries are left untouched. Routes, concept IDs and lesson
+permalinks are unchanged.
 The panel JavaScript API is now `agenticLabPanels`, with matching Blazor interop calls.
 
 **Host inspector.** Enable **Expand agent host** under **View options** to make the anatomy's
@@ -176,8 +178,8 @@ Conversation width is clamped to 240-960px and at most 65% of primary space; aux
 240-640px and Execution height 120-900px. Fresh/reset Execution height is 240px and Learn width 260px.
 
 `PanelLayout.AdaptiveConversationWidth` is true initially; dragging Conversation switches to a pixel
-preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the unchanged
-`theseries-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
+preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the
+`agenticlab-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
 sizes/collapse flags. **Reset layout** in Settings deliberately restores adaptive sizing without
 resetting the run, draft, replay cursor, Details selection or Learn visibility. Details remains
 page-lifetime state, not persisted. Execution maximise is also transient.
@@ -304,17 +306,24 @@ kept **identical to the Prompt signature's current total** — both report the c
 latest `llm-request` (system prompt + every re-sent user/assistant/tool message, excluding the static tool
 catalogue and JSON structure): `FlowRunController.Projections.ContextSize` simply returns
 `PromptSignatureView.CurrentChars`, so the two numbers always agree. The **Host** selector offers
-**Default**, **GitHub Copilot**, **Claude Code**, **Claude**, **ChatGPT** and **Gemini**, plus enabled
-example hosts such as **Copilot 365**. `VendorCatalog.DisplayOrder` sorts known keys but never adds a
-host missing from the backend catalogue. The selected logo remains beside the selector; its native
+**Default** plus enabled examples. AppHost's Development defaults add **ChatGPT**, **GitHub Copilot**
+and **Copilot 365**; other environments start with only Default unless configured otherwise.
+**GitHub Copilot**, **Claude Code**, **Claude**, **ChatGPT**,
+**Gemini**, **Copilot 365** and **Windfarm** appear only when their examples are enabled.
+`AgentRoster` keeps Default first, then uses locally enabled modules' `HostPresentation.DisplayOrder`
+and display names; metadata never adds a host missing from the backend catalogue.
+Each example owns its logo asset, product concept link and legacy selection aliases. The selected
+logo remains beside the selector; its native
 tooltip retains the model label and mode count. When **Learn** is enabled the selected host's product
 concept remains accessible through the adjacent info button. All hosts share the design-system palette.
 The selector invokes `SetVendorAsync`, retaining persistence and catalogue refreshes. Each vendor also
 **curates which agents the Agent picker offers**, mirroring that product's "modes": the roster comes from the
 vendor definition's `Modes` (loaded via `GET /vendors`) for every vendor including the non-brand **Default** —
-each entry a `(backend agent name, display label)` pair: **Default** → `wiki` (`WikiAssistant`) + `chat`
-(`ChatAgent`); **GitHub Copilot** → `ask` (`Ask`), `plan` (`Plan`), `agent` (`Coder`);
-**ChatGPT**/**Claude**/**Gemini** → `chat` (`ChatAgent`); **Claude Code** → `plan` (`Plan`), `agent`
+each entry a `(backend agent name, display label)` pair: **Default** offers `chat` (`ChatAgent`),
+`wiki` (`WikiAssistant`), `time` (`TimeKeeper`) and `orchestrator` (`Orchestrator`);
+**GitHub Copilot** offers `ask` (`Ask`), `plan` (`Plan`), `agent` (`Coder`);
+**ChatGPT** offers `chat` (`ChatGpt`); **Claude** and **Gemini** offer `chat` (`ChatAgent`);
+**Claude Code** offers `plan` (`Plan`), `agent`
 (`Coder`); optional **Copilot 365** → `chat` (`M365Copilot`), `researcher` (`M365Researcher`), `analyst`
 (`M365Analyst`). The `AvailableAgents` computed property filters the `GET /agents` list down to the current
 vendor's roster (skipping any name the service didn't register), the Agent `<select>` shows the labels, and
@@ -322,18 +331,26 @@ switching vendor auto-selects that vendor's first agent (`VendorDefaultAgent`) a
 The shared palette is defined in
 [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css); feature aliases live on `.flow-app`
 without vendor-specific overrides. The vendor choice persists in `localStorage` (key
-`theseries-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
+`agenticlab-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
 roster). The contributor colours (app/agent/user = red/yellow/green) are deliberately left un-themed because
 they encode a fixed concept rather than branding; they are defined once as shared
 `--contrib-app`/`--contrib-agent`/`--contrib-user` CSS tokens on the base `.flow-app` and reused by the
 harness anatomy, the Context chips **and** the Prompt signature so the three never drift
 apart.
 
-Copilot365 is disabled by default. `Examples:copilot365:Enabled=true` loads its agents and host in
+Fresh pages select Default. Available canonical keys are matched case-insensitively; the enabled
+module's aliases restore older values such as `ClaudeCode`. Unavailable saved hosts fall back to
+Default, then the first available host if Default is absent. Locally missing branding uses a neutral
+icon. Branding is resolved by host key, independently of agent ownership and tool-risk metadata.
+Host changes still reset the conversation; changing only the agent still preserves it.
+
+AppHost enables Copilot365 in Development; elsewhere it is opt-in.
+`Examples:copilot365:Enabled=true` loads its agents and host in
 AiService and its resource/risk manifest in Web. No custom panel is needed: Flow includes locally
 enabled panel-less modules with `RequiresUi=false`, while UI-required modules still need a local
 `IWebExample`. Its `microsoft365` API key and legacy `Microsoft365` saved preference remain valid;
-when disabled, restoration falls back to an available host. See the
+when disabled, restoration falls back to Default. Its logo and product link now belong to the module.
+See the
 [module guide](../src/AgenticLab.Examples.Copilot365/README.md).
 
 **Real LLM request/response capture.** The Steps list rows are expandable: clicking a step with captured `Data` reveals the actual payload — the messages and tool definitions sent to the model for an `llm-request`, the model's response for an `llm-response`/`final`, or the raw tool arguments/result for a `tool-call`/`tool-result`. The request/response data is captured at full fidelity by [Application/Flow/CapturingChatClient.cs](../src/AgenticLab.AiService/Application/Flow/CapturingChatClient.cs), a `DelegatingChatClient` inserted into the shared pipeline (after `UseFunctionInvocation`, see [Application/Agents/ChatClientProvider.cs](../src/AgenticLab.AiService/Application/Agents/ChatClientProvider.cs)). Because the chat client is a singleton, capture is scoped per run via [Application/Flow/FlowCaptureScope.cs](../src/AgenticLab.AiService/Application/Flow/FlowCaptureScope.cs), an `AsyncLocal` sink that `FlowTracer` opens for the duration of a traced run; when no scope is active (e.g. `POST /chat`) the capturing client is a transparent pass-through. Only messages and tool schemas are rendered — never the Azure OpenAI endpoint or API key.

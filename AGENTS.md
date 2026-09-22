@@ -20,6 +20,11 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
 | [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
+| [src/AgenticLab.Examples.ChatGpt](src/AgenticLab.Examples.ChatGpt/README.md) | Optional ChatGPT host, dedicated agent consuming shared Wikipedia/calculator tools, branding and tests. |
+| [src/AgenticLab.Examples.Copilot](src/AgenticLab.Examples.Copilot/README.md) | Optional GitHub Copilot host prompt and branding over shared Ask/Plan/Coder agents. |
+| [src/AgenticLab.Examples.ClaudeCode](src/AgenticLab.Examples.ClaudeCode/README.md) | Optional Claude Code host prompt and branding over shared Plan/Coder agents. |
+| [src/AgenticLab.Examples.Claude](src/AgenticLab.Examples.Claude/README.md) | Optional Claude host prompt and branding over the shared tool-free chat agent. |
+| [src/AgenticLab.Examples.Gemini](src/AgenticLab.Examples.Gemini/README.md) | Optional Gemini host prompt and branding over the shared tool-free chat agent. |
 | [src/AgenticLab.Examples.Copilot365](src/AgenticLab.Examples.Copilot365/README.md) | Optional workplace Copilot example: three agents, host prompt, simulated Microsoft 365 tools/data, resource/risk metadata and tests. No custom panel or protocol service. |
 | [src/AgenticLab.Examples.Windfarm](src/AgenticLab.Examples.Windfarm/README.md) | Optional self-contained example RCL. All domain content, API/protocol adapters, UI, assets, docs and tests stay here; existing hosts load its role contributions. |
 | [src/AgenticLab.McpServer](src/AgenticLab.McpServer/Program.cs) | Minimal Model Context Protocol (MCP) server exposing a `GetCurrentTime` tool over HTTP. Consumed by the AiService over MCP. |
@@ -29,7 +34,7 @@ Key flow: Console/Web → `POST /chat` or `POST /chat/stream` (with an optional 
 
 - [src/AgenticLab.AiService/Program.cs](src/AgenticLab.AiService/Program.cs) is a short composition: it calls the `Add*` registration groups in [Startup/ServiceRegistration.cs](src/AgenticLab.AiService/Startup/ServiceRegistration.cs) and the `Map*Endpoints` groups under [Endpoints/](src/AgenticLab.AiService/Endpoints) — `AgentEndpoints` (`GET /agents`, `POST /agents/workspace`, `POST /harness`, `GET /vendors`), `WorkspaceEndpoints` (`POST /skills`, `POST /instructions`, `POST /workspaces`), `DiscoveryEndpoints` (`GET /mcp`, `GET /a2a`, `GET /discovery`, `POST /discovery/stream`) and `ChatEndpoints` (`POST /chat`, `/chat/stream`, `/chat/control`, `/chat/reset`). Each endpoint file declares its own request/response records at the bottom.
 - [Application/](src/AgenticLab.AiService/Application) is the reusable runtime infrastructure, grouped by feature with a matching namespace (`AgenticLab.AiService.Application.<Folder>`, imported project-wide by [GlobalUsings.cs](src/AgenticLab.AiService/GlobalUsings.cs)): `Agents` (`AgentCatalog`, `AgentInfo`, `ChatClientProvider`, `VendorHarnessCatalog`), `Flow` (`FlowTracer`, `FlowEvent`, `FlowSession`, `FlowControlRegistry`, `BreakpointNotice`, `FlowExecutionScope`, `FlowCaptureScope`, `CapturingChatClient`, `ToolFilteringChatClient`, `ToolFilterScope`, `UserInputScope`, `RunScopeSet`), `Conversations` (`ConversationStore`, `AgentRunScope`, `AgentRunContext`), `Discovery` (`McpToolProvider`, `A2AAgentProvider`, `DiscoveryTracer`, `DiscoveryModels`, `DiscoverySnapshot`), `Workspace` (`WorkspaceScope`, `WorkspaceAgentLoader` + `WorkspaceAgentFileParser` + `WorkspaceToolAliases`, `WorkspaceAgentResolver`, `WorkspaceDefinedAgent`, `WorkspaceAgentDefinition`), `Skills`, `Instructions` and the harness's own `Tools` (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool`). Shared agent definitions and host contracts live in [Extensibility/Agents](src/AgenticLab.Extensibility/Agents).
-- [Demo/](src/AgenticLab.AiService/Demo) holds the built-in sample content: the agent personas under `Demo/Agents`, the shared demo tools (`WikiTool`, `CalculatorTool` and their bounded `DemoToolSource` adapter) under `Demo/Tools` and the vendor-flavoured harness prompts under `Demo/Vendors/<Vendor>/`. Optional examples own their domain content separately. `Application` never depends on `Demo`; shared interfaces define the dependency boundary.
+- [Demo/](src/AgenticLab.AiService/Demo) holds the built-in sample content: generic agent personas under `Demo/Agents`, shared tools (`WikiTool`, `CalculatorTool` and their bounded `DemoToolSource` adapter) under `Demo/Tools`, and only the non-brand Default host under `Demo/Vendors/Default`. Every other host owns its prompt, dedicated agents, branding, tests and guide in an opt-in example. `Application` never depends on `Demo` or an example; shared interfaces define the dependency boundary.
 - Both chat paths share [Application/Flow/RunScopeSet.cs](src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs), which begins, re-activates and disposes the per-run ambient scopes (workspace, disabled tools/skills, enabled instructions, user input and agent/conversation identity) together, and `WorkspaceScope.TryBegin` to turn a bad path into a 400 / error event.
 
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
@@ -44,7 +49,7 @@ catalogue and returns 404 in Production. Feature CSS owns layout, not another ge
 Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
 and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
 adaptive conversation sizing; dragging selects pixels. `PanelState` reads legacy six-field preferences
-and writes a seventh adaptive-width flag under the unchanged `theseries-panels` key. Reflow never
+and writes a seventh adaptive-width flag under the `agenticlab-panels` key. Reflow never
 changes run state or saved preferences; Settings exposes Reset layout.
 
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
@@ -95,7 +100,8 @@ must not depend on their concrete host types. Copilot365 is enabled with
 `Examples:copilot365:Enabled=true`; its API host key remains `microsoft365` and its agent names remain
 `M365Copilot`, `M365Researcher` and `M365Analyst` for compatibility.
 
-Web host selection uses catalogue keys with legacy `theseries-vendor` parsing. Locally registered
+Web host selection uses catalogue keys and legacy host-value aliases under `agenticlab-vendor`.
+Locally registered
 `IWebExample` panels receive only `ExamplePanelContext`; awaited `IExamplePanel` cleanup precedes
 Web conversation reset. Core Flow roots own no example state. Keep module case history separate
 from captured execution replay. `LabButton`, `LabField`, `LabStatus` and `MiniIcon` now live in
@@ -106,11 +112,27 @@ Enabled modules without panels still register in Web for manifest resources and 
 Flow includes their metadata when `RequiresUi=false`; modules requiring UI remain gated on a local
 `IWebExample` implementation. Copilot365 adds no custom Web panel, MCP/A2A role or new endpoint.
 
-Examples are disabled by default. AppHost forwards `Examples` configuration generically. MCP can
+Examples require explicit configuration. AppHost forwards `Examples` configuration generically. MCP can
 reference AiService for invocation-time reads but must not wait for it or contact it during tool
 registration/listing: AiService discovers protocols before listening. Do not introduce circular
 `WaitFor` dependencies. Nested module test projects must be excluded from the production RCL's
 default items. Module-specific launch and verification steps belong in its README.
+
+Base configuration enables only Default. AppHost's Development settings additionally enable `chatgpt`,
+`copilot` and `copilot365`; `Examples:<id>:Enabled=false` overrides these defaults. Other environments
+remain Default-only unless configured otherwise. The additional host module IDs are
+`chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`, `copilot365` and `windfarm`; use
+`Examples:<id>:Enabled=true` to opt in. AiService and Web explicitly register the participating
+modules. Harness-only manifests declare no owned agents: `SharedAgentNames` supplies the existing
+ChatAgent/Ask/Plan/Coder identities, registered once in core. ChatGPT alone adds its dedicated
+`ChatGpt` agent, consuming the existing `IHostToolSource` rather than concrete host tools.
+
+`ExampleManifest.HostPresentation` owns local SVG paths, ordering, product concept links and legacy
+host selection aliases. Registration rejects unowned presentation keys and ambiguous aliases;
+Default is reserved. Web looks up branding by host key, not agent ownership. There is no branding
+enum or branded lookup table in core. Canonical keys and enabled aliases restore `agenticlab-vendor`;
+unavailable selections fall back to Default. Shared Learn content remains in Web. Module static
+assets may still be built/published when disabled; enablement controls registration, not assembly loading.
 
 ## Documentation map
 
@@ -139,7 +161,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
 - Blazor UI smoke: install temporary Playwright as described in [tools/README.md](tools/README.md), then
-  `THESERIES_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
+  `AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
   Use a Development Web instance with an available agent catalogue. This does not send chat or run
   discovery; `/design-system` is also available there for isolated component inspection.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
@@ -175,9 +197,11 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
 ## Conventions
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
-  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links. Keep
-  `the-series-*` container image names until a separate external migration. Preserve the AppHost `UserSecretsId`, `theseries-*` browser preference
-  keys and `THESERIES_*` load-test variables for compatibility. Generic "agentic AI" is a subject,
+  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links,
+  `agenticlab-*` for container image names and browser preference keys, and `AGENTICLAB_*` for
+  browser-tool environment variables. This is a clean rename: do not add legacy product-name
+  fallbacks or migrate old browser preferences. Preserve the AppHost `UserSecretsId`.
+  Generic "agentic AI" is a subject,
   not an obsolete product name.
 
 - Teaching and UI vocabulary: **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and execution controls; the model reasons, plans and chooses a next step or final answer. Tool requests are not authorization: the host checks and executes permitted actions. Use **agent host** as the primary label, with **harness** explained as its agent-running machinery. Preserve technical identifiers, event kinds and existing concept/stage URLs when editing terminology.

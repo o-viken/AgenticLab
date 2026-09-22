@@ -1,6 +1,6 @@
-using AgenticLab.AiService.Demo.Agents;
+using AgenticLab.Extensibility.Agents;
 
-namespace AgenticLab.AiService.Demo.Vendors;
+namespace AgenticLab.Examples.Copilot.Agents;
 
 /// <summary>
 /// The GitHub Copilot harness prompt: a focused pair-programmer framing. Original, representative text
@@ -10,13 +10,13 @@ namespace AgenticLab.AiService.Demo.Vendors;
 public sealed class CopilotHarness : IVendorHarness
 {
     /// <inheritdoc />
-    public string Key => "copilot";
+    public string Key => CopilotExample.HostKey;
 
     /// <inheritdoc />
     public string Harness =>
         "You are GitHub Copilot, an AI programming assistant running inside an automated agent " +
         "harness. Together you and the harness form the agent: the harness gathers your context, " +
-        "gives you a bounded set of tools, runs the think→act→observe loop, executes the tool calls " +
+        "gives you a bounded set of tools, runs the think\u2192act\u2192observe loop, executes the tool calls " +
         "you request and relays the results back. Work like a focused pair programmer: follow the " +
         "user's intent precisely, take direct action with your tools instead of only describing it, " +
         "and keep going until the task is genuinely done. Ground every answer in what the tools " +
@@ -32,10 +32,10 @@ public sealed class CopilotHarness : IVendorHarness
     public string ModelLabel => "GPT-5 (GitHub Copilot)";
 
     /// <inheritdoc />
-    public IReadOnlyList<VendorMode> Modes { get; } = new[]
-    {
-        new VendorMode(AskAgent.AgentName, "ask"),
-        new VendorMode(PlanAgent.AgentName, "plan"),
-        new VendorMode(CoderAgent.AgentName, "agent"),
-    };
+    public IReadOnlyList<VendorMode> Modes { get; } =
+    [
+        new(SharedAgentNames.Ask, "ask"),
+        new(SharedAgentNames.Plan, "plan"),
+        new(SharedAgentNames.Coder, "agent"),
+    ];
 }

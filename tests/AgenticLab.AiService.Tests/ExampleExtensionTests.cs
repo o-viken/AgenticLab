@@ -5,6 +5,16 @@ using AgenticLab.AiService.Application.Conversations;
 using AgenticLab.AiService.Application.Flow;
 using AgenticLab.AiService.Application.Agents;
 using AgenticLab.AiService.Demo.Tools;
+using AgenticLab.AiService.Demo.Agents;
+using AgenticLab.AiService.Startup;
+using AgenticLab.Examples.ChatGpt;
+using AgenticLab.Examples.ChatGpt.Agents;
+using AgenticLab.Examples.Claude;
+using AgenticLab.Examples.ClaudeCode;
+using AgenticLab.Examples.Copilot;
+using AgenticLab.Examples.Copilot365;
+using AgenticLab.Examples.Gemini;
+using AgenticLab.Examples.Windfarm;
 using Microsoft.Extensions.AI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -18,6 +28,70 @@ namespace AgenticLab.AiService.Tests;
 
 public sealed class ExampleExtensionTests
 {
+    [Theory]
+    [InlineData(null, "default")]
+    [InlineData("chatgpt", "chatgpt")]
+    [InlineData("claude", "claude")]
+    [InlineData("claude-code", "claude-code")]
+    [InlineData("copilot", "copilot")]
+    [InlineData("gemini", "gemini")]
+    [InlineData("copilot365", "microsoft365")]
+    [InlineData("windfarm", "windfarm")]
+    public void HostExamplesRegisterOnlyTheEnabledHost(string? enabledId, string expectedKey)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(enabledId is null
+            ? [] : new Dictionary<string, string?> { [$"Examples:{enabledId}:Enabled"] = "true" }).Build();
+        var services = HostServices(configuration);
+        using var provider = services.BuildServiceProvider();
+        var catalog = provider.GetRequiredService<VendorHarnessCatalog>();
+        Assert.Equal(enabledId is null ? new[] { "default" } : new[] { "default", expectedKey },
+            catalog.Vendors.Select(host => host.Key));
+        Assert.Null(catalog.Resolve("default"));
+        Assert.Equal(enabledId is null ? 0 : 1, provider.GetRequiredService<ExampleCatalog>().Modules.Count);
+        var agentTypes = services.Where(service => service.ServiceType == typeof(IAgentDefinition))
+            .Select(service => service.ImplementationType).ToArray();
+        Assert.Equal(agentTypes.Length, agentTypes.Distinct().Count());
+        Assert.Equal(enabledId == "chatgpt", agentTypes.Contains(typeof(ChatGptAgent)));
+        Assert.Contains(typeof(ChatAgent), agentTypes);
+        Assert.Contains(typeof(AskAgent), agentTypes);
+        Assert.Contains(typeof(PlanAgent), agentTypes);
+        Assert.Contains(typeof(CoderAgent), agentTypes);
+        Assert.Empty(new ChatAgent().Tools);
+    }
+
+    [Fact]
+    public void AllHostExamplesCoexistWithoutOwningSharedAgents()
+    {
+        var ids = new[] { "chatgpt", "claude", "claude-code", "copilot", "gemini", "copilot365", "windfarm" };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            ids.ToDictionary(id => $"Examples:{id}:Enabled", _ => (string?)"true")).Build();
+        var services = HostServices(configuration);
+        using var provider = services.BuildServiceProvider();
+        var hosts = provider.GetRequiredService<VendorHarnessCatalog>().Vendors;
+        Assert.Equal(new[] { "default", "chatgpt", "claude", "claude-code", "copilot", "gemini", "microsoft365", "windfarm" },
+            hosts.Select(host => host.Key));
+        var types = services.Where(service => service.ServiceType == typeof(IAgentDefinition))
+            .Select(service => service.ImplementationType).ToArray();
+        Assert.Equal(types.Length, types.Distinct().Count());
+        var examples = provider.GetRequiredService<ExampleCatalog>();
+        Assert.Equal(ids.Length, examples.Modules.Count);
+        foreach (var name in new[] { SharedAgentNames.Chat, SharedAgentNames.Ask, SharedAgentNames.Plan, SharedAgentNames.Coder })
+            Assert.Null(examples.ForAgent(name));
+        Assert.Equal("chatgpt", examples.ForAgent(ChatGptAgent.AgentName)?.Id);
+        Assert.All(hosts.Where(host => host.Key != "default"), host => Assert.NotNull(
+            provider.GetRequiredService<VendorHarnessCatalog>().Resolve(host.Key)));
+    }
+
+    private static IServiceCollection HostServices(IConfiguration configuration) => new ServiceCollection()
+        .AddVendorHarnesses().AddDemoAgents()
+        .AddExample<ChatGptExample>(configuration, ExampleHost.AiService)
+        .AddExample<ClaudeExample>(configuration, ExampleHost.AiService)
+        .AddExample<ClaudeCodeExample>(configuration, ExampleHost.AiService)
+        .AddExample<CopilotExample>(configuration, ExampleHost.AiService)
+        .AddExample<GeminiExample>(configuration, ExampleHost.AiService)
+        .AddExample<Copilot365Example>(configuration, ExampleHost.AiService)
+        .AddExample<WindfarmExample>(configuration, ExampleHost.AiService);
+
     [Fact]
     public void HostToolsKeepExactSelectionOrderAndOriginalSchemas()
     {
@@ -66,6 +140,11 @@ public sealed class ExampleExtensionTests
         Assert.Equal(1, handler.RequestCount);
         Assert.Equal("/w/rest.php/v1/search/page", handler.RequestUri!.AbsolutePath);
         Assert.Contains("q=Ada%20Lovelace", handler.RequestUri.Query);
+        var page = Assert.IsAssignableFrom<AIFunction>(Assert.Single(source.GetTools(["GetWikiPage"])));
+        var content = await page.InvokeAsync(new AIFunctionArguments { ["title"] = "Ada Lovelace" });
+        Assert.Contains("Analytical Engine", Assert.IsType<JsonElement>(content).GetString());
+        Assert.Equal(2, handler.RequestCount);
+        Assert.Equal("/api/rest_v1/page/summary/Ada%20Lovelace", handler.RequestUri.AbsolutePath);
     }
 
     [Fact]
@@ -97,6 +176,48 @@ public sealed class ExampleExtensionTests
     {
         var services = new ServiceCollection().AddExample<ParcelExample>(Configuration(true), ExampleHost.AiService);
         Assert.Throws<InvalidOperationException>(() => services.AddExample<ParcelExample>(Configuration(true), ExampleHost.AiService));
+    }
+
+    [Fact]
+    public void HostPresentationIsOptionalAndDoesNotOwnSharedAgents()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Examples:branded:Enabled"] = "true",
+        }).Build();
+        using var provider = new ServiceCollection().AddExample<BrandedExample>(configuration, ExampleHost.Web)
+            .BuildServiceProvider();
+        var catalog = provider.GetRequiredService<ExampleCatalog>();
+        var manifest = Assert.Single(catalog.Modules).Manifest;
+        Assert.Empty(manifest.AgentNames);
+        Assert.Null(catalog.ForAgent(SharedAgentNames.Chat));
+        Assert.Equal("LegacyBrand", Assert.Single(manifest.HostPresentation["brand"].LegacyKeys));
+        Assert.Empty(provider.GetServices<IAgentDefinition>());
+        Assert.Equal("ChatAgent", AgenticLab.AiService.Demo.Agents.ChatAgent.AgentName);
+        Assert.Equal(SharedAgentNames.Ask, AgenticLab.AiService.Demo.Agents.AskAgent.AgentName);
+        Assert.Equal(SharedAgentNames.Plan, AgenticLab.AiService.Demo.Agents.PlanAgent.AgentName);
+        Assert.Equal(SharedAgentNames.Coder, AgenticLab.AiService.Demo.Agents.CoderAgent.AgentName);
+    }
+
+    [Fact]
+    public void HostPresentationRejectsUnownedKeysAndAmbiguousAliases()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Examples:branded:Enabled"] = "true",
+            ["Examples:unowned:Enabled"] = "true",
+            ["Examples:collision:Enabled"] = "true",
+            ["Examples:ambiguous:Enabled"] = "true",
+            ["Examples:unsafe-icon:Enabled"] = "true",
+        }).Build();
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection()
+            .AddExample<UnownedExample>(configuration, ExampleHost.Web));
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection()
+            .AddExample<AmbiguousExample>(configuration, ExampleHost.Web));
+        Assert.Throws<InvalidOperationException>(() => new ServiceCollection()
+            .AddExample<UnsafeIconExample>(configuration, ExampleHost.Web));
+        var services = new ServiceCollection().AddExample<BrandedExample>(configuration, ExampleHost.Web);
+        Assert.Throws<InvalidOperationException>(() => services.AddExample<AliasCollisionExample>(configuration, ExampleHost.Web));
     }
 
     [Fact]
@@ -149,9 +270,15 @@ public sealed class ExampleExtensionTests
         {
             RequestCount++;
             RequestUri = request.RequestUri;
+            var body = RequestUri!.AbsolutePath switch
+            {
+                "/w/rest.php/v1/search/page" => """{"pages":[{"title":"Ada Lovelace","description":"Mathematician"}]}""",
+                "/api/rest_v1/page/summary/Ada%20Lovelace" => """{"extract":"Ada Lovelace wrote about the Analytical Engine."}""",
+                _ => throw new InvalidOperationException($"Unexpected Wikipedia path: {RequestUri.AbsolutePath}"),
+            };
             return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
             {
-                Content = new StringContent("""{"pages":[{"title":"Ada Lovelace","description":"Mathematician"}]}"""),
+                Content = new StringContent(body),
             });
         }
     }
@@ -167,6 +294,52 @@ public sealed class ExampleExtensionTests
     }
 
     public sealed class ParcelState;
+
+    public sealed class BrandedExample : IExampleModule
+    {
+        public ExampleManifest Manifest { get; } = new("branded", "Branded", ["brand"], [])
+        {
+            HostPresentation = new Dictionary<string, ExampleHostPresentation>
+            {
+                ["brand"] = new("_content/Branded/host.svg", 10, "product") { LegacyKeys = ["LegacyBrand"] },
+            },
+        };
+    }
+
+    public sealed class UnownedExample : IExampleModule
+    {
+        public ExampleManifest Manifest { get; } = new("unowned", "Unowned", ["owned"], [])
+        {
+            HostPresentation = new Dictionary<string, ExampleHostPresentation> { ["other"] = new() },
+        };
+    }
+
+    public sealed class AliasCollisionExample : IExampleModule
+    {
+        public ExampleManifest Manifest { get; } = new("collision", "Collision", ["legacybrand"], []);
+    }
+
+    public sealed class AmbiguousExample : IExampleModule
+    {
+        public ExampleManifest Manifest { get; } = new("ambiguous", "Ambiguous", ["first", "second"], [])
+        {
+            HostPresentation = new Dictionary<string, ExampleHostPresentation>
+            {
+                ["first"] = new() { LegacyKeys = ["second"] },
+            },
+        };
+    }
+
+    public sealed class UnsafeIconExample : IExampleModule
+    {
+        public ExampleManifest Manifest { get; } = new("unsafe-icon", "Unsafe", ["unsafe"], [])
+        {
+            HostPresentation = new Dictionary<string, ExampleHostPresentation>
+            {
+                ["unsafe"] = new("https://external.invalid/host.svg"),
+            },
+        };
+    }
 
     public sealed class ParcelExample : IAiServiceExample
     {

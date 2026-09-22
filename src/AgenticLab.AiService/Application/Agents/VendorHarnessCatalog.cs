@@ -10,8 +10,8 @@ namespace AgenticLab.AiService.Application.Agents;
 /// <remarks>
 /// The catalog holds no prompt content itself: the per-vendor prompts are supplied by the injected
 /// <see cref="IVendorHarness"/> implementations, whose <strong>original, representative</strong> content
-/// lives in the Demo layer under <c>Demo/Vendors/&lt;Vendor&gt;</c> (so the Application layer stays free
-/// of any Demo dependency). Those prompts are written in each vendor's spirit — not the vendors' real,
+/// lives in opt-in example modules (so the Application layer stays free of example dependencies).
+/// Those prompts are written in each vendor's spirit — not the vendors' real,
 /// proprietary system prompts — and each keeps the essential tool-grounding operating rules so the agents
 /// keep functioning. Keys are matched case-insensitively; an unknown or blank key resolves to <c>null</c>,
 /// as does a vendor that supplies an <strong>empty</strong> harness (the non-brand <c>Default</c> vendor,

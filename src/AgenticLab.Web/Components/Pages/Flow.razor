@@ -18,7 +18,7 @@
 
             <div class="selection-bar">
                 <div class="selectors">
-                    <span class="selected-vendor" aria-hidden="true"><VendorIcon Vendor="_view.Vendor" /></span>
+                    <span class="selected-vendor" aria-hidden="true"><VendorIcon IconPath="@_view.Roster.CurrentHostPresentation?.IconPath" /></span>
                     <LabField For="host" Label="Host" Inline="true">
                         <select id="host" value="@_view.HostKey" title="@HostSummary" disabled="@(_run.Running || !_catalogsLoaded)" @onchange="OnHostChangedAsync">
                             @foreach (var vendor in _view.Roster.AvailableHosts)
@@ -46,7 +46,7 @@
                             }
                         </select>
                     </LabField>
-                    @if (VendorCatalog.ProductConceptId(_view.Vendor) is { } conceptId)
+                    @if (_view.Roster.CurrentHostPresentation?.ProductConceptId is { } conceptId)
                     {
                         <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {_view.Roster.VendorName}")" />
                     }

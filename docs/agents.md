@@ -88,18 +88,20 @@ cleanup failure without reusing the old ID.
 singleton infrastructure: `Resolve(vendor)` returns the registered prompt, or null for blank/unknown
 keys and empty prompts. It owns no prompt content. Each injected
 [IVendorHarness](../src/AgenticLab.Extensibility/Agents/IVendorHarness.cs) supplies `Key`, `Harness`,
-`DisplayName`, `ModelLabel` and `Modes` (`VendorMode(Agent, Label)`). Built-in prompts live under
-[Demo/Vendors](../src/AgenticLab.AiService/Demo/Vendors) and are registered in
-[ServiceRegistration](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs); optional examples
-own and register their own implementations, including
-[Copilot365's host](../src/AgenticLab.Examples.Copilot365/Agents/Microsoft365Harness.cs). The
+`DisplayName`, `ModelLabel` and `Modes` (`VendorMode(Agent, Label)`). Only Default is registered in
+[ServiceRegistration](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs). Every non-default
+host owns and registers its implementation in a separate opt-in [example module](examples.md), including
+[ChatGPT](../src/AgenticLab.Examples.ChatGpt/README.md) and
+[Copilot365](../src/AgenticLab.Examples.Copilot365/README.md). The
 `Application` layer depends only on the shared contracts. All prompts are original, representative
 text, not vendors' proprietary prompts, and retain the tool-grounding rules.
 
-The built-in keys are `default`, `copilot`, `claude-code`, `claude`, `chatgpt` and `gemini`.
-The optional Copilot365 module retains the `microsoft365` host key. The non-brand
+The only built-in key is `default`. Enable `copilot`, `claude-code`, `claude`, `chatgpt` or `gemini`
+with `Examples:<key>:Enabled=true`; the API keys are unchanged. Copilot365 uses module ID `copilot365`
+and retains host key `microsoft365`; Windfarm uses `windfarm` for both. The non-brand
 [DefaultHarness](../src/AgenticLab.AiService/Demo/Vendors/Default/DefaultHarness.cs) supplies metadata
-and `wiki`/`chat` modes but an empty prompt, so `Resolve("default")` preserves the agent's own harness.
+and `chat`/`wiki`/`time`/`orchestrator` modes but an empty prompt, so `Resolve("default")` preserves
+the agent's own harness. Host selection does not change the configured model deployment.
 
 `ChatClientAgent` instructions are fixed at construction, so the override is not a per-run append.
 [AgentDefinitionBase](../src/AgenticLab.Extensibility/Agents/AgentDefinitionBase.cs) exposes
@@ -120,12 +122,13 @@ back to `AgentCatalog.HarnessFor(agent)`, exposed as `IAgentDefinition.HarnessPr
 
 `GET /vendors` returns the registered definitions' display names, simulated model labels and modes,
 plus optional example metadata. Web loads them via `AiServiceClient.GetVendorsAsync` and
-`FlowViewState.Roster.SetVendors`. [VendorCatalog](../src/AgenticLab.Web/Flow/VendorCatalog.cs) retains
-legacy enum-name mappings, known branding and ordering, not the executable host catalogue. Disabled
-examples do not appear just because a legacy branding entry exists. New example hosts register
-`IVendorHarness` through `AddExample` without extending the Web enum; see [example modules](examples.md).
-A built-in host can still register in `AddVendorHarnesses`. Use an agent's `public const string
-AgentName` in each `VendorMode` so renaming or removing an agent cannot silently drop a mode.
+`FlowViewState.Roster.SetVendors`. Locally enabled example manifests supply optional logo assets,
+ordering, product concept links and legacy selection aliases. Metadata never makes a disabled host
+available. Web starts with Default and falls back to it when a saved example is unavailable; there
+is no branding enum. Register `IVendorHarness` through `AddExample`; see [example modules](examples.md).
+Use an owned agent's `AgentName` constant in modes, or
+[SharedAgentNames](../src/AgenticLab.Extensibility/Agents/SharedAgentNames.cs) for the reusable core
+`ChatAgent`, `Ask`, `Plan` and `Coder` identities. Harness-only examples do not own or duplicate them.
 
 ## Agents
 
@@ -135,7 +138,7 @@ AgentName` in each `VendorMode` so renaming or removing an agent cannot silently
 | `MathTutor` | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | `TriviaMaster` | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `ChatAgent` (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
-| `ChatGpt` | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
+| `ChatGpt` (opt-in `chatgpt` example) | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `Ask` | Read-only assistant that answers questions and explains code in the workspace without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles` |
 | `Plan` | Read-only planner that investigates the workspace and proposes an implementation plan without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles`, `AskQuestion` |
 | `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted commands. **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
@@ -161,8 +164,12 @@ requires a workspace or supports skills.
 
 ### ChatGPT lookup and calculation demo
 
-The ChatGPT vendor's **chat** mode selects `ChatGpt`, a dedicated agent reusing the existing
-Wikipedia and calculator tools. `ChatAgent` remains the tool-free default and other vendors' modes
+Enable `Examples:chatgpt:Enabled=true` to register the self-contained
+[ChatGPT example](../src/AgenticLab.Examples.ChatGpt/README.md). Its **chat** mode selects `ChatGpt`,
+a dedicated agent requesting `SearchWiki`, `GetWikiPage` and `Calculate` through `IHostToolSource`.
+AppHost enables this example in Development; elsewhere it requires explicit configuration.
+When disabled, neither the host nor its dedicated agent is registered.
+`ChatAgent` remains the tool-free default and other vendors' modes
 are unchanged. No extra API keys or services are needed: Wikipedia requests use its public API,
 and calculations run locally in the AI service. The model backend remains Azure OpenAI; this is
 a representative demo, not OpenAI's internal ChatGPT toolset.
