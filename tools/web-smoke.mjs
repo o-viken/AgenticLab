@@ -6,6 +6,8 @@ import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.THESERIES_URL ?? "http://127.0.0.1:5186";
+const expectedHosts = (process.env.AGENTICLAB_HOSTS ?? process.env.THESERIES_HOSTS)?.split(",").map(key => key.trim());
+const legacyHosts = JSON.parse(process.env.THESERIES_HOST_ALIASES ?? "{}");
 const screenshots = process.env.THESERIES_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
 mkdirSync(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -19,6 +21,7 @@ try {
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
         await openFlow(page);
+        await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
         await checkExecutionControls(page);
         await capture(page, `flow-${viewport.width}`);
@@ -97,6 +100,60 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkHosts(page, width) {
+    const hosts = await page.locator("#host option").evaluateAll(options => options.map(option => ({
+        key: option.value, label: option.label,
+    })));
+    const keys = hosts.map(host => host.key);
+    assert.equal(keys[0], "default", "Default is always first");
+    assert.equal(await page.locator("#host").inputValue(), "default", "Fresh contexts start with Default");
+    if (expectedHosts) assert.deepEqual(keys, expectedHosts, "Only configured hosts are available");
+
+    async function restore(stored, expected) {
+        await page.evaluate(key => localStorage.setItem("theseries-vendor", key), stored);
+        await openFlow(page);
+        assert.equal(await page.locator("#host").inputValue(), expected, `Saved host ${stored}`);
+        assert.ok(await page.locator("#agent option").count(), "Every available host offers an available agent");
+    }
+
+    for (const host of hosts) {
+        await restore(host.key.toUpperCase(), host.key);
+        const icon = page.locator(".selected-vendor .brand-icon");
+        if (host.key === "default") assert.equal(await icon.count(), 0, "Default uses neutral branding");
+        if (await icon.count()) {
+            const mask = await icon.evaluate(element => getComputedStyle(element).maskImage);
+            const matched = mask.match(/url\(["']?([^"')]+)["']?\)/);
+            assert.ok(matched, `Host ${host.key} has a CSS mask`);
+            const asset = new URL(matched[1], page.url());
+            assert.equal(asset.origin, new URL(baseUrl).origin, "Brand assets are local");
+            assert.match(asset.pathname, /\/_content\/[^/]+\/host\.svg$/);
+            const response = await page.request.get(asset.href);
+            assert.ok(response.ok(), `Host ${host.key} logo loads`);
+            assert.match(response.headers()["content-type"], /image\/svg\+xml/);
+            const painted = await page.evaluate(async url => {
+                const image = new Image();
+                image.src = url;
+                await image.decode();
+                const canvas = document.createElement("canvas");
+                canvas.width = canvas.height = 24;
+                const context = canvas.getContext("2d");
+                context.drawImage(image, 0, 0, 24, 24);
+                return context.getImageData(0, 0, 24, 24).data.some((value, index) => index % 4 === 3 && value > 0);
+            }, asset.href);
+            assert.ok(painted, `Host ${host.key} logo is nonblank`);
+            const visible = page.locator(".brand-icon:visible").first();
+            const bounds = await visible.boundingBox();
+            assert.ok(bounds && bounds.width >= 20 && bounds.height >= 20, "Visible host icon has stable dimensions");
+            await capture(page, `host-${host.key}-${width}`);
+        }
+    }
+    if (width === 1440) {
+        for (const [stored, expected] of Object.entries(legacyHosts)) await restore(stored, expected);
+    }
+    await restore("unavailable-smoke-host", "default");
+    await page.evaluate(() => localStorage.removeItem("theseries-vendor"));
 }
 
 async function checkExecutionControls(page) {

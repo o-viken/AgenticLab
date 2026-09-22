@@ -32,6 +32,30 @@ NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
 node tools/web-smoke.mjs
 ```
 
+AppHost's normal Development configuration uses
+`AGENTICLAB_HOSTS=default,chatgpt,copilot,microsoft365`. For a Default-only profile, restart with
+`--Examples:chatgpt:Enabled=false --Examples:copilot:Enabled=false --Examples:copilot365:Enabled=false`
+and use `AGENTICLAB_HOSTS=default`. For the full branded-host profile, enable the host examples:
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- \
+	--Examples:chatgpt:Enabled=true --Examples:gemini:Enabled=true \
+	--Examples:copilot:Enabled=true --Examples:claude-code:Enabled=true \
+	--Examples:claude:Enabled=true --Examples:copilot365:Enabled=true
+```
+
+Against that Web URL, set `AGENTICLAB_HOSTS` to
+`default,chatgpt,gemini,copilot,claude-code,claude,microsoft365`. This optional comma-separated list
+asserts the exact available order; the script otherwise checks the returned choices generically.
+`THESERIES_HOSTS` remains supported as a compatibility fallback; `AGENTICLAB_HOSTS` takes precedence
+when both are set.
+Set `THESERIES_HOST_ALIASES='{"ChatGpt":"chatgpt","ClaudeCode":"claude-code","Microsoft365":"microsoft365"}'`
+to check legacy preferences too; use `"default"` for each expected value in the disabled profile.
+The smoke check restores selections in isolated contexts without resetting server conversations,
+checks canonical keys case-insensitively and verifies an unavailable saved host falls back to Default.
+Module logos are fetched from local RCL URLs, decoded to check nonblank pixels, checked for stable
+dimensions, and captured at desktop/mobile widths. No vendor identities are hardcoded in the script.
+
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
 conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
 restoration, reset, Execution maximise/collapse, independent Details/Learn docks, host-only anatomy

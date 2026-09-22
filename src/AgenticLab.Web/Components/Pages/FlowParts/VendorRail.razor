@@ -1,41 +1,28 @@
-@* The full-height vendor rail down the left edge of the page: one brand logo per vendor, the
-    non-brand Default mark pinned at the top with a divider beneath it. Replaces the
-   old Vendor dropdown that lived in FlowControls. The active vendor shows a left-edge accent pill;
-   hovering an icon reveals a tooltip card with the vendor's name, simulated model label, mode count
-   and (when concept info is on) the ⓘ for its product concept. Picking a vendor raises OnSelectVendor,
-    which the page persists and uses to select the harness and swap the agent roster. *@
-
-<nav class="vendor-rail" aria-label="Vendor">
-    @for (var i = 0; i < VendorCatalog.DisplayOrder.Length; i++)
+<nav class="vendor-rail" aria-label="Host">
+    @foreach (var host in View.Roster.AvailableHosts)
     {
-        var vendor = VendorCatalog.DisplayOrder[i];
-        if (i == 1)
-        {
-            <div class="rail-divider" aria-hidden="true"></div>
-        }
-
-        var active = vendor == View.Vendor;
-        var info = View.Roster.VendorInfoFor(vendor);
-        var name = View.Roster.VendorDisplayName(vendor);
+        var active = host.Key == View.HostKey;
+        var presentation = View.Roster.PresentationFor(host.Key);
 
         <div class="rail-item @(active ? "active" : "")">
-            <button type="button" class="rail-icon" aria-label="@name" aria-pressed="@active"
-                    disabled="@Run.Running" @onclick="@(() => SelectAsync(vendor))">
-                <VendorIcon Vendor="vendor" />
+            <button type="button" class="rail-icon" aria-label="@host.DisplayName" aria-pressed="@(active ? "true" : "false")"
+                    disabled="@Run.Running" @onclick="@(() => SelectAsync(host.Key))">
+                <VendorIcon IconPath="@presentation?.IconPath" />
             </button>
             <div class="rail-tooltip" role="tooltip">
-                <span class="rt-name">@name</span>
-                @if (info is not null)
+                <span class="rt-name">@host.DisplayName</span>
+                <span class="rt-model">@host.ModelLabel</span>
+                <span class="rt-modes">@host.Modes.Count mode@(host.Modes.Count == 1 ? "" : "s")</span>
+                @if (presentation?.ProductConceptId is { } conceptId)
                 {
-                    <span class="rt-model">@info.ModelLabel</span>
-                    <span class="rt-modes">@info.Modes.Count mode@(info.Modes.Count == 1 ? "" : "s")</span>
-                }
-                @if (VendorCatalog.ProductConceptId(vendor) is { } conceptId)
-                {
-                    <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {name}")" />
+                    <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {host.DisplayName}")" />
                 }
             </div>
         </div>
+        @if (host.Key == "default" && View.Roster.AvailableHosts.Count > 1)
+        {
+            <div class="rail-divider" aria-hidden="true"></div>
+        }
     }
 </nav>
 
@@ -48,13 +35,13 @@
 
     /// <summary>Raised when the user picks a vendor; the page persists it and refreshes the agent roster.</summary>
     [Parameter, EditorRequired]
-    public EventCallback<Vendor> OnSelectVendor { get; set; }
+    public EventCallback<string> OnSelectVendor { get; set; }
 
-    private async Task SelectAsync(Vendor vendor)
+    private async Task SelectAsync(string key)
     {
-        if (vendor != View.Vendor)
+        if (key != View.HostKey && !Run.Running)
         {
-            await OnSelectVendor.InvokeAsync(vendor);
+            await OnSelectVendor.InvokeAsync(key);
         }
     }
 }

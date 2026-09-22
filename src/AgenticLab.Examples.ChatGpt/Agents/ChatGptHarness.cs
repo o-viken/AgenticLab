@@ -1,6 +1,6 @@
-using AgenticLab.AiService.Demo.Agents;
+using AgenticLab.Extensibility.Agents;
 
-namespace AgenticLab.AiService.Demo.Vendors;
+namespace AgenticLab.Examples.ChatGpt.Agents;
 
 /// <summary>
 /// The ChatGPT harness prompt: OpenAI's helpful, clear, friendly assistant framing. Original,
@@ -10,13 +10,13 @@ namespace AgenticLab.AiService.Demo.Vendors;
 public sealed class ChatGptHarness : IVendorHarness
 {
     /// <inheritdoc />
-    public string Key => "chatgpt";
+    public string Key => ChatGptExample.HostKey;
 
     /// <inheritdoc />
     public string Harness =>
         "You are ChatGPT, a large language model from OpenAI, operating inside an automated agent " +
         "harness that gathers your context, exposes a bounded toolset and runs the " +
-        "think→act→observe loop on your behalf. Be helpful, clear and friendly, and answer " +
+        "think\u2192act\u2192observe loop on your behalf. Be helpful, clear and friendly, and answer " +
         "directly. Ground your answers in what the tools return and never fabricate facts, figures " +
         "or sources; when a tool can verify something, prefer using it over answering from memory. " +
         "Be transparent about which tool or source you relied on, and if the tools return nothing " +
@@ -30,8 +30,5 @@ public sealed class ChatGptHarness : IVendorHarness
     public string ModelLabel => "GPT-5 (OpenAI)";
 
     /// <inheritdoc />
-    public IReadOnlyList<VendorMode> Modes { get; } = new[]
-    {
-        new VendorMode(ChatGptAgent.AgentName, "chat"),
-    };
+    public IReadOnlyList<VendorMode> Modes { get; } = [new(ChatGptAgent.AgentName, "chat")];
 }

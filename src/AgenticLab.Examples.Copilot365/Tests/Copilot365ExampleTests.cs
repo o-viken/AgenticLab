@@ -67,6 +67,11 @@ public sealed class Copilot365ExampleTests
         Assert.Equal("copilot365", module.Manifest.Id);
         Assert.Equal("Copilot 365", module.Manifest.DisplayName);
         Assert.Equal("microsoft365", Assert.Single(module.Manifest.HostKeys));
+        var presentation = module.Manifest.HostPresentation[Copilot365Example.HostKey];
+        Assert.Equal("_content/AgenticLab.Examples.Copilot365/host.svg", presentation.IconPath);
+        Assert.Equal(60, presentation.DisplayOrder);
+        Assert.Equal("microsoft-365-copilot", presentation.ProductConceptId);
+        Assert.Contains("Microsoft365", presentation.LegacyKeys);
         Assert.Equal(3, module.Manifest.AgentNames.Count);
         Assert.Empty(module.Manifest.McpToolNames);
         Assert.Empty(module.Manifest.RemoteAgentNames);

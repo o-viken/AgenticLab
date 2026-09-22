@@ -11,7 +11,7 @@ namespace AgenticLab.AiService.Demo.Agents;
 public sealed class AskAgent(FileSystemTool files) : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
-    public const string AgentName = "Ask";
+    public const string AgentName = SharedAgentNames.Ask;
 
     /// <inheritdoc />
     public override string Name => AgentName;

@@ -1,12 +1,11 @@
 using Microsoft.Extensions.AI;
-using AgenticLab.AiService.Demo.Tools;
+using AgenticLab.Extensibility.Agents;
+using AgenticLab.Extensibility.Runtime;
 
-namespace AgenticLab.AiService.Demo.Agents;
+namespace AgenticLab.Examples.ChatGpt.Agents;
 
-/// <summary>
-/// The ChatGPT demo's conversational agent, with Wikipedia lookup and arithmetic tools.
-/// </summary>
-public sealed class ChatGptAgent(WikiTool wiki, CalculatorTool calculator) : AgentDefinitionBase
+/// <summary>The ChatGPT demo's conversational agent, with Wikipedia lookup and arithmetic tools.</summary>
+public sealed class ChatGptAgent(IHostToolSource tools) : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
     public const string AgentName = "ChatGpt";
@@ -41,5 +40,5 @@ public sealed class ChatGptAgent(WikiTool wiki, CalculatorTool calculator) : Age
         "If tools are disabled or fail, say what you could not verify rather than inventing results.";
 
     /// <inheritdoc />
-    public override IList<AITool> Tools => [.. wiki.AsTools(), .. calculator.AsTools()];
+    public override IList<AITool> Tools => tools.GetTools(["SearchWiki", "GetWikiPage", "Calculate"]);
 }

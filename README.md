@@ -93,7 +93,8 @@ it and its dependencies, then starts the application. No separate build command 
 Open the Aspire dashboard URL printed in the terminal, then open the **web** resource's endpoint.
 The dashboard also provides service logs and traces.
 
-Start with a conversation, or select **ChatGPT / chat** and try:
+Development startup enables **Default**, **ChatGPT**, **GitHub Copilot** and **Copilot 365**.
+Start with a conversation in Default, or select **ChatGPT / chat** and try:
 
 > Find the height of the Eiffel Tower on Wikipedia, then calculate how much taller it is
 > than a 250-metre building.
@@ -145,9 +146,15 @@ tests and documentation together. See the [example catalogue and contributor gui
 and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo,
 or [Copilot 365](src/AgenticLab.Examples.Copilot365/README.md) for workplace chat, research and analysis
 over synthetic Microsoft 365 data.
-Examples are disabled by default and reuse the existing hosts when enabled.
+Every non-default host is an opt-in example, including **ChatGPT**, **Gemini**, **GitHub Copilot**,
+**Claude Code**, **Claude**, **Copilot 365** and **Windfarm**. Each owns its host-specific prompts,
+branding and tests. The shared learning guide remains available independently of enabled examples.
+Use `Examples:<id>:Enabled=true` with IDs `chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`,
+`copilot365` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
+`copilot` and `copilot365`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
+start with only Default unless examples are explicitly enabled.
 
-The previously built-in workplace Copilot host and its three agents are now opt-in:
+For example, enable the workplace Copilot host and its three agents:
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=true

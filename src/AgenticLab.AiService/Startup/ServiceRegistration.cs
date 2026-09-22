@@ -59,17 +59,12 @@ internal static class ServiceRegistration
     }
 
     /// <summary>
-    /// The vendor harness catalog (infrastructure) plus each brand's representative prompt content from
-    /// Demo/Vendors. The non-brand Default harness is empty and means "keep the agent's own harness".
+    /// The vendor harness catalog and the built-in Default host. Optional examples contribute all
+    /// branded hosts; Default's empty harness means "keep the agent's own harness".
     /// </summary>
     public static IServiceCollection AddVendorHarnesses(this IServiceCollection services)
     {
         services.AddSingleton<IVendorHarness, DefaultHarness>();
-        services.AddSingleton<IVendorHarness, CopilotHarness>();
-        services.AddSingleton<IVendorHarness, ClaudeCodeHarness>();
-        services.AddSingleton<IVendorHarness, ClaudeHarness>();
-        services.AddSingleton<IVendorHarness, ChatGptHarness>();
-        services.AddSingleton<IVendorHarness, GeminiHarness>();
         services.AddSingleton<VendorHarnessCatalog>();
         return services;
     }
@@ -80,7 +75,6 @@ internal static class ServiceRegistration
         services.AddSingleton<ExampleCatalog>();
         services.AddSingleton<IAgentRunContext, AgentRunContext>();
         services.AddSingleton<IAgentDefinition, ChatAgent>();
-        services.AddSingleton<IAgentDefinition, ChatGptAgent>();
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
         services.AddSingleton<IAgentDefinition, MathTutorAgent>();
         // services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();

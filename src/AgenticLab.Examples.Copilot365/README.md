@@ -1,21 +1,22 @@
 # Copilot 365
 
 An opt-in workplace Copilot example with chat, researcher and analyst agents. The module owns its
-personas, host prompt, tools, synthetic Microsoft 365 data, resource/risk metadata and tests. It uses
+personas, host prompt, tools, synthetic Microsoft 365 data, branding, resource/risk metadata and tests. It uses
 the existing chat API and Flow UI, with no custom panel, extra service or module-specific endpoint.
 This is a representative teaching sample, not Microsoft's product implementation or system prompt.
 
 ## Enable
 
-From the repository root, with the normal [Azure OpenAI setup](../../README.md):
+AppHost enables this module in Development. Use `--Examples:copilot365:Enabled=false` to disable it.
+For other environments, enable it from the repository root with the normal [Azure OpenAI setup](../../README.md):
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=true
 ```
 
 Open **web** in Aspire and select **Copilot 365**, then **chat**, **researcher** or **analyst**.
-Without the flag, the module contributes no agents, host, tools or manifest. Existing saved host
-selections fall back to an available host when the module is disabled. For standalone processes,
+When disabled, the module contributes no agents, host, tools or manifest. Existing saved host
+selections fall back to Default when the module is disabled. For standalone processes,
 set `Examples__copilot365__Enabled=true` on both AiService and Web: Web loads the manifest for resource
 and risk presentation even though the module does not need a panel.
 
@@ -60,7 +61,9 @@ instruction, not a host-enforced approval gate; the sample must not be wired to 
 [Copilot365Example](Copilot365Example.cs) implements `IAiServiceExample`. AiService registers its
 three `IAgentDefinition` instances and `IVendorHarness` only when enabled. Web registers the same
 module for metadata only; `RequiresUi=false`, with no `IWebExample`, MCP or A2A contribution.
-Its manifest owns the Microsoft 365 resource and `SendMail` risk description.
+Its manifest owns the Microsoft 365 resource, `SendMail` risk description and host presentation.
+The logo is a local RCL asset under `wwwroot/host.svg`; ordering, the shared Learn concept link and
+the legacy `Microsoft365` selection alias are declared alongside it, not in core Web switches.
 
 Use the **aiservice** URL from Aspire with [Copilot365.http](Copilot365.http). `GET /examples` exposes
 the `copilot365` manifest. The three `/agents` entries and `/vendors` host carry

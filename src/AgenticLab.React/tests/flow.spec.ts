@@ -10,6 +10,25 @@ async function send(page: Page, message: string) {
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
 }
 
+test('Default-only catalogue keeps host and agent selection usable', async ({ page }, testInfo) => {
+  await page.route('**/api/vendors', async route => {
+    const response = await route.fetch()
+    const catalogue = await response.json() as { vendors: { key: string }[] }
+    await route.fulfill({ response, json: {
+      ...catalogue, vendors: catalogue.vendors.filter(vendor => vendor.key === 'default'),
+    } })
+  })
+  await open(page)
+  const host = page.getByLabel('Host', { exact: true })
+  await expect(host).toHaveValue('default')
+  await expect(host.locator('option')).toHaveText(['Default'])
+  await page.getByLabel('Agent', { exact: true }).selectOption('Chat')
+  await expect(page.getByLabel('Agent', { exact: true })).toHaveValue('Chat')
+  await expect(host).toHaveValue('default')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('default-only.png'), fullPage: true })
+})
+
 test('repository link opens GitHub separately without losing the draft', async ({ page, context }, testInfo) => {
   const repository = 'https://github.com/o-viken/agenticlab'
   await context.route(repository, route => route.fulfill({ contentType: 'text/html', body: '<title>Agentic Lab on GitHub</title>' }))

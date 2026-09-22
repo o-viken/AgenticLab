@@ -15,7 +15,20 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     private IReadOnlyList<ExampleManifest> _examples = [];
 
     /// <summary>Registers supported local modules and their metadata, including modules without panels.</summary>
-    public void SetExamples(IEnumerable<ExampleManifest> examples) => _examples = examples.ToArray();
+    public void SetExamples(IEnumerable<ExampleManifest> examples)
+    {
+        _examples = examples.ToArray();
+        notify();
+    }
+
+    /// <summary>Local branding for the host key, independent of the owner of its selected agent.</summary>
+    public ExampleHostPresentation? PresentationFor(string hostKey) => _examples
+        .Where(example => example.HostKeys.Contains(hostKey, StringComparer.OrdinalIgnoreCase))
+        .SelectMany(example => example.HostPresentation)
+        .FirstOrDefault(entry => string.Equals(entry.Key, hostKey, StringComparison.OrdinalIgnoreCase)).Value;
+
+    /// <summary>The selected host's optional locally registered presentation.</summary>
+    public ExampleHostPresentation? CurrentHostPresentation => PresentationFor(owner.HostKey);
 
     /// <summary>The enabled module owning the selected agent, independent of built-in branding.</summary>
     public ExampleManifest? CurrentExample => _examples.FirstOrDefault(example =>
@@ -27,7 +40,9 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     /// <summary>Backend hosts supported by this client, including arbitrary registered example keys.</summary>
     public IReadOnlyList<VendorInfo> AvailableHosts => _vendors.Values
         .Where(vendor => !vendor.RequiresExampleUi || _examples.Any(example => example.Id == vendor.ExampleId))
-        .OrderBy(vendor => Array.FindIndex(VendorCatalog.DisplayOrder, item => VendorCatalog.HarnessKey(item) == vendor.Key) is var index && index >= 0 ? index : int.MaxValue)
+        .OrderBy(vendor => string.Equals(vendor.Key, "default", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+        .ThenBy(vendor => PresentationFor(vendor.Key)?.DisplayOrder ?? int.MaxValue)
+        .ThenBy(vendor => vendor.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
     /// <summary>Resources contributed by enabled local modules.</summary>
@@ -37,10 +52,12 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     /// <summary>Restores a compatible saved key, falling back when a module is unavailable.</summary>
     public string RestoreHost(string? stored)
     {
-        var key = string.IsNullOrEmpty(stored) ? owner.HostKey : VendorCatalog.NormalizeKey(stored);
-        return AvailableHosts.FirstOrDefault(host => host.Key == key)?.Key
-            ?? AvailableHosts.FirstOrDefault(host => host.Key == "chatgpt")?.Key
-            ?? AvailableHosts.FirstOrDefault()?.Key ?? "default";
+        var key = string.IsNullOrWhiteSpace(stored) ? owner.HostKey : stored;
+        var available = AvailableHosts;
+        return available.FirstOrDefault(host => string.Equals(host.Key, key, StringComparison.OrdinalIgnoreCase)
+                || PresentationFor(host.Key)?.LegacyKeys.Contains(key, StringComparer.OrdinalIgnoreCase) == true)?.Key
+            ?? available.FirstOrDefault(host => string.Equals(host.Key, "default", StringComparison.OrdinalIgnoreCase))?.Key
+            ?? available.FirstOrDefault()?.Key ?? "default";
     }
 
     /// <summary>The agents the service registered (loaded once on initialise).</summary>
@@ -85,13 +102,6 @@ internal sealed class AgentRoster(FlowViewState owner, Action notify)
     /// <summary>The loaded metadata for the selected vendor, or null for a vendor without a harness key or before load.</summary>
     public VendorInfo? CurrentVendorInfo =>
         owner.VendorKey is { } key && _vendors.TryGetValue(key, out var info) ? info : null;
-
-    /// <summary>The loaded metadata for the given vendor (used by the vendor rail's hover tooltips), or null before load.</summary>
-    public VendorInfo? VendorInfoFor(Vendor vendor) =>
-        VendorCatalog.HarnessKey(vendor) is { } key && _vendors.TryGetValue(key, out var info) ? info : null;
-
-    /// <summary>The friendly display name of the given vendor, falling back to its enum name before metadata loads.</summary>
-    public string VendorDisplayName(Vendor vendor) => VendorInfoFor(vendor)?.DisplayName ?? vendor.ToString();
 
     /// <summary>The friendly display name of the selected vendor (page title and header).</summary>
     public string VendorName => CurrentVendorInfo?.DisplayName ?? owner.HostKey;

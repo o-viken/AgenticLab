@@ -21,6 +21,13 @@ public sealed class Copilot365Example : IAiServiceExample
     public ExampleManifest Manifest { get; } = new(Id, "Copilot 365", [HostKey],
         [Microsoft365Agent.AgentName, M365ResearcherAgent.AgentName, M365AnalystAgent.AgentName])
     {
+        HostPresentation = new Dictionary<string, ExampleHostPresentation>
+        {
+            [HostKey] = new("_content/AgenticLab.Examples.Copilot365/host.svg", 60, "microsoft-365-copilot")
+            {
+                LegacyKeys = ["Microsoft365"],
+            },
+        },
         ToolRisks = new Dictionary<string, ExampleToolRisk>
         {
             [nameof(Microsoft365Tool.SendMail)] = new("Medium",

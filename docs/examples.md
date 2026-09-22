@@ -9,6 +9,24 @@ See [Windfarm](../src/AgenticLab.Examples.Windfarm/README.md) for a full multi-h
 or [Copilot 365](../src/AgenticLab.Examples.Copilot365/README.md) for a smaller agent/tool example
 without a custom panel.
 
+## Default startup
+
+Default is the only built-in host, including in Development. All branded hosts are separate opt-in
+modules, enabled with `Examples:<id>:Enabled=true`. The IDs are `chatgpt`, `gemini`, `copilot`,
+`claude-code`, `claude`, `copilot365` and `windfarm`; flags can be combined. The Copilot365 API host
+key remains `microsoft365`, while the other modules use their ID as the host key.
+
+AppHost's Development configuration enables ChatGPT, GitHub Copilot and Copilot 365 alongside Default.
+Other environments and standalone services still require explicit example configuration.
+Override a Development default with `--Examples:<id>:Enabled=false`.
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- --Examples:chatgpt:Enabled=true --Examples:copilot:Enabled=true
+```
+
+The representative prompts and model labels do not connect to the named vendors' products. Model
+clients and deployment configuration remain host-owned. Shared learning content is always available.
+
 ## Dependency boundary
 
 ```mermaid
@@ -32,6 +50,12 @@ contracts; explicit module registration; narrow runtime/panel contracts; and the
 `LabButton`, `LabField`, `LabStatus` and `MiniIcon` controls. It does not own example process state
 or a generic approval/workflow engine.
 
+Harness-only examples declare `AgentNames: []`: that list denotes ownership, not every mode a host
+offers. `SharedAgentNames` exposes the stable core `ChatAgent`, `Ask`, `Plan` and `Coder` identities
+without referencing AiService. Claude and Gemini reuse ChatAgent; Copilot reuses Ask/Plan/Coder;
+Claude Code reuses Plan/Coder. These agents stay registered once in core. ChatGPT owns its dedicated
+`ChatGpt` agent, which consumes `IHostToolSource` instead of concrete host tool classes.
+
 ## Add an example
 
 1. Create `src/AgenticLab.Examples.<Name>` using `Microsoft.NET.Sdk.Razor`, targeting `net10.0` and
@@ -54,7 +78,7 @@ or a generic approval/workflow engine.
    Use `ExampleHost.Mcp`, `ExampleHost.A2A` or `ExampleHost.Web` in the other composition roots.
    The existing generic loading/mapping hooks do the rest. Add the project/test project to the solution.
 5. Enable it through `--Examples:<id>:Enabled=true` when starting AppHost. AppHost forwards the
-   `Examples` configuration section to all participating hosts. Omit the flag to contribute nothing.
+   `Examples` configuration section to all participating hosts. Disabled modules contribute nothing.
    Referenced assemblies still build and their static assets may still be present; this is not unloading.
 6. Add credential-free tests for domain invariants, disabled contributions, errors, concurrent cases,
    real loopback protocols and UI lifecycle. Link the example README from the catalogue here.
@@ -121,10 +145,24 @@ Cancel work on disposal; compare conversation/generation before publishing async
 Do not let refresh responses invalidate an in-flight command. A failed mutation is not success;
 reconcile authoritative state and use explicit idempotency for retryable side effects.
 
-Host selection uses catalogue keys rather than extending the branding enum. The unchanged
-`theseries-vendor` preference reads old enum-name strings and current keys, falling back safely when
-the saved module is unavailable. Preserve existing state-root constructors, notifications and causal
-replay behavior. Current case state is separate from replay; never invent tool events for UI actions.
+Host selection uses catalogue keys; there is no branding enum. The unchanged `theseries-vendor`
+preference accepts canonical keys case-insensitively and enabled modules' legacy aliases. Missing or
+disabled selections fall back to available Default, then the first available host. Preserve existing
+state-root constructors, notifications and causal replay behavior. Current case state is separate
+from replay; never invent tool events for UI actions.
+
+`ExampleManifest.HostPresentation` optionally maps owned host keys to `ExampleHostPresentation`:
+`IconPath`, `DisplayOrder`, `ProductConceptId` and `LegacyKeys`. Register the module for Web even when
+it has no panel. Lookup follows the host key, not the selected agent's owner, so shared agents do not
+lose their host's branding or acquire another example's tool risks. Default sorts first; module order
+comes next, then display name. Missing local metadata uses the neutral icon without hiding an otherwise
+supported backend host. Availability still comes only from `GET /vendors` and existing UI gating.
+
+Move existing logos into the owning RCL's `wwwroot/host.svg`, and use
+`_content/<assembly>/host.svg`. Registration permits only local RCL SVG paths, rejects presentation
+for unowned host keys, reserves Default, and rejects conflicting host keys or legacy aliases.
+Web renders the asset in a fixed-size, current-color mask, never remote markup or a component type.
+Product concept IDs link to the shared Learn curriculum, which does not depend on module enablement.
 
 Reuse the shared controls and host `--lab-*` tokens. Scope styles and static assets to the example,
 using RCL `_content/<assembly>/...` paths. Domain panels remain compact, keyboard accessible and
@@ -134,5 +172,10 @@ responsive, leaving the conversation composer usable. See the [design system](de
 
 | Example | Purpose | Documentation and tests |
 | --- | --- | --- |
+| ChatGPT | Dedicated conversational agent with bounded Wikipedia and calculator tools | [Project README](../src/AgenticLab.Examples.ChatGpt/README.md), [module tests](../src/AgenticLab.Examples.ChatGpt/Tests) |
+| Gemini | Representative host prompt over the shared tool-free chat agent | [Project README](../src/AgenticLab.Examples.Gemini/README.md), [module tests](../src/AgenticLab.Examples.Gemini/Tests) |
+| GitHub Copilot | Representative host prompt over shared Ask, Plan and Coder modes | [Project README](../src/AgenticLab.Examples.Copilot/README.md), [module tests](../src/AgenticLab.Examples.Copilot/Tests) |
+| Claude Code | Representative host prompt over shared Plan and Coder modes | [Project README](../src/AgenticLab.Examples.ClaudeCode/README.md), [module tests](../src/AgenticLab.Examples.ClaudeCode/Tests) |
+| Claude | Representative host prompt over the shared tool-free chat agent | [Project README](../src/AgenticLab.Examples.Claude/README.md), [module tests](../src/AgenticLab.Examples.Claude/Tests) |
 | Copilot 365 | Workplace chat, research and analysis over synthetic Microsoft 365 data; no custom panel | [Project README](../src/AgenticLab.Examples.Copilot365/README.md), [module tests](../src/AgenticLab.Examples.Copilot365/Tests) |
 | Windfarm | Synthetic alarm investigation, remote specialist review and human-approved planned inspection | [Project README](../src/AgenticLab.Examples.Windfarm/README.md), [module tests](../src/AgenticLab.Examples.Windfarm/Tests) |
