@@ -57,21 +57,6 @@ public enum PanelSide
 }
 
 /// <summary>
-/// The vendor/brand whose look, agent roster, simulated model label and harness system prompt are
-/// applied to the page. <see cref="Default"/> is the non-brand original look (no harness override).
-/// </summary>
-public enum Vendor
-{
-    Default,
-    Copilot,
-    ClaudeCode,
-    Claude,
-    ChatGpt,
-    Gemini,
-    Microsoft365,
-}
-
-/// <summary>
 /// One exchange in the conversation: the user's message, the responding agent, its final reply (or
 /// error) and the full ordered flow history for that turn. <paramref name="Id"/> is assigned when the
 /// message is sent and survives archiving, so a selection in the Execution explorer stays put. The

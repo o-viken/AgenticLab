@@ -137,6 +137,8 @@ internal sealed class FlowRunController : IDisposable
     public void ReportError(string message) => _error = message;
 
     public bool Running => _running;
+    /// <summary>The current conversation identity exposed to host-owned extension adapters.</summary>
+    public string ConversationId => _conversationId;
     public bool Paused => _paused;
 
     /// <summary>Whether execution is currently held at a server-reported breakpoint.</summary>

@@ -38,5 +38,5 @@ public sealed class TimeKeeperAgent(McpToolProvider mcp) : AgentDefinitionBase
         "server rather than guessing, then state the result clearly. Keep replies short.";
 
     /// <inheritdoc />
-    public override IList<AITool> Tools => mcp.GetTools();
+    public override IList<AITool> Tools => mcp.GetTools(["GetCurrentTime"]);
 }

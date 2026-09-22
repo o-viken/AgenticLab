@@ -83,7 +83,7 @@ jobs:
           file: Dockerfile
           target: ${{ matrix.service }}
           push: true
-          tags: ghcr.io/o-viken/the-series-${{ matrix.service }}:${{ steps.image.outputs.tag }}
+          tags: ghcr.io/o-viken/agenticlab-${{ matrix.service }}:${{ steps.image.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true

@@ -1,5 +1,13 @@
 using AgenticLab.AiService.Endpoints;
 using AgenticLab.AiService.Startup;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.ChatGpt;
+using AgenticLab.Examples.Claude;
+using AgenticLab.Examples.ClaudeCode;
+using AgenticLab.Examples.Copilot;
+using AgenticLab.Examples.Gemini;
+using AgenticLab.Examples.Copilot365;
+using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,12 +27,20 @@ builder.Services
     .AddFlowTracing()
     .AddDiscovery();
 
+builder.Services.AddExample<ChatGptExample>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<ClaudeExample>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<ClaudeCodeExample>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<CopilotExample>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<GeminiExample>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.AiService);
+
 var app = builder.Build();
 
 // Discover the MCP server's tools and connect to the A2A server at startup so discovery-using agents pick
 // them up, unless disabled via Discovery:OnStartup. Either way discovery can be (re)run on demand from the
 // discovery page. Degrades gracefully when a server is unavailable.
-if (app.Services.GetRequiredService<DiscoveryTracer>().DiscoverOnStartup)
+if (app.Configuration.GetValue("Discovery:OnStartup", true))
 {
     await app.Services.GetRequiredService<McpToolProvider>().ConnectAsync();
     await app.Services.GetRequiredService<A2AAgentProvider>().ConnectAsync();
@@ -35,5 +51,6 @@ app.MapAgentEndpoints();
 app.MapWorkspaceEndpoints();
 app.MapDiscoveryEndpoints();
 app.MapChatEndpoints();
+app.MapExamples();
 
 app.Run();

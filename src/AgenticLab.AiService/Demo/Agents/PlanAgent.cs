@@ -12,7 +12,7 @@ namespace AgenticLab.AiService.Demo.Agents;
 public sealed class PlanAgent(FileSystemTool files, AskQuestionTool ask) : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
-    public const string AgentName = "Plan";
+    public const string AgentName = SharedAgentNames.Plan;
 
     /// <inheritdoc />
     public override string Name => AgentName;

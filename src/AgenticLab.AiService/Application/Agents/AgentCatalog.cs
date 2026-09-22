@@ -74,7 +74,7 @@ public sealed class AgentCatalog
     public string DefaultName { get; }
 
     /// <summary>The available agents, in registration order.</summary>
-    public IReadOnlyList<AgentInfo> Agents { get; }
+    public IReadOnlyList<AgentInfo> Agents { get; private set; }
 
     /// <summary>
     /// Rebuilds the cached agents whose tools come from a discovery source (MCP or A2A) so a re-discovery
@@ -99,6 +99,11 @@ public sealed class AgentCatalog
                 name: build.Definition.Name,
                 tools: build.Definition.Tools);
         }
+
+        Agents = Agents.Select(info => _builds.TryGetValue(info.Name, out var build)
+            && (build.Definition.SupportsMcp || build.Definition.SupportsA2A)
+                ? info with { Tools = build.Definition.Tools.OfType<AIFunction>().Select(tool => tool.Name).ToArray() }
+                : info).ToArray();
     }
 
     /// <summary>Resolves the agent by name (case-insensitive), or the default when <paramref name="name"/> is null/blank.</summary>

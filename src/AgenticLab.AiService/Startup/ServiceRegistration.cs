@@ -2,6 +2,8 @@ using OpenTelemetry.Metrics;
 using AgenticLab.AiService.Demo.Agents;
 using AgenticLab.AiService.Demo.Tools;
 using AgenticLab.AiService.Demo.Vendors;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Extensibility.Runtime;
 
 namespace AgenticLab.AiService.Startup;
 
@@ -12,7 +14,7 @@ namespace AgenticLab.AiService.Startup;
 /// </summary>
 internal static class ServiceRegistration
 {
-    /// <summary>The demo tools (Wikipedia, calculator, fake Microsoft 365) and the harness's own workspace/web/question tools.</summary>
+    /// <summary>The shared demo tools (Wikipedia and calculator) and the harness's own workspace/web/question tools.</summary>
     public static IServiceCollection AddHarnessTools(this IServiceCollection services)
     {
         // Wikipedia requires a descriptive User-Agent.
@@ -24,9 +26,7 @@ internal static class ServiceRegistration
         services.AddSingleton(sp =>
             new WikiTool(sp.GetRequiredService<IHttpClientFactory>().CreateClient("wikipedia")));
         services.AddSingleton<CalculatorTool>();
-
-        // Fake Microsoft 365 / Graph tool set (canned, in-memory) used by the Microsoft 365 Copilot agents.
-        services.AddSingleton<Microsoft365Tool>();
+        services.AddSingleton<IHostToolSource, DemoToolSource>();
 
         // Workspace-scoped tools for the coding agents.
         services.AddSingleton<FileSystemTool>();
@@ -59,18 +59,12 @@ internal static class ServiceRegistration
     }
 
     /// <summary>
-    /// The vendor harness catalog (infrastructure) plus each brand's representative prompt content from
-    /// Demo/Vendors. The non-brand Default harness is empty and means "keep the agent's own harness".
+    /// The vendor harness catalog and the built-in Default host. Optional examples contribute all
+    /// branded hosts; Default's empty harness means "keep the agent's own harness".
     /// </summary>
     public static IServiceCollection AddVendorHarnesses(this IServiceCollection services)
     {
         services.AddSingleton<IVendorHarness, DefaultHarness>();
-        services.AddSingleton<IVendorHarness, CopilotHarness>();
-        services.AddSingleton<IVendorHarness, ClaudeCodeHarness>();
-        services.AddSingleton<IVendorHarness, ClaudeHarness>();
-        services.AddSingleton<IVendorHarness, ChatGptHarness>();
-        services.AddSingleton<IVendorHarness, GeminiHarness>();
-        services.AddSingleton<IVendorHarness, Microsoft365Harness>();
         services.AddSingleton<VendorHarnessCatalog>();
         return services;
     }
@@ -78,17 +72,15 @@ internal static class ServiceRegistration
     /// <summary>The demo agent definitions (first registered is the default) and the catalog that builds them on their chat clients.</summary>
     public static IServiceCollection AddDemoAgents(this IServiceCollection services)
     {
+        services.AddSingleton<ExampleCatalog>();
+        services.AddSingleton<IAgentRunContext, AgentRunContext>();
         services.AddSingleton<IAgentDefinition, ChatAgent>();
-        services.AddSingleton<IAgentDefinition, ChatGptAgent>();
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
         services.AddSingleton<IAgentDefinition, MathTutorAgent>();
         // services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
         services.AddSingleton<IAgentDefinition, AskAgent>();
         services.AddSingleton<IAgentDefinition, PlanAgent>();
         services.AddSingleton<IAgentDefinition, CoderAgent>();
-        services.AddSingleton<IAgentDefinition, Microsoft365Agent>();
-        services.AddSingleton<IAgentDefinition, M365ResearcherAgent>();
-        services.AddSingleton<IAgentDefinition, M365AnalystAgent>();
         services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
         services.AddSingleton<IAgentDefinition, OrchestratorAgent>();
 
@@ -127,6 +119,8 @@ internal static class ServiceRegistration
     {
         services.AddSingleton<McpToolProvider>();
         services.AddSingleton<A2AAgentProvider>();
+        services.AddSingleton<IMcpToolSource>(provider => provider.GetRequiredService<McpToolProvider>());
+        services.AddSingleton<IAgentDelegation>(provider => provider.GetRequiredService<A2AAgentProvider>());
         services.AddSingleton<DiscoveryTracer>();
         return services;
     }

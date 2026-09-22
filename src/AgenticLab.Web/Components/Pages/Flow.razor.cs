@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using AgenticLab.Web.Flow;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Web.Components.Pages.FlowParts;
 
 namespace AgenticLab.Web.Components.Pages;
 
@@ -13,10 +15,10 @@ namespace AgenticLab.Web.Components.Pages;
 /// </summary>
 public partial class Flow : IDisposable
 {
-    private const string VendorStorageKey = "theseries-vendor";
-    private const string PanelStorageKey = "theseries-panels";
-    private const string WorkspaceBasesStorageKey = "theseries-workspace-bases";
-    private const string RecentWorkspacesStorageKey = "theseries-workspace-recent";
+    private const string VendorStorageKey = "agenticlab-vendor";
+    private const string PanelStorageKey = "agenticlab-panels";
+    private const string WorkspaceBasesStorageKey = "agenticlab-workspace-bases";
+    private const string RecentWorkspacesStorageKey = "agenticlab-workspace-recent";
 
     [Inject]
     private AiServiceClient Ai { get; set; } = default!;
@@ -33,6 +35,36 @@ public partial class Flow : IDisposable
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
     private bool _catalogsLoaded;
+    private ExamplePanelHost? _examplePanel;
+
+    [Inject] private IEnumerable<IExampleModule> Examples { get; set; } = [];
+
+    private IWebExample? SelectedExample => Examples.OfType<IWebExample>()
+        .FirstOrDefault(example => example.Manifest.HostKeys.Contains(_view.HostKey));
+
+    private ExamplePanelContext PanelContext => new(_run.ConversationId, _view.HostKey, _view.SelectedAgent,
+        _run.Running, _run.StateVersion, text => _view.Message = text, ResetExampleConversationAsync);
+
+    private async Task<string> ResetExampleConversationAsync()
+    {
+        if (_run.Running) throw new InvalidOperationException("Stop the run before starting a new conversation.");
+        if (SelectedExample is not null && _examplePanel is not null) await _examplePanel.BeforeResetAsync();
+        await _run.NewConversationAsync();
+        return _run.ConversationId;
+    }
+
+    private async Task NewConversationAsync()
+    {
+        if (_run.Running) return;
+        try
+        {
+            await ResetExampleConversationAsync();
+        }
+        catch (Exception ex)
+        {
+            _run.ReportError($"Could not reset the example: {ex.Message}");
+        }
+    }
 
     /// <summary>How much the Execution panel has captured, shown in its header.</summary>
     private string ExecutionMeta
@@ -53,6 +85,8 @@ public partial class Flow : IDisposable
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);
+        _view.Roster.SetExamples(Examples.Where(example => !example.Manifest.RequiresUi || example is IWebExample)
+            .Select(example => example.Manifest));
         _run = new FlowRunController(Ai, _view, Retention.Value);
         _view.Changed += OnViewChanged;
         _view.WorkspacePrefs.Changed += OnWorkspacePrefsChanged;
@@ -67,6 +101,7 @@ public partial class Flow : IDisposable
             if (vendors is not null)
             {
                 _view.Roster.SetVendors(vendors.Vendors);
+                _view.HostKey = _view.Roster.RestoreHost(null);
             }
 
             var response = await Ai.GetAgentsAsync();
@@ -96,11 +131,10 @@ public partial class Flow : IDisposable
         try
         {
             var stored = await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
-            if (!string.IsNullOrEmpty(stored)
-                && Enum.TryParse<Vendor>(stored, out var vendor)
-                && vendor != _view.Vendor)
+            var restored = _view.Roster.RestoreHost(stored);
+            if (restored != _view.HostKey)
             {
-                _view.Vendor = vendor;
+                _view.HostKey = restored;
                 _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;
                 await _run.Catalogs.RefreshWorkspaceContextAsync();
                 await _run.Catalogs.RefreshKnownA2AAsync();
@@ -157,19 +191,20 @@ public partial class Flow : IDisposable
     }
 
     private Task OnHostChangedAsync(ChangeEventArgs args) =>
-        Enum.TryParse<Vendor>(args.Value?.ToString(), out var vendor) && vendor != _view.Vendor && !_run.Running
-            ? SetVendorAsync(vendor) : Task.CompletedTask;
+        args.Value?.ToString() is { } key && key != _view.HostKey && !_run.Running
+            && _view.Roster.AvailableHosts.Any(host => host.Key == key)
+            ? SetVendorAsync(key) : Task.CompletedTask;
 
-    private async Task SetVendorAsync(Vendor vendor)
+    private async Task SetVendorAsync(string key)
     {
-        if (vendor == _view.Vendor || _run.Running) return;
+        if (key == _view.HostKey || _run.Running) return;
 
-        _view.Vendor = vendor;
+        _view.HostKey = key;
         _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;
         await _run.NewConversationAsync();
         try
         {
-            await JS.InvokeVoidAsync("localStorage.setItem", VendorStorageKey, vendor.ToString());
+            await JS.InvokeVoidAsync("localStorage.setItem", VendorStorageKey, key);
         }
         catch
         {

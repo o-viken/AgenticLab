@@ -1,12 +1,29 @@
 # Web flow page (live agent run visualization)
 
-Part of the [Agentic Lab architecture notes](../AGENTS.md). How the Blazor flow page animates a real agent run: the page shell and dockable panels, view presets and independent display options, the conversation surface, the captured LLM payloads and prompt signature, the simulated inference / embeddings / neural-network panels, backend-gated stepping and the environment & risk view. The Execution dock and breakpoints have [their own page](execution-explorer.md); the Learn panel is under [learning](learning.md).
+Part of the [Agentic Lab architecture notes](../AGENTS.md). The Blazor workspace visualizes captured
+agent execution. See also [Execution and breakpoints](execution-explorer.md) and [Learn](learning.md).
+
+## Example Panels
+
+Self-contained [example modules](examples.md) can supply a compact panel above the conversation.
+The host selector is driven by catalogue keys, not a closed branding enum. The
+`agenticlab-vendor` preference accepts legacy enum names and catalogue keys; unavailable modules fall back
+to a supported host. Modes requiring a panel appear only when that module is registered locally.
+
+`ExamplePanelHost` renders a locally registered component through a narrow `ExamplePanelContext`:
+conversation/host/agent identity, running state, version and draft/new-conversation commands.
+Example case controllers and UI remain in their module; Flow roots contain no domain state.
+Web awaits optional module cleanup before New conversation. Raw `/chat/reset` only resets chat
+history. Case decisions and current process state stay separate from causally bounded execution
+replay. Module metadata supplies tool resource/risk labels without core domain-name switches.
 
 ## Live flow visualization
 
-**Rename compatibility.** Agentic Lab retains the `theseries-vendor`, `theseries-panels`,
-`theseries-workspace-bases` and `theseries-workspace-recent` local-storage keys so existing preferences
-survive the rename on the same browser origin. Routes, concept IDs and lesson permalinks are unchanged.
+**Browser preferences.** Agentic Lab uses the `agenticlab-vendor`, `agenticlab-panels`,
+`agenticlab-workspace-bases` and `agenticlab-workspace-recent` local-storage keys. Preferences saved
+under previous product-name keys are not migrated: host, layout and workspace preferences start from
+defaults after the rename. Previous entries are left untouched. Routes, concept IDs and lesson
+permalinks are unchanged.
 The panel JavaScript API is now `agenticLabPanels`, with matching Blazor interop calls.
 
 **Host inspector.** Enable **Expand agent host** under **View options** to make the anatomy's
@@ -161,8 +178,8 @@ Conversation width is clamped to 240-960px and at most 65% of primary space; aux
 240-640px and Execution height 120-900px. Fresh/reset Execution height is 240px and Learn width 260px.
 
 `PanelLayout.AdaptiveConversationWidth` is true initially; dragging Conversation switches to a pixel
-preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the unchanged
-`theseries-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
+preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the
+`agenticlab-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
 sizes/collapse flags. **Reset layout** in Settings deliberately restores adaptive sizing without
 resetting the run, draft, replay cursor, Details selection or Learn visibility. Details remains
 page-lifetime state, not persisted. Execution maximise is also transient.
@@ -289,29 +306,52 @@ kept **identical to the Prompt signature's current total** — both report the c
 latest `llm-request` (system prompt + every re-sent user/assistant/tool message, excluding the static tool
 catalogue and JSON structure): `FlowRunController.Projections.ContextSize` simply returns
 `PromptSignatureView.CurrentChars`, so the two numbers always agree. The **Host** selector offers
-**Default**, **GitHub Copilot**, **Claude Code**, **Claude**, **ChatGPT**, **Gemini** and **Microsoft 365
-Copilot**, in `VendorCatalog.DisplayOrder`. The selected logo remains beside the selector; its native
+**Default** plus enabled examples. AppHost's Development defaults add **ChatGPT**, **GitHub Copilot**
+and **Copilot 365**; other environments start with only Default unless configured otherwise.
+**GitHub Copilot**, **Claude Code**, **Claude**, **ChatGPT**,
+**Gemini**, **Copilot 365** and **Windfarm** appear only when their examples are enabled.
+`AgentRoster` keeps Default first, then uses locally enabled modules' `HostPresentation.DisplayOrder`
+and display names; metadata never adds a host missing from the backend catalogue.
+Each example owns its logo asset, product concept link and legacy selection aliases. The selected
+logo remains beside the selector; its native
 tooltip retains the model label and mode count. When **Learn** is enabled the selected host's product
 concept remains accessible through the adjacent info button. All hosts share the design-system palette.
 The selector invokes `SetVendorAsync`, retaining persistence and catalogue refreshes. Each vendor also
 **curates which agents the Agent picker offers**, mirroring that product's "modes": the roster comes from the
 vendor definition's `Modes` (loaded via `GET /vendors`) for every vendor including the non-brand **Default** —
-each entry a `(backend agent name, display label)` pair: **Default** → `wiki` (`WikiAssistant`) + `chat`
-(`ChatAgent`); **GitHub Copilot** → `ask` (`Ask`), `plan` (`Plan`), `agent` (`Coder`);
-**ChatGPT**/**Claude**/**Gemini** → `chat` (`ChatAgent`); **Claude Code** → `plan` (`Plan`), `agent`
-(`Coder`); **Microsoft 365 Copilot** → `chat` (`M365Copilot`), `researcher` (`M365Researcher`), `analyst`
+each entry a `(backend agent name, display label)` pair: **Default** offers `chat` (`ChatAgent`),
+`wiki` (`WikiAssistant`), `time` (`TimeKeeper`) and `orchestrator` (`Orchestrator`);
+**GitHub Copilot** offers `ask` (`Ask`), `plan` (`Plan`), `agent` (`Coder`);
+**ChatGPT** offers `chat` (`ChatGpt`); **Claude** and **Gemini** offer `chat` (`ChatAgent`);
+**Claude Code** offers `plan` (`Plan`), `agent`
+(`Coder`); optional **Copilot 365** → `chat` (`M365Copilot`), `researcher` (`M365Researcher`), `analyst`
 (`M365Analyst`). The `AvailableAgents` computed property filters the `GET /agents` list down to the current
 vendor's roster (skipping any name the service didn't register), the Agent `<select>` shows the labels, and
 switching vendor auto-selects that vendor's first agent (`VendorDefaultAgent`) and refreshes the known skills.
 The shared palette is defined in
 [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css); feature aliases live on `.flow-app`
 without vendor-specific overrides. The vendor choice persists in `localStorage` (key
-`theseries-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
+`agenticlab-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
 roster). The contributor colours (app/agent/user = red/yellow/green) are deliberately left un-themed because
 they encode a fixed concept rather than branding; they are defined once as shared
 `--contrib-app`/`--contrib-agent`/`--contrib-user` CSS tokens on the base `.flow-app` and reused by the
 harness anatomy, the Context chips **and** the Prompt signature so the three never drift
 apart.
+
+Fresh pages select Default. Available canonical keys are matched case-insensitively; the enabled
+module's aliases restore older values such as `ClaudeCode`. Unavailable saved hosts fall back to
+Default, then the first available host if Default is absent. Locally missing branding uses a neutral
+icon. Branding is resolved by host key, independently of agent ownership and tool-risk metadata.
+Host changes still reset the conversation; changing only the agent still preserves it.
+
+AppHost enables Copilot365 in Development; elsewhere it is opt-in.
+`Examples:copilot365:Enabled=true` loads its agents and host in
+AiService and its resource/risk manifest in Web. No custom panel is needed: Flow includes locally
+enabled panel-less modules with `RequiresUi=false`, while UI-required modules still need a local
+`IWebExample`. Its `microsoft365` API key and legacy `Microsoft365` saved preference remain valid;
+when disabled, restoration falls back to Default. Its logo and product link now belong to the module.
+See the
+[module guide](../src/AgenticLab.Examples.Copilot365/README.md).
 
 **Real LLM request/response capture.** The Steps list rows are expandable: clicking a step with captured `Data` reveals the actual payload — the messages and tool definitions sent to the model for an `llm-request`, the model's response for an `llm-response`/`final`, or the raw tool arguments/result for a `tool-call`/`tool-result`. The request/response data is captured at full fidelity by [Application/Flow/CapturingChatClient.cs](../src/AgenticLab.AiService/Application/Flow/CapturingChatClient.cs), a `DelegatingChatClient` inserted into the shared pipeline (after `UseFunctionInvocation`, see [Application/Agents/ChatClientProvider.cs](../src/AgenticLab.AiService/Application/Agents/ChatClientProvider.cs)). Because the chat client is a singleton, capture is scoped per run via [Application/Flow/FlowCaptureScope.cs](../src/AgenticLab.AiService/Application/Flow/FlowCaptureScope.cs), an `AsyncLocal` sink that `FlowTracer` opens for the duration of a traced run; when no scope is active (e.g. `POST /chat`) the capturing client is a transparent pass-through. Only messages and tool schemas are rendered — never the Azure OpenAI endpoint or API key.
 
@@ -325,7 +365,22 @@ apart.
 
 **Backend-gated stepping (telemetry-synced).** Pacing happens on the *server* so the animation lines up with the real agent execution (and its OpenTelemetry spans), not just a client-side replay. Each run gets a `FlowSession` tracked in a `FlowControlRegistry` ([Application/Flow/FlowSession.cs](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs)); `FlowTracer.StreamAsync` awaits `FlowSession.WaitForStepAsync` *before emitting each event*, so the next real step does not start until the session is allowed to advance. The session is created synchronously inside the `/chat/stream` endpoint (keyed by a client-supplied `SessionId`) so that control calls cannot race ahead of it. The UI drives it via `POST /chat/control` (`FlowControlRequest { SessionId, Action, Manual?, DelayMs?, Answer? }`) with actions `next`, `pause`, `resume`, `stop` (and `answer`, which delivers the user's reply to a tool that asked a question — see [asking the user a question](agents.md#asking-the-user-a-question-human-in-the-loop)). **Auto** mode paces with a server-side `DelayMs`/`stepDelayMs` between steps (adjustable live, plus pause/resume); **Manual** mode blocks each step until the user clicks *Next*. Two implementation notes keep long pauses alive: the Web `AiServiceClient` registration calls `.RemoveAllResilienceHandlers()` (otherwise the shared resilience handler's ~30s timeout/retries would abort a paused stream), and the AiService disables Kestrel's `MinResponseDataRate` so an idle SSE response is not aborted.
 
-**Environment & risk view.** A single **Environment & risk** toggle (the "Where it runs" diagram control, `_showEnvironment` in [Components/Pages/Flow.razor](../src/AgenticLab.Web/Components/Pages/Flow.razor)) makes *where each part of the system runs* and *how risky the selected agent is* explicit. Like every display option, it is always available and independent of the selected preset. When on it adds: per-node **location badges** — the User node shows `🖥️ Your browser`, the LLM node shows `☁️ Cloud service`, and the merged Harness/Application node shows either `💻 Your machine — file + shell access` (for a workspace agent) or `🖧 Server process — no local access` (otherwise); a dashed **`🔒 Your environment` trust boundary** overlay drawn around the parts that run on the user's own machine; and an **`EnvironmentPanel()`** under the harness node that renders a three-segment **risk meter** (filled per the agent's level — High=3, Medium=2, Low=1, None=0) plus a **guardrails** box listing the agent's enforced safety mechanisms as chips (with an empty-state when it has none). When **Learn** is also on, the panel adds three learn pills → the `where-agents-run`, `environment` and `sandbox` concepts, and the risk meter / guardrails box carry ⓘ buttons → the `agent-risk` and `guardrails` concepts. The data is **authoritative from the backend**, not derived client-side: each `IAgentDefinition` declares an `AgentRiskLevel RiskLevel` (`None`/`Low`/`Medium`/`High`, see [Application/Agents/IAgentDefinition.cs](../src/AgenticLab.AiService/Application/Agents/IAgentDefinition.cs)) and an `IReadOnlyList<string> Guardrails` of human-readable mechanisms; [Application/Agents/AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) defaults them to `None` / empty and each concrete agent overrides them (e.g. `Coder` → `High` with the workspace-confinement, command-allowlist, shell-operator-rejection, timeout and files-only guardrails; `M365Copilot` → `Medium` because its `SendMail` tool sends email on the user's behalf; the read-only and sample-data agents → `Low`; `ChatAgent` keeps `None`). `GET /agents` carries both (`AgentInfo.RiskLevel` as a string and `AgentInfo.Guardrails`, see [Application/Agents/AgentCatalog.cs](../src/AgenticLab.AiService/Application/Agents/AgentCatalog.cs)); the Web client mirrors them on its own `AgentInfo` record ([Services/AiServiceClient.cs](../src/AgenticLab.Web/Services/AiServiceClient.cs)). All styling (the `env-*`, `risk-*` and `guardrail-*` classes and CSS variables) is themed via the `.flow-app` tokens in [Components/Pages/Flow.razor.css](../src/AgenticLab.Web/Components/Pages/Flow.razor.css), so the badges, meter and boundary share the same palette across vendors.
+**Environment & risk view.** The **Environment & risk** diagram option makes runtime locations and
+the selected agent's risk explicit, independently of the selected preset. It adds per-node location
+badges (browser, cloud service, and either local file/shell access or a server process), a dashed
+**Your environment** trust boundary, and a three-segment risk meter (High=3, Medium=2, Low=1, None=0).
+The guardrails box lists the agent's reported safety mechanisms, with an empty state when absent.
+When **Learn** is enabled, links open `where-agents-run`, `environment`, `sandbox`, `agent-risk` and
+`guardrails` concepts.
+
+Agent-level data comes from `IAgentDefinition.RiskLevel` and `Guardrails` through `GET /agents`, not
+client-side inference. [AgentDefinitionBase](../src/AgenticLab.Extensibility/Agents/AgentDefinitionBase.cs)
+defaults these to None/empty; `Coder` is High, read-only agents are Low, and `ChatAgent` remains None.
+The optional `M365Copilot` is Medium to illustrate a send action, but its `SendMail` implementation
+never delivers email. Copilot365's manifest owns the per-tool risk description and Microsoft 365
+resource mapping; neither is hard-coded into the core tool/resource catalogue. Prompt instructions
+such as confirming a recipient are not host-enforced approval gates. All badges, meters and
+boundaries retain the shared design-system palette.
 
 ## Corporate workbench
 

@@ -12,7 +12,7 @@ namespace AgenticLab.AiService.Demo.Agents;
 public sealed class CoderAgent(FileSystemTool files, TerminalTool terminal, SkillsTool skills) : AgentDefinitionBase
 {
     /// <summary>The catalog name this agent is registered and selected under.</summary>
-    public const string AgentName = "Coder";
+    public const string AgentName = SharedAgentNames.Coder;
 
     /// <inheritdoc />
     public override string Name => AgentName;

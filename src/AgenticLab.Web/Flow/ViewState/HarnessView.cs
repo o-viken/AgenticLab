@@ -13,7 +13,7 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     private bool _loading;
 
     /// <summary>The host node's title: the vendor name when selected, otherwise Agent host.</summary>
-    public string Label => owner.Vendor == Vendor.Default
+    public string Label => owner.VendorKey == "default"
         ? "Agent host"
         : owner.Roster.VendorName;
 
@@ -28,7 +28,8 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
         get
         {
             var simulated = owner.Roster.CurrentVendorInfo?.ModelLabel ?? string.Empty;
-            if (owner.Vendor != Vendor.Default && !owner.Diagram.ShowTechnicalLabels && simulated.Length > 0)
+            if (owner.VendorKey != "default" && owner.Roster.CurrentVendorInfo?.ExampleId is null
+                && !owner.Diagram.ShowTechnicalLabels && simulated.Length > 0)
             {
                 return $"{simulated} (simulated)";
             }
@@ -41,7 +42,7 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     // --- System prompt ------------------------------------------------------
 
     /// <summary>The descriptive fallback for the System Prompt box before the real text has been fetched.</summary>
-    public string PromptBody => owner.Vendor == Vendor.Default
+    public string PromptBody => owner.VendorKey == "default"
         ? "Agent host instructions: operating guidance and the tool loop"
         : $"{owner.Roster.VendorName} system prompt: replaces the shared host instructions for this run (persona kept)";
 

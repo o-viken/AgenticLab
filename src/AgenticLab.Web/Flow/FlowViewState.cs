@@ -18,7 +18,7 @@ internal sealed class FlowViewState
     private string? _selectedAgent;
     private string _workspace = string.Empty;
     private ControlsTab _activeControlsTab = ControlsTab.Chat;
-    private Vendor _vendor = Vendor.ChatGpt;
+    private string _hostKey = "default";
 
     public FlowViewState(ConceptCatalog concepts)
     {
@@ -113,14 +113,14 @@ internal sealed class FlowViewState
     /// <summary>Layout follows visible nodes, not the last preset applied.</summary>
     public string DiagramClass => Diagram.ShowModel ? "p-full" : "p-simple";
 
-    /// <summary>The currently selected vendor/brand (persisted by the page in localStorage).</summary>
-    public Vendor Vendor
+    /// <summary>The catalogue-provided host key, persisted independently of optional module branding.</summary>
+    public string HostKey
     {
-        get => _vendor;
+        get => _hostKey;
         set
         {
-            if (_vendor == value) return;
-            _vendor = value;
+            if (_hostKey == value) return;
+            _hostKey = value;
             ConfigurationVersion++;
             Notify();
         }
@@ -130,5 +130,5 @@ internal sealed class FlowViewState
     /// The harness key sent with a run so the backend swaps in that vendor's harness system prompt (keeping
     /// the agent's persona). Null for a vendor without a backend key.
     /// </summary>
-    public string? VendorKey => VendorCatalog.HarnessKey(_vendor);
+    public string? VendorKey => _hostKey;
 }

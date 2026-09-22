@@ -59,6 +59,7 @@
 }
 
 .rail-icon {
+    --host-icon-size: 21px;
     width: 38px;
     height: 38px;
     display: flex;
@@ -91,11 +92,6 @@
     color: var(--accent);
     background: var(--accent-weak, rgba(var(--accent-rgb), 0.14));
     border-color: rgba(var(--accent-rgb), 0.3);
-}
-
-.rail-icon svg {
-    width: 21px;
-    height: 21px;
 }
 
 /* Hover tooltip card. Sits flush against the rail's right edge (no gap) so moving the

@@ -21,10 +21,8 @@ internal enum ToolRisk
 /// <summary>
 /// Classifies a tool by name into a <see cref="ToolRisk"/> tier and explains why, so the UI can
 /// distinguish an agent's read-only tools from the ones that change the world. The mapping mirrors the
-/// backend's own capability split (the write/exec tools that drive an agent's <c>High</c> risk, and the
-/// side-effecting <c>SendMail</c> that makes the M365 agent <c>Medium</c>); it is a deterministic,
-/// presentational lookup, so it lives Web-side rather than reshaping the <c>GET /agents</c> contract.
-/// Unknown tool names default to <see cref="ToolRisk.Low"/>.
+/// backend's write/exec capability split. Example-specific risks come from the selected module's
+/// manifest instead of this fallback lookup. Unknown tool names default to <see cref="ToolRisk.Low"/>.
 /// </summary>
 internal static class ToolRiskCatalog
 {
@@ -32,12 +30,6 @@ internal static class ToolRiskCatalog
     private static readonly HashSet<string> High = new(StringComparer.OrdinalIgnoreCase)
     {
         "WriteFile", "DeleteFile", "RunCommand",
-    };
-
-    // Acts in the world but in a confined/reversible way.
-    private static readonly HashSet<string> Medium = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "SendMail",
     };
 
     /// <summary>The risk tier of the tool with the given name (case-insensitive); unknown → <see cref="ToolRisk.Low"/>.</summary>
@@ -48,7 +40,7 @@ internal static class ToolRiskCatalog
             return ToolRisk.High;
         }
 
-        return Medium.Contains(tool) ? ToolRisk.Medium : ToolRisk.Low;
+        return ToolRisk.Low;
     }
 
     /// <summary>The CSS class for a tool's risk tier (<c>risk-low</c>/<c>risk-medium</c>/<c>risk-high</c>),

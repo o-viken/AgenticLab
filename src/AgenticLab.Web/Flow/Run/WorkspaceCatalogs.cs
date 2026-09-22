@@ -23,10 +23,12 @@ internal sealed class WorkspaceCatalogs(AiServiceClient ai, FlowViewState view, 
     /// <summary>The workspace's custom instructions the caller may enable per run.</summary>
     public IReadOnlyList<InstructionChip> KnownInstructions => _instructionsVersion == view.ConfigurationVersion ? _knownInstructions : [];
 
-    public IReadOnlyList<McpChip> KnownMcp => _mcpVersion == view.ConfigurationVersion && view.Agent.SupportsMcp ? _knownMcp : [];
+    public IReadOnlyList<McpChip> KnownMcp => _mcpVersion == view.ConfigurationVersion && view.Agent.SupportsMcp
+        ? _knownMcp.Where(tool => view.Roster.CurrentExample is null || view.Agent.ToolNames.Contains(tool.Name)).ToArray() : [];
 
     /// <summary>The agents the selected agent can delegate to over A2A, shown in the harness A2A box.</summary>
-    public IReadOnlyList<A2AChip> KnownA2A => _a2aVersion == view.ConfigurationVersion && view.Agent.SupportsA2A ? _knownA2A : [];
+    public IReadOnlyList<A2AChip> KnownA2A => _a2aVersion == view.ConfigurationVersion && view.Agent.SupportsA2A
+        ? _knownA2A.Where(agent => view.Roster.CurrentExample is not { } example || example.RemoteAgentNames.Contains(agent.Name)).ToArray() : [];
 
     public bool IsSkillLoaded(string name) => _skillsVersion == view.ConfigurationVersion && _loadedSkills.Contains(name);
 

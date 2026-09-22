@@ -22,12 +22,14 @@ you get a different assistant on the same foundation.
 
 ## In this application (Agentic Lab)
 
-Pick the **Microsoft 365 Copilot** vendor to see the diagram in its light, gradient-tinted
-colours. The vendor offers three modes — **chat** (general work assistant), **researcher**
-and **analyst** — mapped to the `M365Copilot`, `M365Researcher` and `M365Analyst` agents.
+The optional **Copilot 365** example offers three modes: **chat** (general work assistant),
+**researcher** and **analyst**, mapped to `M365Copilot`, `M365Researcher` and `M365Analyst`.
+Its host appears only when `Examples:copilot365:Enabled=true`. This product concept remains
+available even when the example is disabled.
 
 These agents call a **fake** Microsoft 365 / Graph tool set (`SearchEmail`, `SearchFiles`,
 `SearchChats`, `GetCalendar`, `FindPeople`, `SummarizeDocument`) that returns small, canned,
-in-memory sample data — there is no real Microsoft Graph or network call. The Researcher mode
-also uses the Wikipedia tools for public-web grounding, and the Analyst mode adds the
-calculator. Watch the **Tools** box light up as a mode searches your "work content".
+in-memory sample data. Chat also has `SendMail`, which returns a fictional receipt without
+delivering email. These workplace tools make no real Microsoft Graph or network call.
+Researcher uses the host's Wikipedia tools for public-web grounding, which does make HTTPS
+requests; Analyst adds the local calculator. The example has no access to a real tenant.

@@ -93,7 +93,8 @@ it and its dependencies, then starts the application. No separate build command 
 Open the Aspire dashboard URL printed in the terminal, then open the **web** resource's endpoint.
 The dashboard also provides service logs and traces.
 
-Start with a conversation, or select **ChatGPT / chat** and try:
+Development startup enables **Default**, **ChatGPT**, **GitHub Copilot** and **Copilot 365**.
+Start with a conversation in Default, or select **ChatGPT / chat** and try:
 
 > Find the height of the Eiffel Tower on Wikipedia, then calculate how much taller it is
 > than a 250-metre building.
@@ -138,6 +139,27 @@ See the [React setup guide](docs/react-frontend.md#run-with-aspire) for customiz
 The **console** resource does not start automatically. Start it explicitly from Aspire with an
 attached terminal for input, or follow the [standalone console instructions](docs/web-flow-page.md#running-the-console).
 
+### Self-Contained Examples
+
+Optional examples are registered as independent projects, keeping their domain code, UI, assets,
+tests and documentation together. See the [example catalogue and contributor guide](docs/examples.md)
+and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo,
+or [Copilot 365](src/AgenticLab.Examples.Copilot365/README.md) for workplace chat, research and analysis
+over synthetic Microsoft 365 data.
+Every non-default host is an opt-in example, including **ChatGPT**, **Gemini**, **GitHub Copilot**,
+**Claude Code**, **Claude**, **Copilot 365** and **Windfarm**. Each owns its host-specific prompts,
+branding and tests. The shared learning guide remains available independently of enabled examples.
+Use `Examples:<id>:Enabled=true` with IDs `chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`,
+`copilot365` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
+`copilot` and `copilot365`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
+start with only Default unless examples are explicitly enabled.
+
+For example, enable the workplace Copilot host and its three agents:
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=true
+```
+
 ## Documentation
 
 | Guide | What You Will Find |
@@ -150,6 +172,7 @@ attached terminal for input, or follow the [standalone console instructions](doc
 | [Workspace Features](docs/workspace.md) | Workspace agents, skills, custom instructions, and file/terminal tools. |
 | [Protocols](docs/protocols.md) | MCP tools, A2A agents, discovery, and protocol integration tests. |
 | [React Frontend](docs/react-frontend.md) | Optional frontend setup, customization, builds, and browser tests. |
+| [Example Modules](docs/examples.md) | Self-contained community examples, extension contracts and registration. |
 | [Architecture and Conventions](AGENTS.md) | Project structure and implementation guidance for contributors. |
 | [Browser Checks](tools/README.md) | Responsive UI smoke checks and separate browser load-test setup. |
 

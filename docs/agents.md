@@ -15,6 +15,14 @@ Returns an `agents` array describing the available built-in agents and a `defaul
 support, model configuration, risk level and guardrails. Use discovery rather than assuming a
 fixed roster; workspace-defined agents are listed separately by `POST /agents/workspace`.
 
+Explicitly enabled [example modules](examples.md) contribute additional agents and hosts. Entries
+may include `exampleId` and `requiresExampleUi` (null/false for existing agents). The shared definition
+contracts live in `AgenticLab.Extensibility.Agents`; runtime construction remains in AiService.
+`GET /examples` exposes public module manifests, not component types or remote prompts.
+Model tools obtain authoritative conversation/agent identity through `IAgentRunContext` in both
+chat paths. Example state and decision rules remain in their modules; `POST /chat/reset` only clears
+conversation memory and does not imply a domain-state reset or approval.
+
 ### `POST /chat`
 
 Send a message, optionally choosing an agent (otherwise the default is used):
@@ -72,9 +80,55 @@ cleanup failure without reusing the old ID.
 
 **Conversation memory.** Agents stay stateless, but a run can continue a prior chat. Each request carries a client-generated `ConversationId`; [Application/Conversations/ConversationStore.cs](../src/AgenticLab.AiService/Application/Conversations/ConversationStore.cs) (a singleton `ConcurrentDictionary<string, ConversationEntry>`) holds one `AgentSession` per conversation, created lazily via `agent.CreateSessionAsync(…)` on first use. The endpoints pass that session into `agent.RunAsync(message, session, …)` / `RunStreamingAsync(message, session, …)`, so the model sees the earlier turns. Sessions are interchangeable across agents (they just carry chat messages), so a conversation may switch agents and keep its history. `POST /chat/reset` (`ConversationResetRequest { ConversationId }`) forgets a conversation immediately; the Console `/new` command and the Web **New conversation** button call it. Storage is in-memory and intended for sequential use within a conversation (no per-conversation locking). To bound abandoned history, access refreshes a sliding expiration window configured by `Conversations:InactiveTtl` (one hour by default), and a `TimeProvider` timer removes inactive entries at `Conversations:CleanupInterval` (five minutes by default). The store publishes count-only OpenTelemetry instruments on the `AgenticLab.AiService.Conversations` meter: `conversations.retained`, `conversations.expired` and `conversations.reset`.
 
-**Layered system prompt.** Each agent's system prompt is composed from two parts via inheritance: a shared **harness** prompt and the agent's own **persona**. The framing follows the VS Code [agent harness model](https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode) — an **agent is the model plus the harness**, where the harness assembles context, exposes a bounded toolset, runs the think→act→observe loop, executes the model's tool calls, and relays results (the user/client sit outside the agent). [Application/Agents/AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) is an abstract `IAgentDefinition` that defines the harness prompt (that model-plus-harness framing plus the cross-cutting operating rules every agent runs under — ground answers in tool results, don't fabricate, prefer tools over memory, be concise and transparent) and an abstract `Persona`. Its `Instructions` property returns the harness prompt (scoped in `<harnessMode>` tags) followed by the persona (scoped in `<agentMode>` tags), and that combined string is what `AgentCatalog` passes to each `ChatClientAgent` (and what the flow visualizer captures as the "system prompt"). Concrete agents inherit `AgentDefinitionBase` and supply only `Name`, `Description`, `Persona`, and `Tools`; override the virtual `Harness` only to replace the shared rules entirely.
+**Layered system prompt.** Each agent's system prompt is composed from two parts via inheritance: a shared **harness** prompt and the agent's own **persona**. The framing follows the VS Code [agent harness model](https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode) — an **agent is the model plus the harness**, where the harness assembles context, exposes a bounded toolset, runs the think→act→observe loop, executes the model's tool calls, and relays results (the user/client sit outside the agent). [Extensibility/Agents/AgentDefinitionBase.cs](../src/AgenticLab.Extensibility/Agents/AgentDefinitionBase.cs) is an abstract `IAgentDefinition` that defines the harness prompt (that model-plus-harness framing plus the cross-cutting operating rules every agent runs under — ground answers in tool results, don't fabricate, prefer tools over memory, be concise and transparent) and an abstract `Persona`. Its `Instructions` property returns the harness prompt (scoped in `<harnessMode>` tags) followed by the persona (scoped in `<agentMode>` tags), and that combined string is what `AgentCatalog` passes to each `ChatClientAgent` (and what the flow visualizer captures as the "system prompt"). Concrete agents inherit `AgentDefinitionBase` and supply only `Name`, `Description`, `Persona`, and `Tools`; override the virtual `Harness` only to replace the shared rules entirely.
 
-**Per-vendor harness (vendor system prompt).** When a **brand vendor** is selected in the Web flow page, the agent's shared **harness** layer is swapped for a **vendor-flavoured system prompt** for the run, while the agent's own persona (`<agentMode>`) is kept — so the same agent can be shown behaving under GitHub Copilot's, Claude's, ChatGPT's, etc. framing. The mechanism is split across the layers like the rest of the app: [Application/Agents/VendorHarnessCatalog.cs](../src/AgenticLab.AiService/Application/Agents/VendorHarnessCatalog.cs) is the **infrastructure** (a singleton that builds a `vendor key → harness string` map and resolves it via `Resolve(vendor)`, returning `null` for a blank/unknown key or for a vendor whose harness is empty — the non-brand **Default** vendor — so the agent keeps its own harness), but it holds **no prompt content itself**. Each vendor's prompt is supplied by an injected [Application/Agents/IVendorHarness.cs](../src/AgenticLab.AiService/Application/Agents/IVendorHarness.cs) (`Key` + `Harness` plus the vendor's own metadata — `DisplayName`, `ModelLabel` and a list of `Modes`, each a `VendorMode(Agent, Label)`) implementation, and the **content** lives in the Demo layer under [Demo/Vendors/&lt;Vendor&gt;/](../src/AgenticLab.AiService/Demo/Vendors) (one folder + class per brand: `CopilotHarness`, `ClaudeCodeHarness`, `ClaudeHarness`, `ChatGptHarness`, `GeminiHarness`, `Microsoft365Harness`, plus the non-brand `DefaultHarness`), registered as `IVendorHarness` singletons in [Startup/ServiceRegistration.cs](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs). This keeps the `Application` layer free of any `Demo` dependency (the interface is the seam) while the representative prompts sit beside the demo agents. The strings are **original, representative** text written in each vendor's spirit — not the vendors' real proprietary prompts — and each retains the essential tool-grounding rules so agents keep functioning. Distinct keys exist per brand (`copilot`, `claude-code`, `claude`, `chatgpt`, `gemini`, `microsoft365`), plus the non-brand `default` key whose harness is empty (no override); Claude and Claude Code get separate harnesses. Because each `ChatClientAgent` bakes its `Instructions` once at start-up, the override can't be a per-run instruction append (those only *add*, like skills) — instead [AgentDefinitionBase.cs](../src/AgenticLab.AiService/Application/Agents/AgentDefinitionBase.cs) exposes `InstructionsWith(harnessOverride)` (which substitutes the `<harnessMode>` content while keeping the persona), and `AgentCatalog.TryResolve(name, harnessOverride, …)` builds a **transient** `ChatClientAgent` on the same chat client with the overridden instructions for that run (the cached agent is returned when the override is null). `WorkspaceAgentResolver.TryResolve` takes the same optional `harnessOverride` so workspace-defined agents pick it up too. The vendor flows in as a `Vendor` key on both chat requests (`ChatRequest`/`FlowChatRequest`): `POST /chat` resolves it in [Endpoints/ChatEndpoints.cs](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs) and `/chat/stream` forwards it through [Application/Flow/FlowTracer.cs](../src/AgenticLab.AiService/Application/Flow/FlowTracer.cs) (`StreamAsync`'s `vendor` parameter). Only the Web client populates it today — it maps the selected `Vendor` to a key via `VendorCatalog.HarnessKey` (surfaced as `FlowViewState.VendorKey`) and sends it from `FlowRunController`. Because the transient agent's real `Instructions` carry the vendor harness, `CapturingChatClient` records it, so the swapped prompt shows in the expandable **llm-request** step, and the harness anatomy's **System Prompt** box shows the **actual active harness prompt** (`FlowViewState.Harness.PromptDisplay`): a short preview with a **Click to full prompt** toggle (`FlowViewState.Harness.ShowFullPrompt`) that expands the complete text. That text is fetched up front (before any run) from `POST /harness` (`HarnessRequest { Agent, Vendor }` → `HarnessResponse { Prompt }`), which resolves `VendorHarnessCatalog.Resolve(vendor)` and falls back to the selected agent's own harness via `AgentCatalog.HarnessFor(agent)` (the bare `<harnessMode>` text, exposed as `IAgentDefinition.HarnessPrompt`); the Web client calls it via `FlowRunController.Catalogs.RefreshHarnessPromptAsync` whenever the vendor or agent changes (`SetHarnessPrompt`). The brand vendors' **display metadata** (display name, simulated model label and the agent modes each offers) also lives on these backend definitions, not in the Web app: it is aggregated by `VendorHarnessCatalog.Vendors` (the non-blank-key vendors) and exposed read-only over `GET /vendors` (`VendorsResponse { Vendors: [{ Key, DisplayName, ModelLabel, Modes: [{ Agent, Label }] }] }`); the Web client loads it once on init (`AiServiceClient.GetVendorsAsync` → `FlowViewState.Roster.SetVendors`) and looks each vendor up by its `HarnessKey`. The non-brand **Default** vendor is itself a backend definition ([Demo/Vendors/Default/DefaultHarness.cs](../src/AgenticLab.AiService/Demo/Vendors/Default/DefaultHarness.cs)) so it follows the same pattern — it carries Default's metadata (display name + the `wiki`/`chat` modes) but supplies an **empty** `Harness`, which `VendorHarnessCatalog` treats as *no override* (`Resolve("default")` → `null`), so the agent keeps its own harness. Only the Web-side concerns stay in [Flow/VendorCatalog.cs](../src/AgenticLab.Web/Flow/VendorCatalog.cs): the enum→backend-key mapping (`HarnessKey`, where **Default** maps to the `default` key). To add a vendor harness, drop a new `Demo/Vendors/<Vendor>/<Vendor>Harness.cs` implementing `IVendorHarness` (supplying `Key`, `Harness`, `DisplayName`, `ModelLabel` and its `Modes`) and register it in `AddVendorHarnesses` ([Startup/ServiceRegistration.cs](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs)); the Web picks up its metadata automatically via `GET /vendors` (add the matching `Vendor` enum member + `HarnessKey`/`DisplayOrder` entries and a `VendorIcon` logo). A `VendorMode`'s backend agent name must come from that agent's `public const string AgentName` (e.g. `new VendorMode(CoderAgent.AgentName, "agent")`) rather than a string literal, so a renamed or removed agent breaks the build instead of silently dropping the mode.
+**Per-vendor harness (vendor system prompt).** Selecting a host replaces the agent's shared
+`<harnessMode>` prompt for the run while retaining its `<agentMode>` persona.
+[VendorHarnessCatalog](../src/AgenticLab.AiService/Application/Agents/VendorHarnessCatalog.cs) is the
+singleton infrastructure: `Resolve(vendor)` returns the registered prompt, or null for blank/unknown
+keys and empty prompts. It owns no prompt content. Each injected
+[IVendorHarness](../src/AgenticLab.Extensibility/Agents/IVendorHarness.cs) supplies `Key`, `Harness`,
+`DisplayName`, `ModelLabel` and `Modes` (`VendorMode(Agent, Label)`). Only Default is registered in
+[ServiceRegistration](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs). Every non-default
+host owns and registers its implementation in a separate opt-in [example module](examples.md), including
+[ChatGPT](../src/AgenticLab.Examples.ChatGpt/README.md) and
+[Copilot365](../src/AgenticLab.Examples.Copilot365/README.md). The
+`Application` layer depends only on the shared contracts. All prompts are original, representative
+text, not vendors' proprietary prompts, and retain the tool-grounding rules.
+
+The only built-in key is `default`. Enable `copilot`, `claude-code`, `claude`, `chatgpt` or `gemini`
+with `Examples:<key>:Enabled=true`; the API keys are unchanged. Copilot365 uses module ID `copilot365`
+and retains host key `microsoft365`; Windfarm uses `windfarm` for both. The non-brand
+[DefaultHarness](../src/AgenticLab.AiService/Demo/Vendors/Default/DefaultHarness.cs) supplies metadata
+and `chat`/`wiki`/`time`/`orchestrator` modes but an empty prompt, so `Resolve("default")` preserves
+the agent's own harness. Host selection does not change the configured model deployment.
+
+`ChatClientAgent` instructions are fixed at construction, so the override is not a per-run append.
+[AgentDefinitionBase](../src/AgenticLab.Extensibility/Agents/AgentDefinitionBase.cs) exposes
+`InstructionsWith(harnessOverride)`, replacing only the harness portion.
+`AgentCatalog.TryResolve(name, harnessOverride, ...)` creates a transient agent on the same chat
+client when overridden, otherwise returning the cached agent. `WorkspaceAgentResolver.TryResolve`
+accepts the same override. Both chat requests carry `Vendor`: `/chat` resolves it in
+[ChatEndpoints](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs), and `/chat/stream` forwards it
+to [FlowTracer](../src/AgenticLab.AiService/Application/Flow/FlowTracer.cs). Web sends the selected
+catalogue key through `FlowViewState.VendorKey` and `FlowRunController`.
+
+The real overridden instructions are captured by `CapturingChatClient` in the expandable
+**llm-request** step. The host's **System Prompt** box also previews the active prompt before a run,
+with a full-text toggle (`FlowViewState.Harness.ShowFullPrompt`). `POST /harness`
+(`HarnessRequest { Agent, Vendor }` to `HarnessResponse { Prompt }`) resolves the override or falls
+back to `AgentCatalog.HarnessFor(agent)`, exposed as `IAgentDefinition.HarnessPrompt`.
+`FlowRunController.Catalogs.RefreshHarnessPromptAsync` refreshes it when the host or agent changes.
+
+`GET /vendors` returns the registered definitions' display names, simulated model labels and modes,
+plus optional example metadata. Web loads them via `AiServiceClient.GetVendorsAsync` and
+`FlowViewState.Roster.SetVendors`. Locally enabled example manifests supply optional logo assets,
+ordering, product concept links and legacy selection aliases. Metadata never makes a disabled host
+available. Web starts with Default and falls back to it when a saved example is unavailable; there
+is no branding enum. Register `IVendorHarness` through `AddExample`; see [example modules](examples.md).
+Use an owned agent's `AgentName` constant in modes, or
+[SharedAgentNames](../src/AgenticLab.Extensibility/Agents/SharedAgentNames.cs) for the reusable core
+`ChatAgent`, `Ask`, `Plan` and `Coder` identities. Harness-only examples do not own or duplicate them.
 
 ## Agents
 
@@ -84,24 +138,38 @@ cleanup failure without reusing the old ID.
 | `MathTutor` | Patient tutor that solves and explains arithmetic. | `Calculate` |
 | `TriviaMaster` | Playful trivia host that researches facts and crunches numbers. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `ChatAgent` (default) | Friendly conversational companion that chats from its own knowledge. | _(none)_ |
-| `ChatGpt` | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
+| `ChatGpt` (opt-in `chatgpt` example) | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `Ask` | Read-only assistant that answers questions and explains code in the workspace without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles` |
 | `Plan` | Read-only planner that investigates the workspace and proposes an implementation plan without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles`, `AskQuestion` |
 | `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted commands. **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
-| `M365Copilot` | Microsoft 365 Copilot "Copilot Chat": a workplace assistant grounded in your work content via the **fake** Microsoft 365 / Graph tools, and able to send email on your behalf. | `SearchEmail`, `SearchFiles`, `SearchChats`, `GetCalendar`, `FindPeople`, `SummarizeDocument`, `SendMail` |
-| `M365Researcher` | Microsoft 365 Copilot "Researcher": deep, multi-source research over work content plus public web. | `SearchEmail`, `SearchFiles`, `SearchChats`, `FindPeople`, `SummarizeDocument`, `SearchWiki`, `GetWikiPage` |
-| `M365Analyst` | Microsoft 365 Copilot "Analyst": reads figures from your documents and crunches the numbers. | `SearchFiles`, `SummarizeDocument`, `Calculate` |
 | `TimeKeeper` | Tells the current time using a tool **discovered from the MCP server** (real MCP client). | `GetCurrentTime` (MCP) |
 | `Orchestrator` | Solves arithmetic itself, but delegates general-knowledge/research/creative questions to **specialist agents over the A2A protocol** (real A2A client), routing by name. | `Calculate`, `DelegateToAgent` (A2A) |
 
 The first definition registered in [Startup/ServiceRegistration.cs](../src/AgenticLab.AiService/Startup/ServiceRegistration.cs) (`AddDemoAgents`) is the default. `GET /agents` lists them (each entry includes a `RequiresWorkspace` flag); `POST /chat` selects one by name (case-insensitive) and falls back to the default when none is given. `Ask` and `Plan` are **read-only** workspace agents: they share the read-only subset of the file tools (`FileSystemTool.AsReadOnlyTools()` → `ReadFile`, `ListFiles`) and never write, delete or run commands. `Plan` additionally carries the `AskQuestion` tool (see [asking the user a question](#asking-the-user-a-question-human-in-the-loop)), which pauses a run to ask the user a clarifying question but changes nothing in the workspace.
 
-The three `M365*` agents power the **Microsoft 365 Copilot** vendor. They are grounded in a **fake** Microsoft 365 / Microsoft Graph tool set ([Demo/Tools/Microsoft365Tool.cs](../src/AgenticLab.AiService/Demo/Tools/Microsoft365Tool.cs)) — `SearchEmail`, `SearchFiles`, `SearchChats`, `GetCalendar`, `FindPeople`, `SummarizeDocument` (read-only grounding) plus `SendMail` (a **write/side-effecting** action that simulates sending a work email) — that matches over small canned, in-memory sample datasets and makes **no real Graph or network call** (it models the kind of work-content grounding M365 Copilot does, conceptually like the existing Wikipedia/calculator tools). `SendMail` is the reason `M365Copilot` is rated **Medium** risk rather than Low: unlike the read-only tools it *acts in the world* on the user's behalf (a hard-to-reverse communication that could leak data or impersonate the user if the model is wrong or steered by prompt injection in the content it reads), so the agent's persona is instructed to confirm the recipient/subject/body before calling it, the tool validates the address and refuses an empty message, and it can be toggled off per run to make the agent read-only. `Microsoft365Tool` exposes three subsets: `AsTools()` (all seven, for `M365Copilot`), `AsResearchTools()` (search subset, no calendar or send — `M365Researcher` combines it with `WikiTool` for public-web grounding) and `AsAnalystTools()` (files + summaries — `M365Analyst` combines it with `CalculatorTool`). None of the M365 agents require a workspace or support skills.
+### Optional Copilot365 example
+
+`M365Copilot`, `M365Researcher` and `M365Analyst` now belong to the opt-in
+[Copilot 365 module](../src/AgenticLab.Examples.Copilot365/README.md), not the built-in roster.
+Enable `Examples:copilot365:Enabled=true` to expose its **Copilot 365** host and all three modes.
+The API host key remains `microsoft365`; agent names and per-agent model configuration stay compatible.
+The module owns the workplace tools, fixtures and host prompt, and reuses Wikipedia/calculator
+capabilities through the bounded `IHostToolSource` contract. Its guide lists each exact tool subset.
+
+Workplace content and `SendMail` are simulated, with no real Graph call or mail delivery. The
+**Medium** risk classification illustrates sending on a user's behalf; the tool only validates inputs
+and returns a fictional receipt. Confirmation is a persona instruction, not an enforced approval gate.
+The researcher still makes public Wikipedia requests when those tools run. None of the three agents
+requires a workspace or supports skills.
 
 ### ChatGPT lookup and calculation demo
 
-The ChatGPT vendor's **chat** mode selects `ChatGpt`, a dedicated agent reusing the existing
-Wikipedia and calculator tools. `ChatAgent` remains the tool-free default and other vendors' modes
+Enable `Examples:chatgpt:Enabled=true` to register the self-contained
+[ChatGPT example](../src/AgenticLab.Examples.ChatGpt/README.md). Its **chat** mode selects `ChatGpt`,
+a dedicated agent requesting `SearchWiki`, `GetWikiPage` and `Calculate` through `IHostToolSource`.
+AppHost enables this example in Development; elsewhere it requires explicit configuration.
+When disabled, neither the host nor its dedicated agent is registered.
+`ChatAgent` remains the tool-free default and other vendors' modes
 are unchanged. No extra API keys or services are needed: Wikipedia requests use its public API,
 and calculations run locally in the AI service. The model backend remains Azure OpenAI; this is
 a representative demo, not OpenAI's internal ChatGPT toolset.

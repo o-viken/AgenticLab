@@ -2,11 +2,26 @@ using OpenTelemetry.Metrics;
 using AgenticLab.Web;
 using AgenticLab.Web.Components;
 using AgenticLab.Web.Flow;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.ChatGpt;
+using AgenticLab.Examples.Claude;
+using AgenticLab.Examples.ClaudeCode;
+using AgenticLab.Examples.Copilot;
+using AgenticLab.Examples.Gemini;
+using AgenticLab.Examples.Copilot365;
+using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
+builder.Services.AddExample<ChatGptExample>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<ClaudeExample>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<ClaudeCodeExample>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<CopilotExample>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<GeminiExample>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHost.Web);
+builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.Web);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

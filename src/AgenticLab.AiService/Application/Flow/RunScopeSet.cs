@@ -16,14 +16,16 @@ public sealed class RunScopeSet : IDisposable
     private readonly ToolFilterScope? _tools;
     private readonly SkillFilterScope? _skills;
     private readonly InstructionFilterScope _instructions;
+    private readonly AgentRunScope? _identity;
 
-    private RunScopeSet(WorkspaceScope? workspace, ToolFilterScope? tools, SkillFilterScope? skills, InstructionFilterScope instructions, UserInputScope? userInput)
+    private RunScopeSet(WorkspaceScope? workspace, ToolFilterScope? tools, SkillFilterScope? skills, InstructionFilterScope instructions, UserInputScope? userInput, AgentRunScope? identity)
     {
         _workspace = workspace;
         _tools = tools;
         _skills = skills;
         _instructions = instructions;
         UserInput = userInput;
+        _identity = identity;
     }
 
     /// <summary>The scope an <c>AskQuestion</c> tool blocks on; null for a non-interactive run.</summary>
@@ -38,18 +40,23 @@ public sealed class RunScopeSet : IDisposable
     /// <param name="disabledSkills">Skill names neither listed nor loadable this run (skills default on).</param>
     /// <param name="enabledInstructions">Custom instructions injected this run (instructions default off).</param>
     /// <param name="interactive">Whether to open a <see cref="UserInputScope"/> so a tool can ask the user a question.</param>
+    /// <param name="conversationId">Host-supplied conversation identity for example tools; omitted by callers without an agent run.</param>
+    /// <param name="agentName">The resolved agent identity, paired with the conversation ID.</param>
     public static RunScopeSet Begin(
         WorkspaceScope? workspace,
         IReadOnlyList<string>? disabledTools,
         IReadOnlyList<string>? disabledSkills,
         IReadOnlyList<string>? enabledInstructions,
-        bool interactive)
+        bool interactive,
+        string? conversationId = null,
+        string? agentName = null)
     {
         var tools = disabledTools is { Count: > 0 } ? ToolFilterScope.Begin(disabledTools) : null;
         var skills = disabledSkills is { Count: > 0 } ? SkillFilterScope.Begin(disabledSkills) : null;
         var instructions = InstructionFilterScope.Begin(enabledInstructions ?? Array.Empty<string>());
         var userInput = interactive ? UserInputScope.Begin() : null;
-        return new RunScopeSet(workspace, tools, skills, instructions, userInput);
+        var identity = conversationId is not null && agentName is not null ? new AgentRunScope(conversationId, agentName) : null;
+        return new RunScopeSet(workspace, tools, skills, instructions, userInput, identity);
     }
 
     /// <summary>Re-asserts every scope on the current async context.</summary>
@@ -60,6 +67,7 @@ public sealed class RunScopeSet : IDisposable
         _skills?.Activate();
         _instructions.Activate();
         UserInput?.Activate();
+        _identity?.Activate();
     }
 
     /// <summary>
@@ -79,6 +87,7 @@ public sealed class RunScopeSet : IDisposable
 
     public void Dispose()
     {
+        _identity?.Dispose();
         UserInput?.Dispose();
         _instructions.Dispose();
         _skills?.Dispose();

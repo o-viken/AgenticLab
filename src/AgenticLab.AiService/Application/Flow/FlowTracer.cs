@@ -112,7 +112,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
             // The per-run tool/skill/instruction filters plus the channel an AskQuestion tool blocks on until
             // the user answers (via /chat/control).
-            using var scopes = RunScopeSet.Begin(workspaceScope, disabledTools, disabledSkills, enabledInstructions, interactive: true);
+            using var scopes = RunScopeSet.Begin(workspaceScope, disabledTools, disabledSkills, enabledInstructions, interactive: true,
+                conversationId: conversationId, agentName: resolvedName);
             session.UserInput = scopes.UserInput;
 
             var finalText = new StringBuilder();

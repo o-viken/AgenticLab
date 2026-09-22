@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using A2A;
 using Microsoft.Extensions.AI;
+using AgenticLab.Extensibility.Runtime;
 
 namespace AgenticLab.AiService.Application.Discovery;
 
@@ -15,7 +16,7 @@ namespace AgenticLab.AiService.Application.Discovery;
 /// the A2A server surfaces it here with no code change. When the server is unavailable the provider
 /// degrades gracefully to an empty tool list instead of failing the service.
 /// </summary>
-public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAgentProvider> logger) : IDisposable
+public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAgentProvider> logger) : IDisposable, IAgentDelegation
 {
     private readonly HttpClient _http = new();
     private readonly Dictionary<string, A2AClient> _clients = new(StringComparer.OrdinalIgnoreCase);
@@ -173,16 +174,21 @@ public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAg
         [Description("The name of the specialist agent to delegate to.")] string agentName,
         [Description("The question or request to send to the agent.")] string question,
         CancellationToken cancellationToken = default)
+        => (await InvokeAsync(agentName, question, cancellationToken)).Text;
+
+    /// <inheritdoc />
+    public async Task<AgentDelegationResult> InvokeAsync(string agentName, string question,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(agentName) || !_clients.TryGetValue(agentName.Trim(), out var client))
         {
             var available = _clients.Count == 0 ? "none" : string.Join(", ", _clients.Keys);
-            return $"Unknown agent '{agentName}'. Available agents: {available}.";
+            return new(false, $"Unknown agent '{agentName}'. Available agents: {available}.");
         }
 
         if (string.IsNullOrWhiteSpace(question))
         {
-            return "No question was provided to delegate.";
+            return new(false, "No question was provided to delegate.");
         }
 
         try
@@ -193,15 +199,20 @@ public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAg
                 var text = string.Concat(message.Parts
                     .Where(p => p.ContentCase == PartContentCase.Text)
                     .Select(p => p.Text));
-                return string.IsNullOrWhiteSpace(text) ? "The agent returned an empty reply." : text;
+                return string.IsNullOrWhiteSpace(text)
+                    ? new(false, "The agent returned an empty reply.") : new(true, text);
             }
 
-            return "The agent did not return a direct answer.";
+            return new(false, "The agent did not return a direct answer.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "A2A delegation call to agent '{Agent}' failed.", agentName);
-            return $"Could not reach agent '{agentName}': {ex.Message}";
+            return new(false, $"Could not reach agent '{agentName}': {ex.Message}");
         }
     }
 

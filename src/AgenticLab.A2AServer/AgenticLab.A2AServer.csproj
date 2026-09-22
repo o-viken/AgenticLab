@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgenticLab.ServiceDefaults\AgenticLab.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\AgenticLab.Examples.Windfarm\AgenticLab.Examples.Windfarm.csproj" />
   </ItemGroup>
 
   <ItemGroup>

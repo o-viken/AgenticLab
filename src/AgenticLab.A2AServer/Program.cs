@@ -2,16 +2,19 @@ using System.ClientModel;
 using Azure.AI.OpenAI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Extensions.AI;
+using AgenticLab.Extensibility.Examples;
+using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
+builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.A2A);
 
 // The Azure OpenAI chat client that backs the hosted sub-agent. Settings are injected by the AppHost
 // from its user-secrets (the same values the AI service receives), or read from configuration for a
 // standalone run. This mirrors ChatClientProvider in the AI service, but a single deployment is enough
-// here because the server hosts exactly one agent.
+// here because the persona-only specialists share the configured deployment.
 var endpoint = Required(builder.Configuration, "AzureOpenAI:Endpoint");
 var deployment = Required(builder.Configuration, "AzureOpenAI:Deployment");
 var apiKey = Required(builder.Configuration, "AzureOpenAI:ApiKey");
@@ -46,6 +49,15 @@ if (configuredAgents.Length == 0)
 }
 
 // Register each configured agent and its A2A server, remembering the path each is mapped at.
+configuredAgents = configuredAgents.Concat(builder.Services
+    .Where(descriptor => descriptor.ServiceType == typeof(IExampleModule))
+    .Select(descriptor => descriptor.ImplementationInstance).OfType<IA2AExample>()
+    .SelectMany(module => module.Specialists)
+    .Select(agent => new A2AAgentConfig { Name = agent.Name, Description = agent.Description, Instructions = agent.Instructions }))
+    .ToArray();
+if (configuredAgents.GroupBy(agent => agent.Name, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
+    throw new InvalidOperationException("Remote agent names must be unique across configuration and examples.");
+
 var hosted = new List<HostedA2AAgent>();
 foreach (var config in configuredAgents)
 {
