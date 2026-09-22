@@ -5,11 +5,11 @@ import { createRequire } from "node:module";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 
-const baseUrl = process.env.THESERIES_URL ?? "http://127.0.0.1:5140";
-const users = positiveInt("THESERIES_USERS", 10);
-const rounds = positiveInt("THESERIES_ROUNDS", 3);
-const warmupMs = positiveInt("THESERIES_WARMUP_MS", 1000);
-const messagePrefix = process.env.THESERIES_MESSAGE ?? "Load test message";
+const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5140";
+const users = positiveInt("AGENTICLAB_USERS", 10);
+const rounds = positiveInt("AGENTICLAB_ROUNDS", 3);
+const warmupMs = positiveInt("AGENTICLAB_WARMUP_MS", 1000);
+const messagePrefix = process.env.AGENTICLAB_MESSAGE ?? "Load test message";
 
 const browser = await chromium.launch({ headless: true });
 const contexts = [];

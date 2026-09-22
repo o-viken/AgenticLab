@@ -145,7 +145,7 @@ Cancel work on disposal; compare conversation/generation before publishing async
 Do not let refresh responses invalidate an in-flight command. A failed mutation is not success;
 reconcile authoritative state and use explicit idempotency for retryable side effects.
 
-Host selection uses catalogue keys; there is no branding enum. The unchanged `theseries-vendor`
+Host selection uses catalogue keys; there is no branding enum. The `agenticlab-vendor`
 preference accepts canonical keys case-insensitively and enabled modules' legacy aliases. Missing or
 disabled selections fall back to available Default, then the first available host. Preserve existing
 state-root constructors, notifications and causal replay behavior. Current case state is separate

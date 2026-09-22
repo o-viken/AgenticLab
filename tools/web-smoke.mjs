@@ -5,10 +5,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
-const baseUrl = process.env.THESERIES_URL ?? "http://127.0.0.1:5186";
-const expectedHosts = (process.env.AGENTICLAB_HOSTS ?? process.env.THESERIES_HOSTS)?.split(",").map(key => key.trim());
-const legacyHosts = JSON.parse(process.env.THESERIES_HOST_ALIASES ?? "{}");
-const screenshots = process.env.THESERIES_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
+const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
+const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
+const legacyHosts = JSON.parse(process.env.AGENTICLAB_HOST_ALIASES ?? "{}");
+const screenshots = process.env.AGENTICLAB_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
 mkdirSync(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const errors = [];
@@ -44,29 +44,29 @@ try {
             const splitter = page.getByRole("separator", { name: "Resize the Conversation panel" });
             await splitter.focus();
             await page.keyboard.press("ArrowLeft");
-            await page.waitForFunction(() => localStorage.getItem("theseries-panels")?.endsWith("|0"));
-            const keyboardWidth = await page.evaluate(() => Number(localStorage.getItem("theseries-panels").split("|")[3]));
+            await page.waitForFunction(() => localStorage.getItem("agenticlab-panels")?.endsWith("|0"));
+            const keyboardWidth = await page.evaluate(() => Number(localStorage.getItem("agenticlab-panels").split("|")[3]));
             const handle = await splitter.boundingBox();
             await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
             await page.mouse.down();
             await page.mouse.move(handle.x + handle.width / 2 - 30, handle.y + handle.height / 2, { steps: 5 });
             await page.mouse.up();
-            await page.waitForFunction(previous => Number(localStorage.getItem("theseries-panels")?.split("|")[3]) < previous, keyboardWidth);
-            const stored = await page.evaluate(() => localStorage.getItem("theseries-panels"));
+            await page.waitForFunction(previous => Number(localStorage.getItem("agenticlab-panels")?.split("|")[3]) < previous, keyboardWidth);
+            const stored = await page.evaluate(() => localStorage.getItem("agenticlab-panels"));
             assert.equal(stored.split("|").length, 7);
             await openFlow(page);
-            assert.equal(await page.evaluate(() => localStorage.getItem("theseries-panels")), stored);
+            assert.equal(await page.evaluate(() => localStorage.getItem("agenticlab-panels")), stored);
             await page.getByRole("tab", { name: /^Settings/ }).click();
             await page.getByRole("button", { name: "Reset layout", exact: true }).click();
-            await page.waitForFunction(() => localStorage.getItem("theseries-panels")?.endsWith("|1"));
-            await page.evaluate(() => localStorage.setItem("theseries-panels", "0|0|0|480|300|360"));
+            await page.waitForFunction(() => localStorage.getItem("agenticlab-panels")?.endsWith("|1"));
+            await page.evaluate(() => localStorage.setItem("agenticlab-panels", "0|0|0|480|300|360"));
             await openFlow(page);
             const restored = await page.locator(".side-left").boundingBox();
             assert.ok(Math.abs(restored.width - 480) < 2, "Legacy conversation width must be restored");
             await page.evaluate(() => document.documentElement.style.zoom = "2");
             await capture(page, "flow-200-percent");
             await page.evaluate(() => document.documentElement.style.zoom = "");
-            await page.evaluate(() => localStorage.setItem("theseries-panels", "0|0|0|240|300|360"));
+            await page.evaluate(() => localStorage.setItem("agenticlab-panels", "0|0|0|240|300|360"));
             await openFlow(page);
             await checkConversationHeader(page);
         }
@@ -112,7 +112,7 @@ async function checkHosts(page, width) {
     if (expectedHosts) assert.deepEqual(keys, expectedHosts, "Only configured hosts are available");
 
     async function restore(stored, expected) {
-        await page.evaluate(key => localStorage.setItem("theseries-vendor", key), stored);
+        await page.evaluate(key => localStorage.setItem("agenticlab-vendor", key), stored);
         await openFlow(page);
         assert.equal(await page.locator("#host").inputValue(), expected, `Saved host ${stored}`);
         assert.ok(await page.locator("#agent option").count(), "Every available host offers an available agent");
@@ -153,7 +153,7 @@ async function checkHosts(page, width) {
         for (const [stored, expected] of Object.entries(legacyHosts)) await restore(stored, expected);
     }
     await restore("unavailable-smoke-host", "default");
-    await page.evaluate(() => localStorage.removeItem("theseries-vendor"));
+    await page.evaluate(() => localStorage.removeItem("agenticlab-vendor"));
 }
 
 async function checkExecutionControls(page) {

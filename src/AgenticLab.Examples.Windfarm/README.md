@@ -163,7 +163,7 @@ Install temporary Playwright per [browser setup](../../tools/README.md), then ru
 no-model browser checks against an enabled Development instance:
 
 ```sh
-THESERIES_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
   node src/AgenticLab.Examples.Windfarm/Tests/windfarm-smoke.mjs
 ```
 

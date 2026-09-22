@@ -6,8 +6,8 @@ agent execution. See also [Execution and breakpoints](execution-explorer.md) and
 ## Example Panels
 
 Self-contained [example modules](examples.md) can supply a compact panel above the conversation.
-The host selector is driven by catalogue keys, not a closed branding enum. The unchanged
-`theseries-vendor` preference accepts legacy enum names and new keys; unavailable modules fall back
+The host selector is driven by catalogue keys, not a closed branding enum. The
+`agenticlab-vendor` preference accepts legacy enum names and catalogue keys; unavailable modules fall back
 to a supported host. Modes requiring a panel appear only when that module is registered locally.
 
 `ExamplePanelHost` renders a locally registered component through a narrow `ExamplePanelContext`:
@@ -19,9 +19,11 @@ replay. Module metadata supplies tool resource/risk labels without core domain-n
 
 ## Live flow visualization
 
-**Rename compatibility.** Agentic Lab retains the `theseries-vendor`, `theseries-panels`,
-`theseries-workspace-bases` and `theseries-workspace-recent` local-storage keys so existing preferences
-survive the rename on the same browser origin. Routes, concept IDs and lesson permalinks are unchanged.
+**Browser preferences.** Agentic Lab uses the `agenticlab-vendor`, `agenticlab-panels`,
+`agenticlab-workspace-bases` and `agenticlab-workspace-recent` local-storage keys. Preferences saved
+under previous product-name keys are not migrated: host, layout and workspace preferences start from
+defaults after the rename. Previous entries are left untouched. Routes, concept IDs and lesson
+permalinks are unchanged.
 The panel JavaScript API is now `agenticLabPanels`, with matching Blazor interop calls.
 
 **Host inspector.** Enable **Expand agent host** under **View options** to make the anatomy's
@@ -176,8 +178,8 @@ Conversation width is clamped to 240-960px and at most 65% of primary space; aux
 240-640px and Execution height 120-900px. Fresh/reset Execution height is 240px and Learn width 260px.
 
 `PanelLayout.AdaptiveConversationWidth` is true initially; dragging Conversation switches to a pixel
-preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the unchanged
-`theseries-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
+preference. `PanelState` writes `L|R|B|leftW|rightW|bottomH|adaptive` under the
+`agenticlab-panels` key. Legacy six-field values are accepted as pixel layouts with their existing
 sizes/collapse flags. **Reset layout** in Settings deliberately restores adaptive sizing without
 resetting the run, draft, replay cursor, Details selection or Learn visibility. Details remains
 page-lifetime state, not persisted. Execution maximise is also transient.
@@ -329,7 +331,7 @@ switching vendor auto-selects that vendor's first agent (`VendorDefaultAgent`) a
 The shared palette is defined in
 [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css); feature aliases live on `.flow-app`
 without vendor-specific overrides. The vendor choice persists in `localStorage` (key
-`theseries-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
+`agenticlab-vendor`, restored in `OnAfterRenderAsync`, which also re-applies the restored vendor's agent
 roster). The contributor colours (app/agent/user = red/yellow/green) are deliberately left un-themed because
 they encode a fixed concept rather than branding; they are defined once as shared
 `--contrib-app`/`--contrib-agent`/`--contrib-user` CSS tokens on the base `.flow-app` and reused by the

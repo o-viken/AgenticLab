@@ -49,7 +49,7 @@ catalogue and returns 404 in Production. Feature CSS owns layout, not another ge
 Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
 and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
 adaptive conversation sizing; dragging selects pixels. `PanelState` reads legacy six-field preferences
-and writes a seventh adaptive-width flag under the unchanged `theseries-panels` key. Reflow never
+and writes a seventh adaptive-width flag under the `agenticlab-panels` key. Reflow never
 changes run state or saved preferences; Settings exposes Reset layout.
 
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
@@ -100,7 +100,8 @@ must not depend on their concrete host types. Copilot365 is enabled with
 `Examples:copilot365:Enabled=true`; its API host key remains `microsoft365` and its agent names remain
 `M365Copilot`, `M365Researcher` and `M365Analyst` for compatibility.
 
-Web host selection uses catalogue keys with legacy `theseries-vendor` parsing. Locally registered
+Web host selection uses catalogue keys and legacy host-value aliases under `agenticlab-vendor`.
+Locally registered
 `IWebExample` panels receive only `ExamplePanelContext`; awaited `IExamplePanel` cleanup precedes
 Web conversation reset. Core Flow roots own no example state. Keep module case history separate
 from captured execution replay. `LabButton`, `LabField`, `LabStatus` and `MiniIcon` now live in
@@ -129,7 +130,7 @@ ChatAgent/Ask/Plan/Coder identities, registered once in core. ChatGPT alone adds
 `ExampleManifest.HostPresentation` owns local SVG paths, ordering, product concept links and legacy
 host selection aliases. Registration rejects unowned presentation keys and ambiguous aliases;
 Default is reserved. Web looks up branding by host key, not agent ownership. There is no branding
-enum or branded lookup table in core. Canonical keys and enabled aliases restore `theseries-vendor`;
+enum or branded lookup table in core. Canonical keys and enabled aliases restore `agenticlab-vendor`;
 unavailable selections fall back to Default. Shared Learn content remains in Web. Module static
 assets may still be built/published when disabled; enablement controls registration, not assembly loading.
 
@@ -160,7 +161,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
 - Blazor UI smoke: install temporary Playwright as described in [tools/README.md](tools/README.md), then
-  `THESERIES_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
+  `AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
   Use a Development Web instance with an available agent catalogue. This does not send chat or run
   discovery; `/design-system` is also available there for isolated component inspection.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
@@ -196,9 +197,11 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
 ## Conventions
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
-  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links. Keep
-  `the-series-*` container image names until a separate external migration. Preserve the AppHost `UserSecretsId`, `theseries-*` browser preference
-  keys and `THESERIES_*` load-test variables for compatibility. Generic "agentic AI" is a subject,
+  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links,
+  `agenticlab-*` for container image names and browser preference keys, and `AGENTICLAB_*` for
+  browser-tool environment variables. This is a clean rename: do not add legacy product-name
+  fallbacks or migrate old browser preferences. Preserve the AppHost `UserSecretsId`.
+  Generic "agentic AI" is a subject,
   not an obsolete product name.
 
 - Teaching and UI vocabulary: **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and execution controls; the model reasons, plans and chooses a next step or final answer. Tool requests are not authorization: the host checks and executes permitted actions. Use **agent host** as the primary label, with **harness** explained as its agent-running machinery. Preserve technical identifiers, event kinds and existing concept/stage URLs when editing terminology.

@@ -15,10 +15,10 @@ namespace AgenticLab.Web.Components.Pages;
 /// </summary>
 public partial class Flow : IDisposable
 {
-    private const string VendorStorageKey = "theseries-vendor";
-    private const string PanelStorageKey = "theseries-panels";
-    private const string WorkspaceBasesStorageKey = "theseries-workspace-bases";
-    private const string RecentWorkspacesStorageKey = "theseries-workspace-recent";
+    private const string VendorStorageKey = "agenticlab-vendor";
+    private const string PanelStorageKey = "agenticlab-panels";
+    private const string WorkspaceBasesStorageKey = "agenticlab-workspace-bases";
+    private const string RecentWorkspacesStorageKey = "agenticlab-workspace-recent";
 
     [Inject]
     private AiServiceClient Ai { get; set; } = default!;
