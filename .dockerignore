@@ -9,8 +9,13 @@
 **/dist
 **/playwright-report
 **/test-results
+**/*.env
 **/.env
 **/.env.*
+!**/.env.example
+**/appsettings.[Ll]ocal.json
+**/appsettings.*.[Ll]ocal.json
+**/secrets.json
 artifacts
 deploy
 README.md

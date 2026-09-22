@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/o-viken/agenticlab/security/advisories/new
+    about: Use GitHub private vulnerability reporting. Do not post vulnerability details or secrets in public issues.

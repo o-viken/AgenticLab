@@ -1,11 +1,29 @@
 # Agentic Lab
 
 Agentic Lab was created to **demystify agentic AI and show how it works**.
-It makes the steps between a question and an answer visible: what the model receives, which tools
-it asks to use, and what comes back. The goal is to make agents easier to understand through
-simple explanations and working examples.
+It brings together two complementary parts:
 
-## How an Agent Works
+1. **[Learn how agentic AI works](#1-learn-how-agentic-ai-works).** Guided lessons and simple
+   explanations introduce agents, models, tools and context.
+2. **[See it happen in Live Flow](#2-see-it-happen-in-live-flow).** Run an agent and watch the steps
+   between your question and its answer: what the model receives, which tools it asks to use,
+   and what comes back.
+
+> [!WARNING]
+> This is an educational sample, not a production-ready agent platform. Use a trusted local
+> development environment. Before shared or public deployment, add authentication, authorization,
+> sandboxing, network/tool policy, resource limits, and a reviewed data-retention policy.
+> Read [SECURITY.md](SECURITY.md) before using real credentials or workspace data.
+
+## Project Status
+
+Agentic Lab is actively evolving. APIs, UI details, and configuration may change between versions.
+Security fixes target the latest `main` branch; older releases have no separate support commitment.
+
+## 1. Learn How Agentic AI Works
+
+The **Learn** experience explains the building blocks of an agent through guided lessons on models,
+tools and context. Start with the core idea:
 
 **Agent = Agent host + Model.** The model chooses the next step. The agent host is the code around
 it that supplies context, manages tools and controls execution.
@@ -18,10 +36,19 @@ it that supplies context, manages tools and controls execution.
 This loop continues until the model gives a final answer. A request to use a tool is not permission
 to run it: the host decides what is allowed.
 
-## See It in Action
+Explore the guided lessons at `/learn` with the [learning-only setup](#learning-only); no Azure
+credentials or live model calls are needed.
 
-- Follow guided lessons about agents, tools and context.
-- Run an agent and inspect the model requests, responses, tool calls and results.
+[![The agent-loop lesson showing context, model decisions, host tool execution, observations, and final answers.](docs/images/06-guided-learning.png)](docs/images/06-guided-learning.png)
+
+The agent loop in the guided Learn experience. [Learning guide](docs/learning.md).
+
+## 2. See It Happen in Live Flow
+
+**Live Flow** is the hands-on workspace where you run an agent and see what is happening as it runs.
+
+- Watch the flow between the agent host, model and tools as your question is processed.
+- Inspect the actual model requests, responses, tool calls and results.
 - Pause, step through execution and replay a captured run without running it again.
 
 The captured activity shows what the application sends and receives, not the model's private
@@ -30,6 +57,40 @@ reasoning. Illustrations of model internals are labelled simulations.
 Built with [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
 [Aspire](https://aspire.dev/) and Azure OpenAI. Read the [vision](VISION.md) for more on the project's
 purpose and direction.
+
+[![Completed Wikipedia-and-calculator conversation beside the user, agent host, tools, and model diagram.](docs/images/01-live-workspace.png)](docs/images/01-live-workspace.png)
+
+Follow a conversation alongside its agent and tools. [Workspace guide](docs/web-flow-page.md).
+
+Screenshots captured locally on 2026-09-22 from a running Blazor build. The live run uses public
+Wikipedia data and real calculator calls. Gray masks cover deployment identifiers. The
+ChatGPT-labelled host is a representative demo backed by Azure OpenAI, not a connection to the
+ChatGPT product. Select an image to open it at full size.
+
+## Security, Data, and Costs
+
+AiService, the React BFF, and the sample MCP/A2A services do not provide caller authentication or
+per-user authorization. Chat endpoints can invoke tools; control and workspace endpoints also need
+protection. The terminal allowlist and workspace working directory are **not a sandbox**: processes
+run with the service account's permissions and can access files and networks outside that directory.
+Use only trusted workspaces and integrations. See the [security policy](SECURITY.md) for the full
+trust boundaries and private vulnerability-reporting channel.
+
+- Live runs send prompts, conversation history, enabled instructions, selected context, and tool
+   results to the configured model service. Azure charges may apply; local startup does not mean
+   data stays local. Wikipedia, web-fetch, MCP, and A2A integrations can contact other services.
+- Flow captures include model/tool payloads and can contain private data. Backend conversation
+   history and frontend captures have separate lifetimes. Reset does not erase external copies,
+   exported logs, screenshots, browser workspace preferences, or tool side effects. See
+   [conversation memory](docs/agents.md), [Blazor replay retention](docs/execution-explorer.md#replay-retention),
+   and [React state](docs/react-frontend.md#transport-and-state).
+- OpenTelemetry collects logs, traces, and metrics for the configured collector. Review their
+   contents, access, and retention before using sensitive data; aggregate metrics without content
+   do not guarantee that every log or trace is free of sensitive information.
+
+To explore without model or protocol calls, use the [learning-only Web guide](#learning-only)
+without starting AppHost or the model/protocol services. Disabling an example or individual tools
+does not turn live chat into an offline workflow or impose a cost limit.
 
 ## Prerequisites
 
@@ -175,32 +236,17 @@ dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=tru
 | [Example Modules](docs/examples.md) | Self-contained community examples, extension contracts and registration. |
 | [Architecture and Conventions](AGENTS.md) | Project structure and implementation guidance for contributors. |
 | [Browser Checks](tools/README.md) | Responsive UI smoke checks and separate browser load-test setup. |
+| [Security Policy](SECURITY.md) | Private vulnerability reporting, tool risks, credentials, and data boundaries. |
+| [Contributing](CONTRIBUTING.md) | Development workflow, checks, pull requests, and maintainer publication gates. |
 
 ## Contributing
 
-Contributions can improve code, tests, documentation, lessons, or examples.
+Contributions can improve code, tests, documentation, lessons, or examples. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, credential-free .NET tests, React/browser checks,
+and pull-request expectations. Discuss substantial changes in an issue first and keep changes focused.
 
-1. [Open an issue](https://github.com/o-viken/agenticlab/issues) with a reproducible bug report or a
-   proposed improvement. Discuss substantial changes before investing in implementation.
-2. Fork the repository and create a branch for your change. Read [AGENTS.md](AGENTS.md) and the
-   relevant feature guide before editing.
-3. Keep the change focused. Add or update tests for changed behavior and update the matching docs.
-4. Run the relevant checks from the repository root:
-
-```sh
-dotnet build AgenticLab.slnx
-dotnet test AgenticLab.slnx
-```
-
-The deterministic agent and protocol tests use a fake model and do not need Azure credentials.
-For React changes, also run the [frontend verification steps](docs/react-frontend.md#verification).
-For documentation-only changes, check links, commands, and the rendered Markdown.
-
-5. Open a pull request explaining the problem, your change, and how you verified it. Include
-   screenshots for UI changes and note any checks you could not run.
-
-Do not include API keys, private workspace content, or sensitive captured prompts in issues,
-screenshots, logs, or pull requests.
+Never include credentials, private workspace content, or sensitive captures in issues or pull requests.
+Report suspected vulnerabilities privately through the [security policy](SECURITY.md).
 
 ## License
 

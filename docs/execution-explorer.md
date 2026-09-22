@@ -4,6 +4,14 @@ Part of the [Agentic Lab architecture notes](../AGENTS.md). The Execution dock a
 
 ## Execution explorer (replay of a captured run)
 
+[![Execution explorer showing a completed exchange, four model turns, and the calculator result of 80.](images/03-execution-replay.png)](images/03-execution-replay.png)
+
+Inspect captured stages and tool results without rerunning them. Select an image to open it at full size.
+
+Screenshots captured locally on 2026-09-22 from a running Blazor build, using public Wikipedia data
+and real calculator calls. Gray masks cover deployment identifiers. The ChatGPT-labelled host is a
+representative demo backed by Azure OpenAI, not a connection to the ChatGPT product.
+
 Custom telemetry meter names now use the `AgenticLab.*` prefix, including
 `AgenticLab.AiService.Conversations`, `AgenticLab.AiService.Flow`, `AgenticLab.Web.Flow` and
 `AgenticLab.Web.Replay`. Update any external meter-name filters when upgrading; instrument names,
@@ -59,6 +67,10 @@ The Settings tab offers four independent execution breakpoints (`before-model`, 
 `before-tool`, `after-tool`), all off initially. They pause in Auto as well as Manual mode and remain
 selected for the page lifetime only. See [the reference below](#post-chatcontrol) for the API contract
 and user-facing Continue/Next/Stop behavior.
+
+[![A real run paused before GetWikiPage, with Continue, Next, and Stop controls.](images/02-execution-breakpoint.png)](images/02-execution-breakpoint.png)
+
+Pause before the host executes a requested tool.
 
 [FlowSession](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs) owns a separate cancellable latch,
 an occurrence ID and a notification channel. Selection changes affect future boundaries without
