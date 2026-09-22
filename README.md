@@ -39,6 +39,10 @@ to run it: the host decides what is allowed.
 Explore the guided lessons at `/learn` with the [learning-only setup](#learning-only); no Azure
 credentials or live model calls are needed.
 
+[![The agent-loop lesson showing context, model decisions, host tool execution, observations, and final answers.](docs/images/06-guided-learning.png)](docs/images/06-guided-learning.png)
+
+The agent loop in the guided Learn experience. [Learning guide](docs/learning.md).
+
 ## 2. See It Happen in Live Flow
 
 **Live Flow** is the hands-on workspace where you run an agent and see what is happening as it runs.
@@ -53,6 +57,15 @@ reasoning. Illustrations of model internals are labelled simulations.
 Built with [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
 [Aspire](https://aspire.dev/) and Azure OpenAI. Read the [vision](VISION.md) for more on the project's
 purpose and direction.
+
+[![Completed Wikipedia-and-calculator conversation beside the user, agent host, tools, and model diagram.](docs/images/01-live-workspace.png)](docs/images/01-live-workspace.png)
+
+Follow a conversation alongside its agent and tools. [Workspace guide](docs/web-flow-page.md).
+
+Screenshots captured locally on 2026-09-22 from a running Blazor build. The live run uses public
+Wikipedia data and real calculator calls. Gray masks cover deployment identifiers. The
+ChatGPT-labelled host is a representative demo backed by Azure OpenAI, not a connection to the
+ChatGPT product. Select an image to open it at full size.
 
 ## Security, Data, and Costs
 

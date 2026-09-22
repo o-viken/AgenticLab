@@ -36,6 +36,13 @@ Details shows only the selected part, with one title and its content. There is n
 section picker, repeated agent heading or visible ownership/source badge. Contributor rails and
 titles are shared with the anatomy; selection styling is separate from execution activity.
 
+[![Expanded agent host anatomy with the configured system prompt open in the Details dock.](images/04-host-inspector.png)](images/04-host-inspector.png)
+
+Read the instructions behind the agent's behavior. Select the image to open it at full size.
+Captured locally on 2026-09-22 from a running Blazor build; gray masks cover deployment identifiers.
+The ChatGPT-labelled host is a representative demo backed by Azure OpenAI, not a connection to the
+ChatGPT product.
+
 A2A agent chips, remote-agent headings and catalogue entries open an individual agent in Details only
 while **Expand agent host** is enabled. Otherwise they render as plain labels without inspect icons;
 an already-open Details pane and its selection remain intact. Inspection shows its description, protocol,
