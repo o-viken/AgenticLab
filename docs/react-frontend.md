@@ -112,7 +112,7 @@ does not modify the existing four image-publishing targets.
 The first screen is a conversation-led split view with a compact live flow and current-run activity.
 Host/agent choices come from the API; workspace-dependent agents are excluded in this first slice.
 The model node shows real deployment metadata, not a simulated vendor model.
-The header's GitHub icon opens [the project repository](https://github.com/o-viken/the-series) in a
+The header's GitHub icon opens [the project repository](https://github.com/o-viken/agenticlab) in a
 new tab without replacing the workspace. The locally bundled mark comes from
 [GitHub Octicons](https://github.com/primer/octicons), with its MIT license in `public/licenses`.
 
@@ -138,8 +138,15 @@ needs it. Unknown future event kinds remain readable activity rows.
 
 Chat POSTs never retry/reconnect automatically. Each send creates a session UUID; the browser instance
 keeps its conversation UUID until a successful reset. IDs are not persisted or shared between tabs.
-Agent/vendor values are snapshotted per send; selectors lock during a run. Generation guards reject
+Agent/vendor values are snapshotted per send; selectors lock during a run or reset. Generation guards reject
 late events/acknowledgements. StrictMode does not submit from an effect; unmount cancels the request.
+
+Choosing a different Host (harness/vendor) resets the conversation before committing the new vendor
+and its default agent. A successful switch gets a fresh conversation UUID and clears the transcript
+and execution activity, preserving the unsent draft and execution mode. Switching back also starts
+fresh. Agent-only changes, selecting the current vendor and initial catalogue loading do not reset.
+A failed reset leaves the current vendor, agent and conversation intact and shows an error; the user
+can retry the switch. Send and selectors stay locked while the reset is pending.
 
 Manual mode waits before the **first** event, so Next works before headers/data arrive. Only a definite
 initial control 404 gets bounded 100/200/400/800ms retries. Successful or ambiguously failed controls

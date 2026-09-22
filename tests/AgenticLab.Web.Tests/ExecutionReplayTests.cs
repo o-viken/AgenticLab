@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
@@ -589,9 +590,84 @@ public sealed class ExecutionReplayTests
         Assert.Equal(1, history.EvictedExchanges);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.NoContent)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task VendorChange_StartsFreshConversationAndPreservesDraftAndPreferences(HttpStatusCode resetStatus)
+    {
+        using var handler = new ReplayHandler { ResetStatus = resetStatus };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Vendor = Vendor.Default;
+        view.Roster.SetAgents([new AgentInfo("Chat", "chat", []), new AgentInfo("Research", "research", [])]);
+        view.Roster.SetVendors([new VendorInfo("chatgpt", "ChatGPT", "model", [new VendorModeInfo("Chat", "Chat")])]);
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var page = new AgenticLab.Web.Components.Pages.Flow();
+        const BindingFlags members = BindingFlags.Instance | BindingFlags.NonPublic;
+        typeof(AgenticLab.Web.Components.Pages.Flow).GetField("_view", members)!.SetValue(page, view);
+        typeof(AgenticLab.Web.Components.Pages.Flow).GetField("_run", members)!.SetValue(page, run);
+        var changeVendor = typeof(AgenticLab.Web.Components.Pages.Flow).GetMethod("SetVendorAsync", members)!;
+        Task ChangeVendorAsync(string key) => (Task)changeVendor.Invoke(page, [key])!;
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        async Task SendAsync(string message)
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = message;
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await SendAsync("first");
+        var previousId = Assert.Single(handler.ConversationIds);
+        view.SelectedAgent = "Research";
+        await run.Catalogs.OnAgentChangedAsync();
+        await SendAsync("agent-only follow-up");
+        Assert.All(handler.ConversationIds, actual => Assert.Equal(previousId, actual));
+        view.Cursor.SelectStage(run.Projections.Exchanges[0].Id, 1);
+        view.Message = "unsent draft";
+        view.Workspace = "test workspace";
+        view.Layout.LeftPanelWidth = 410;
+        view.Diagram.ApplyPreset(DiagramPreset.Technical);
+        view.Details.Open(HostDetailSection.Context);
+        await ChangeVendorAsync("default");
+        Assert.Equal(0, handler.Resets);
+        Assert.Equal(2, run.Projections.Exchanges.Count);
+
+        await ChangeVendorAsync("chatgpt");
+        Assert.Equal(previousId, Assert.Single(handler.ResetIds));
+        Assert.Equal(Vendor.ChatGpt, view.Vendor);
+        Assert.Equal("Chat", view.SelectedAgent);
+        Assert.Empty(run.Projections.Exchanges);
+        Assert.Empty(run.Turns);
+        Assert.Empty(run.Events);
+        Assert.False(run.Replay.Replaying);
+        Assert.False(run.Replay.DisplayPromptSignature.HasCurrent);
+        Assert.Equal("unsent draft", view.Message);
+        Assert.Equal("test workspace", view.Workspace);
+        Assert.Equal(410, view.Layout.LeftPanelWidth);
+        Assert.Equal(DiagramPreset.Technical, view.Diagram.Preset);
+        Assert.Equal(HostDetailSection.Context, view.Details.Section);
+        Assert.Equal(resetStatus != HttpStatusCode.NoContent, run.Error is not null);
+
+        await SendAsync("fresh");
+        var freshId = handler.ConversationIds[^1];
+        Assert.NotEqual(previousId, freshId);
+        await ChangeVendorAsync("default");
+        await SendAsync("back again");
+        Assert.NotEqual(previousId, handler.ConversationIds[^1]);
+        Assert.NotEqual(freshId, handler.ConversationIds[^1]);
+    }
+
     private sealed class ReplayHandler : HttpMessageHandler
     {
         internal int Resets { get; private set; }
+        internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
+        internal List<string> ResetIds { get; } = [];
         internal List<string> ConversationIds { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -599,8 +675,12 @@ public sealed class ExecutionReplayTests
             if (request.RequestUri!.AbsolutePath == "/chat/reset")
             {
                 Resets++;
-                return new HttpResponseMessage(HttpStatusCode.NoContent);
+                using var reset = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+                ResetIds.Add(reset.RootElement.GetProperty("conversationId").GetString()!);
+                return new HttpResponseMessage(ResetStatus);
             }
+            if (request.RequestUri.AbsolutePath == "/harness")
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"prompt\":\"test harness\"}") };
             Assert.Equal("/chat/stream", request.RequestUri.AbsolutePath);
             using var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             ConversationIds.Add(payload.RootElement.GetProperty("conversationId").GetString()!);

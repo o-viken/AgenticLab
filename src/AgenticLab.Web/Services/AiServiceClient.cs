@@ -213,6 +213,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <summary>Clears a conversation's remembered history so the next message starts fresh.</summary>
     /// <param name="conversationId">The id of the conversation to reset.</param>
     /// <param name="cancellationToken">A token to cancel the request.</param>
+    /// <exception cref="HttpRequestException">The server could not clear the remembered history.</exception>
     public async Task ResetConversationAsync(string conversationId, CancellationToken cancellationToken = default)
     {
         using var response = await http.PostAsJsonAsync(
@@ -220,6 +221,7 @@ internal sealed class AiServiceClient(HttpClient http)
             new ConversationResetRequest(conversationId),
             JsonOptions,
             cancellationToken);
+            response.EnsureSuccessStatusCode();
     }
 
     /// <summary>

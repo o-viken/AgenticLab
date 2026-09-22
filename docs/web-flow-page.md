@@ -52,7 +52,9 @@ Opening another section replaces the current detail, and switching agent, vendor
 that section selected while its content updates. Opening a concept reveals only Learn; disabling Learn
 does not affect Details. Closing Details removes only its dock. Collapse retains selection, and clicking
 another anatomy heading expands only Details.
-These actions never change the draft, conversation, execution options, display preset or replay cursor.
+Inspection actions never change the draft, conversation, execution options, display preset or replay cursor.
+Changing the Host vendor is a separate conversation action: it starts a fresh conversation and clears
+execution captures, while keeping the selected Details section.
 On narrow screens both panels stack separately below the main view; explicit section activation brings
 Details into view. Native buttons support keyboard activation, and Close/Escape inside Details restores
 focus to the invoking heading (or View options when the host has been collapsed).
@@ -105,7 +107,7 @@ It returns 404 outside Development. No React runtime, CDN or npm build step is a
 The workspace uses white/neutral surfaces, green commands, fine dividers and a shared 18px dotted
 diagram grid. Semantic contributor, chart and risk colours remain distinct from branding. Flow and
 Learn retain the **Agentic AI** heading; Discovery and browser titles retain **Agentic Lab**.
-The shared repository link still opens `https://github.com/o-viken/the-series` in a new tab.
+The shared repository link opens `https://github.com/o-viken/agenticlab` in a new tab.
 Font notices and pinned Lucide/Octicons assets remain local under `wwwroot`.
 Reduced motion suppresses visual effects, never backend event pacing.
 
@@ -134,6 +136,13 @@ color. Focused replay tests cover prefix ordering, future-content exclusion and 
 composes a shared header, a **Host / Agent** selection bar and `.flow-body`. The selection bar replaces
 the rendered vendor rail and composer agent picker, preserving `SetVendorAsync`, catalogue refreshes,
 workspace-agent choices and the saved vendor. Selectors are locked while a run is active.
+
+Choosing a different Host (harness/vendor) starts a fresh conversation using the existing New
+conversation reset: a new conversation ID, empty transcript and execution captures, and a live replay
+cursor. The unsent draft, workspace and layout/display preferences stay intact; the vendor's default
+agent is selected as before. Re-selecting the current vendor, changing only the agent, and restoring
+the saved vendor at startup do not reset chat. Reset happens before persistence and catalogue refreshes.
+If server cleanup fails, an error is shown, but the new local conversation ID remains in use.
 
 The primary `.workspace-grid` places Conversation/Settings beside live flow. `ControlsPanel` owns
 compact, keyboard-navigable tabs and keeps `FlowChat` mounted while Settings is selected. Its header

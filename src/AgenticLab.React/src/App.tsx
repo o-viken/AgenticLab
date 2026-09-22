@@ -46,6 +46,12 @@ export default function App() {
     if (identity && run.send(draft, identity)) setDraft('')
   }
 
+  async function changeVendor(key: string) {
+    const chosen = vendors.find(item => item.key === key)
+    if (!chosen || chosen.key === selection.vendor || locked) return
+    if (await run.reset()) setSelection({ vendor: chosen.key, agent: chosen.modes[0].agent })
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -55,7 +61,7 @@ export default function App() {
         </a>
         <div className={styles.headerActions}>
           <span className={styles.edition}>Flow workspace <span>React</span></span>
-          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/o-viken/the-series"
+          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/o-viken/agenticlab"
             target="_blank" rel="noopener noreferrer" title="View Agentic Lab on GitHub (opens in a new tab)"
             aria-label="View Agentic Lab on GitHub (opens in a new tab)">
             <span className={styles.repositoryIcon} aria-hidden="true" />
@@ -66,10 +72,7 @@ export default function App() {
         <div className={styles.selectors}>
           <label>Host
             <select aria-label="Host" value={selection.vendor} disabled={locked || !vendors.length}
-              onChange={event => {
-                const chosen = vendors.find(item => item.key === event.target.value)!
-                setSelection({ vendor: chosen.key, agent: chosen.modes[0].agent })
-              }}>
+              onChange={event => void changeVendor(event.target.value)}>
               {!vendors.length && <option value="">{catalogError ? 'Unavailable' : catalogs ? 'No supported hosts' : 'Loading...'}</option>}
               {vendors.map(item => <option key={item.key} value={item.key}>{item.displayName}</option>)}
             </select>
