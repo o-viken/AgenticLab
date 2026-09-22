@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a focused improvement to Agentic Lab.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem and the educational or development use case before proposing a solution.
+        Do not include private data. For suspected vulnerabilities, use [private vulnerability reporting](https://github.com/o-viken/agenticlab/security/advisories/new), not this form.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who is affected, and what are they trying to learn or accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the desired behavior and a focused initial scope.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing workflows or workarounds and their limitations.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Optional related issues, educational examples, or sanitized mockups. Include sources and licensing for third-party assets.

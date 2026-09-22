@@ -3,6 +3,8 @@
 A .NET 10 [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample: a set of AI agents backed by Azure OpenAI, each with its own persona and toolset, that answer questions using Wikipedia and a calculator as tools.
 
 See [README.md](README.md) for a user-facing overview, prerequisites, local setup and contribution steps.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor checks and publication gates, and
+[SECURITY.md](SECURITY.md) for private vulnerability reporting and the trusted-local security boundary.
 The [agents guide](docs/agents.md#chat-api) covers the `POST /chat` / `GET /agents` API.
 
 ## Architecture
@@ -150,6 +152,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 | [docs/workspace.md](docs/workspace.md) | Workspace skills, custom instructions, workspace-defined agents (YAML + markdown conventions, tool aliases) and the workspace-scoped file/terminal tools. |
 | [docs/protocols.md](docs/protocols.md) | The MCP server, the A2A server and the observable discovery process + Discovery page. |
 | [README.md](README.md) | Purpose, prerequisites, local startup, contribution steps and documentation index. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contributor workflow, credential-free verification, templates, and owner-controlled publication gates. |
+| [SECURITY.md](SECURITY.md) | Private reporting, supported versions, service/tool trust boundaries, credentials, and data retention limits. |
 | [tools/README.md](tools/README.md) | No-model-call browser smoke checks and the separate Playwright load-test profile. |
 
 ## Build and Run
@@ -158,6 +162,11 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - Run everything (launches the Aspire dashboard): `dotnet run --project src/AgenticLab.AppHost`
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
 - Test: `dotnet test AgenticLab.slnx`. AiService's `FlowExecutionTests` and `ProtocolIntegrationTests` cover agent streaming/history/tool filtering and loopback MCP/A2A round trips without Azure credentials. Protocol tests reference the MCP and A2A server projects and use ephemeral ports with a fake model.
+- [CI](.github/workflows/ci.yml) runs solution restore, Release build, and matching no-build tests on
+  every PR and main push, without Azure credentials or starting AppHost. Keep its `dotnet-build-test`
+  check unconditional. Reproduce the commands in [CONTRIBUTING.md](CONTRIBUTING.md#verification).
+  Existing React and container workflows remain separate; the path-filtered React workflow must not
+  be an unconditional required PR check.
 - The Console is registered with `WithExplicitStart()`, so start it manually from the Aspire dashboard. It needs an attached terminal for stdin.
 - The Web app (`web` resource) starts automatically and is exposed on an external HTTP endpoint; open it from the Aspire dashboard to use the flow visualizer.
 - Blazor UI smoke: install temporary Playwright as described in [tools/README.md](tools/README.md), then
@@ -219,7 +228,7 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
   controls take parameters/events, never Flow state. Add a real consumer and a catalogue example for
   new primitives; follow [docs/design-system.md](docs/design-system.md). Native ARIA boolean attributes
   must render explicit `"true"`/`"false"` strings, not minimised Razor boolean attributes.
-- Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter) and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()` (see `WikiTool`, `CalculatorTool`, `FileSystemTool`, `TerminalTool`). Tools live under [src/AgenticLab.AiService/Application/Tools](src/AgenticLab.AiService/Application/Tools) (harness/app tools, used by the workspace agents) and [src/AgenticLab.AiService/Demo/Tools](src/AgenticLab.AiService/Demo/Tools) (demo tools); add new ones there the same way. Tools that touch the file system or shell must stay confined to the active `WorkspaceScope` (resolve paths via `WorkspaceScope.ResolvePath`).
+- Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter) and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()` (see `WikiTool`, `CalculatorTool`, `FileSystemTool`, `TerminalTool`). Tools live under [src/AgenticLab.AiService/Application/Tools](src/AgenticLab.AiService/Application/Tools) (harness/app tools, used by the workspace agents) and [src/AgenticLab.AiService/Demo/Tools](src/AgenticLab.AiService/Demo/Tools) (demo tools); add new ones there the same way. Resolve file-tool paths via the active `WorkspaceScope.ResolvePath` and take the terminal working directory from that scope. These lexical path checks and the command allowlist are not a filesystem/process sandbox; preserve the trust-boundary guidance in [SECURITY.md](SECURITY.md).
 - Add a new agent by inheriting `AgentDefinitionBase` and supplying its name, description, `Persona` (its own system prompt, layered on top of the shared harness prompt), and tool subset under `src/AgenticLab.AiService/Demo/Agents/`, then registering it as a singleton `IAgentDefinition` in [Program.cs](src/AgenticLab.AiService/Program.cs). Declare the name as a `public const string AgentName` and return it from `Name`, so vendor harnesses and other call sites reference the constant instead of repeating the string. Override `RequiresWorkspace => true` when the agent's tools need a workspace root (the endpoints then insist on a `Workspace` path and open a `WorkspaceScope` for the run). Override `SupportsSkills => true` to opt into workspace skills (the endpoints then inject the `<skills>` catalogue per run; see [workspace skills](docs/workspace.md#workspace-skills-the-coder-agent)). Override `RiskLevel` (an `AgentRiskLevel`) and `Guardrails` (an `IReadOnlyList<string>` of human-readable safety mechanisms) to communicate how risky the agent is and what constrains it — both default to `None` / empty in `AgentDefinitionBase`, are surfaced over `GET /agents`, and drive the Environment & risk view's risk meter and guardrails chips. Override `ModelId` (a `string?`, default `null`) to declare a preferred Azure OpenAI deployment in code, though the `Agents:{Name}:Deployment` config value takes precedence (see [per-agent models](docs/agents.md#per-agent-models)). Alternatively, ship an agent **in a workspace** as an `agents/<name>.agent.yaml` file (no code, no redeploy) — it can only use existing backend tools and is discovered + run per request; see [workspace-defined agents](docs/workspace.md#workspace-defined-agents-the-agents-folder).
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service discovery, not hardcoded URLs.
 - Agents are stateless; the shared `IChatClient` and the `AgentCatalog` are registered as singletons. Per-conversation history lives outside the agents in the singleton `ConversationStore` (keyed by `ConversationId`), not on the agents themselves, and expires after the configured sliding inactivity window.

@@ -84,7 +84,9 @@ coverage*.info
 .env
 .env.*
 !.env.example
-appsettings.*.local.json
+appsettings.[Ll]ocal.json
+appsettings.*.[Ll]ocal.json
+secrets.json
 
 # Optional React frontend
 node_modules/
