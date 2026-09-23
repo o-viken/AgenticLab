@@ -11,7 +11,7 @@ flowchart LR
     React[React browser client] -->|"same-origin /api/*"| BFF[ASP.NET Core BFF]
     BFF -->|"JSON and POST SSE"| AI[AiService]
     Blazor[Existing Blazor frontend] --> AI
-    AI --> Model[Azure OpenAI]
+    AI --> Model[Configured model provider]
     AI --> Tools[Tools / MCP / A2A]
 ```
 

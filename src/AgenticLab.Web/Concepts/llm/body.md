@@ -20,7 +20,8 @@ Each request/response exchange with the **Model** node is one round-trip: the ag
 the tool definitions, and the model replies with either a final answer or a **tool call**.
 The loop badge counts how many of these round-trips a single question takes.
 
-The model runs through **Azure OpenAI**. Local functions, MCP tools and A2A delegation
+The model runs through the configured **Azure OpenAI**, **OpenAI** or **Gemini** API.
+Local functions, MCP tools and A2A delegation
 are capabilities reached through the agent host, not actions the model executes itself.
 
 ## Want the intuition?

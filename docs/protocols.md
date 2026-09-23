@@ -24,7 +24,10 @@ Registration uses `AddMcpServer().WithHttpTransport().WithTools<TimeTools>()` an
 [A2AServer](../src/AgenticLab.A2AServer/Program.cs) hosts persona-only agents declared under
 `A2A:Agents`, with `{ Name, Path?, Description, Instructions }`. Defaults are `research` and `poet`;
 paths default to `/a2a/{name}`. Microsoft Agent Framework registers each with `AddAIAgent`,
-`AddA2AServer` and `MapA2AJsonRpc`. AppHost supplies Azure OpenAI settings to this `a2aserver` resource.
+`AddA2AServer` and `MapA2AJsonRpc`. AppHost supplies the same selected
+[model provider](agents.md#model-providers) settings to this `a2aserver` resource as to AiService.
+Both use `ModelClientFactory`; specialists share the provider's global default model. Native OpenAI
+or Gemini configuration needs no Azure credentials. A standalone A2AServer accepts the same settings.
 
 The server's `GET /agents` returns `{ Agents: [{ Name, Path, Description }] }`.
 [A2AAgentProvider](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs) resolves
@@ -50,8 +53,9 @@ Discovery shows the full server roster.
 ## Protocol integration tests
 
 [ProtocolIntegrationTests.cs](../tests/AgenticLab.AiService.Tests/ProtocolIntegrationTests.cs)
-uses ephemeral loopback Kestrel servers, real `TimeTools` and a fake-model A2A agent. It exercises the
-production providers, rediscovery and invocation after reconnecting without Azure credentials.
+uses ephemeral loopback Kestrel servers, real `TimeTools`, a fake-model A2A agent and factory-backed
+Azure/OpenAI/Gemini clients with injected HTTP responses. It exercises discovery providers, model
+adapters, rediscovery and invocation after reconnecting without real credentials or provider calls.
 Neighboring `FlowExecutionTests` checks streamed tool execution, disabled-tool enforcement and
 second-turn history. Use the [upgrade check](#dependency-upgrade-checks) below to run both.
 
@@ -106,11 +110,11 @@ without structured metadata fall back to a generic resource. Replay and held/sto
 
 ## Dependency upgrade checks
 
-Run the deterministic agent and protocol integration tests without Azure credentials:
+Run the deterministic agent, model-provider and protocol integration tests without credentials:
 
 ```sh
-dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
+dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests|FullyQualifiedName~ModelProviderTests"
 ```
 
-These deterministic checks do not verify live Azure OpenAI, production entry points or Aspire startup;
+These deterministic checks do not verify live model APIs, production entry points or Aspire startup;
 those require a separate full-app smoke test.

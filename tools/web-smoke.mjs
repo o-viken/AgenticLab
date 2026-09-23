@@ -222,6 +222,9 @@ async function checkDocksAndDiscovery(page, width) {
     await page.keyboard.press("Escape");
     const anatomy = page.locator(".node.harness.anatomy");
     await anatomy.waitFor();
+    const settingsLayer = anatomy.locator(".layer.agent").filter({ has: page.getByRole("button", { name: "Settings", exact: true }) });
+    assert.match(await settingsLayer.locator(".layer-body").innerText(), /^Declared model: .+stepping:/,
+        "Host settings show the declared model instead of a fixed provider");
     assert.equal(await anatomy.getByRole("button", { name: "Client", exact: true }).count(), 0, "Client is not a host inspector section");
     assert.equal(await anatomy.getByTitle("Learn about the client", { exact: true }).count(), 0, "Client has no anatomy info button");
     await page.getByRole("button", { name: "System prompt", exact: true }).click();

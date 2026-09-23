@@ -27,7 +27,7 @@ The bigger the reach, the more the guardrails matter.
 ## In this application (Agentic Lab)
 
 Turn on **Environment & risk** above the diagram. Each node gets a "where it runs" badge:
-the **User** is your browser, the **LLM** is a cloud service (Azure OpenAI), and the merged
+the **User** is your browser, the **LLM** is a cloud model API (Azure OpenAI, OpenAI or Gemini), and the merged
 **Harness** node shows whether the selected agent runs *on your machine* (workspace agents
 like `Coder`, with file and shell access) or *as a server process with no local access*
 (everyone else). A dashed **Your environment** boundary wraps the User and the Harness —

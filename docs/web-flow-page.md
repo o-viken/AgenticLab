@@ -11,7 +11,8 @@ read the [security policy](../SECURITY.md).
 ### Conversation and Settings
 
 Choose **Host** and **Agent** above the workspace, then send a message from **Conversation**.
-The host selects a representative prompt and available modes; the backend remains Azure OpenAI.
+The host selects a representative prompt and available modes; the backend remains the startup-selected
+[Azure OpenAI, OpenAI or Gemini provider](agents.md#model-providers). Host selection never changes keys.
 Default is always available. Other hosts require enabled [example modules](examples.md#default-startup).
 Unavailable saved hosts fall back to Default. Selectors are locked during a run.
 
@@ -85,7 +86,8 @@ OpenAI-backed demo, not the ChatGPT product. Select the image for full size.
 Details shows the selected section, not the whole request:
 
 - **System prompt** is host guidance; **Agent persona** uses captured text or the agent description.
-- **Settings** shows provider/deployment, not execution controls. **Tools** uses captured definitions
+- **Settings** shows the declared model, not an inferred provider or execution controls. Force-default
+  configuration can make the executing model differ from this label. **Tools** uses captured definitions
   when available, otherwise configured names. Skills/instructions show catalogue text and enablement.
 - **User prompt** is the submitted message, never the draft. **Context** is captured conversation content.
 - An **A2A agent** shows its description, protocol, delegation status and captured request/result.
@@ -128,7 +130,7 @@ These optional panels are teaching aids, **not captured model internals**:
 - **Inference** illustrates tokenization and answer generation, with an approximate character-based
   token count and fabricated candidate probabilities.
 - **Embeddings** shows deterministic fake vectors and a two-dimensional map, not semantic embeddings
-  returned by Azure OpenAI.
+  returned by the configured model service.
 - **Neural network** illustrates a forward pass and token choice, not the model's weights or architecture.
 
 Click a prompt token, vector row or map point to pin it across panels; click again to unpin.
@@ -180,7 +182,7 @@ follows the [Blazor design system](design-system.md); this heading preserves exi
 
 ## Running the web UI
 
-With Azure OpenAI configured, start the app and open the automatically started **web** resource:
+With a model provider configured, start the app and open the automatically started **web** resource:
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost

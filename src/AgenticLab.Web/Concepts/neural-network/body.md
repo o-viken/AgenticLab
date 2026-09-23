@@ -56,6 +56,6 @@ explicit that the distribution really spans the **whole vocabulary** (only the t
 "+ N more tokens" row for the leftover mass), and two simulated **temperature** and **top_p** chips stand in
 for the sampling settings described above.
 
-Everything here is **fabricated for teaching** — the backend is Azure OpenAI and exposes no real network
+Everything here is **fabricated for teaching**. The configured model API exposes no real network
 weights, so the shape, edges, sweep, distribution and sampling values are invented. It conveys the *shape*
 of a forward pass, not the model's real internals.

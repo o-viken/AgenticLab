@@ -167,32 +167,79 @@ Do not implement subtraction through per-run `ChatOptions.Tools`: the framework 
 with agent tools. [RunScopeSet](../src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs) keeps
 per-run filters together in both chat paths.
 
+## Model providers
+
+Select one inference provider at startup with `Models:Provider`. Values are case-insensitive;
+missing or blank selects `AzureOpenAI`. Unsupported values fail configuration validation, never
+silently fall back to a different provider. Only the selected provider's settings are required:
+
+| Provider | Required settings | Model meaning |
+| --- | --- | --- |
+| `AzureOpenAI` (default) | `AzureOpenAI:Endpoint`, `AzureOpenAI:ApiKey`, `AzureOpenAI:Deployment` | Your Azure deployment name, including Foundry-managed deployments. |
+| `OpenAI` | `OpenAI:ApiKey`, `OpenAI:Model` | A chat-completions model available to your OpenAI API account. |
+| `Gemini` | `Gemini:ApiKey`, `Gemini:Model` | A Gemini API model supporting chat and function calling. |
+
+Use [AppHost user-secrets or environment variables](../README.md#configure-a-model-provider).
+AppHost explicitly forwards the selected settings to AiService and A2AServer, not to Web, BFF or
+MCP. Standalone inference hosts accept the same configuration. Restart after changing providers,
+models or credentials. There is no per-user key entry, runtime provider switch or automatic fallback.
+
+[ModelConnectionOptions](../src/AgenticLab.ModelProviders/ModelConnectionOptions.cs) validates keys,
+model names, flags and the Azure endpoint without including credential values in validation errors.
+[ModelClientFactory](../src/AgenticLab.ModelProviders/ModelClientFactory.cs) creates raw `IChatClient`
+adapters. AiService retains its tool filtering, invocation, capture and telemetry pipeline; A2A keeps
+its own invocation and telemetry pipeline. Concrete SDK dependencies stay in this shared runtime
+library, outside the frontend and example contracts.
+
+OpenAI uses `https://api.openai.com/v1/`; Gemini uses
+`https://generativelanguage.googleapis.com/v1beta/openai/`. Native endpoints are fixed, not arbitrary
+proxy URLs. Gemini's compatibility API is beta. Its adapter retains opaque tool-call `extra_content`
+(including thought signatures) with the conversation and preserves it across streamed chunks and
+tool-result requests. It does not interpret those signatures or store them in a global cache.
+Other Gemini-specific APIs and OpenAI Responses features are outside this chat-completions integration.
+
+Host branding and illustrative model labels remain independent of provider selection. Enabling the
+Gemini example does not connect to Google; setting `Models:Provider=Gemini` does. API billing is
+separate from consumer subscriptions, and live calls transmit context to the selected provider.
+
 ## Per-agent models
 
-Agents can use different Azure OpenAI deployments on the same endpoint and credentials.
-[ChatClientProvider](../src/AgenticLab.AiService/Application/Agents/ChatClientProvider.cs) caches
-one client per deployment, resolved in this order:
+Agents can select different models within the single configured provider, sharing its credentials.
+[ChatClientProvider](../src/AgenticLab.AiService/Application/Agents/ChatClientProvider.cs) caches one
+client per model; native identifiers are case-sensitive, while Azure retains case-insensitive caching.
+The declared model is resolved in this order:
 
-1. `Agents:{Name}:Deployment` in AiService configuration.
-2. The agent's `ModelId`, or a workspace agent's `model` field.
-3. Global `AzureOpenAI:Deployment`.
+1. `Agents:{Name}:Model` in AiService configuration.
+2. `Agents:{Name}:Deployment`, **only for Azure OpenAI**.
+3. The agent's `ModelId`, or a workspace agent's `model` field.
+4. The selected provider's default model or deployment.
 
-Set deployment names in [AiService settings](../src/AgenticLab.AiService/appsettings.json):
+AppHost forwards explicitly configured agent model overrides to AiService. These may also be set
+directly in [AiService settings](../src/AgenticLab.AiService/appsettings.json). For example:
 
 ```json
 {
   "Agents": {
-    "Coder": { "Deployment": "gpt-5.3-codex" }
+    "Coder": { "Model": "<model-id-for-the-selected-provider>" }
   }
 }
 ```
 
-Use your actual Azure deployment names, not just model product names. `GET /agents` exposes the
-resolved declared deployment as `ModelId`.
+The existing `Agents:Coder:Deployment` sample is ignored for OpenAI/Gemini, so switching providers
+does not send an Azure deployment name to another API. Explicit `Model` and workspace `model` values
+are not translated; update them for the provider you select. A2A specialists all use the provider's
+global default, without per-specialist model overrides.
 
-**Display versus execution:** `AzureOpenAI:ForceDefaultModel` defaults to `false`. When `true`, all
-agents execute on the global deployment even though the API/UI still show each declared model.
-For example, this displays Coder's `gpt-5.3-codex` but runs it on `gpt-5.3-chat`:
+`GET /agents` exposes the resolved **declared** model as `ModelId`. The Details inspector labels it
+accordingly, rather than claiming that host branding or a model name proves which provider executes.
+
+**Display versus execution:** `Models:ForceDefaultModel=true` makes every local agent execute on the
+provider's global default while leaving declared model labels unchanged. When the neutral setting is
+absent, Azure honors `AzureOpenAI:ForceDefaultModel` as before; OpenAI/Gemini default to `false` and
+ignore the Azure flag. An explicit neutral `false` also overrides a legacy Azure `true`.
+
+The shipped AiService Azure settings enable the legacy flag. This existing example still displays
+Coder's `gpt-5.3-codex` but runs it on `gpt-5.3-chat`:
 
 ```json
 {
@@ -205,3 +252,18 @@ For example, this displays Coder's `gpt-5.3-codex` but runs it on `gpt-5.3-chat`
   }
 }
 ```
+
+## Provider verification
+
+`ModelProviderTests` uses injected HTTP transports with fake keys to check endpoint/authentication,
+ordinary and streaming tool loops, serialized Gemini signatures, cancellation, configuration and
+model precedence. `ProtocolIntegrationTests` also delegates through each factory-backed adapter on
+loopback A2A servers. These tests do not contact model providers or prove live model availability:
+
+```sh
+dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~ModelProviderTests|FullyQualifiedName~ProtocolIntegrationTests|FullyQualifiedName~FlowExecutionTests"
+```
+
+For live verification, explicitly configure development credentials, start AppHost, and try a short
+chat, a streamed calculator request and Orchestrator delegation for each provider. Use synthetic
+input; these checks incur normal provider usage. Record the provider and model actually tested.

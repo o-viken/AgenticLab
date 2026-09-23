@@ -1,6 +1,8 @@
 # Agentic Lab
 
-A .NET 10 [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample: a set of AI agents backed by Azure OpenAI, each with its own persona and toolset, that answer questions using Wikipedia and a calculator as tools.
+A .NET 10 [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) sample: AI agents backed by
+Azure OpenAI, OpenAI or Gemini, each with its own persona and toolset, answering questions using
+Wikipedia and a calculator as tools.
 
 See [README.md](README.md) for a user-facing overview, prerequisites, local setup and contribution steps.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor checks and publication gates, and
@@ -14,12 +16,13 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 
 | Project | Role |
 |---------|------|
-| [src/AgenticLab.AppHost](src/AgenticLab.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects Azure OpenAI config, sets service references. |
+| [src/AgenticLab.AppHost](src/AgenticLab.AppHost/AppHost.cs) | Aspire orchestrator. Wires up resources, injects the selected model provider's config, sets service references. |
 | [src/AgenticLab.AiService](src/AgenticLab.AiService/Program.cs) | ASP.NET Core minimal-API service exposing `POST /chat`, `POST /chat/stream`, `POST /chat/control`, `POST /chat/reset`, `GET /agents`, `POST /skills` and `POST /harness`. Hosts the agent catalog. |
 | [src/AgenticLab.Web](src/AgenticLab.Web/Program.cs) | Blazor Server app that visualizes the live data flow (User → Application/Harness → Tools → LLM) by consuming the `/chat/stream` Server-Sent Events. |
 | [src/AgenticLab.React](src/AgenticLab.React/README.md) | Optional React/TypeScript CSR example: conversation, live flow and real execution controls. Presentation is separate from its API client and run-state hook. |
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
 | [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
+| [src/AgenticLab.ModelProviders](src/AgenticLab.ModelProviders/ModelClientFactory.cs) | Shared model configuration and raw Azure/OpenAI/Gemini clients for AiService and A2AServer. No Flow state or frontend dependencies. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
 | [src/AgenticLab.Examples.ChatGpt](src/AgenticLab.Examples.ChatGpt/README.md) | Optional ChatGPT host, dedicated agent consuming shared Wikipedia/calculator tools, branding and tests. |
 | [src/AgenticLab.Examples.Copilot](src/AgenticLab.Examples.Copilot/README.md) | Optional GitHub Copilot host prompt and branding over shared Ask/Plan/Coder agents. |
@@ -31,7 +34,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.McpServer](src/AgenticLab.McpServer/Program.cs) | Minimal Model Context Protocol (MCP) server exposing a `GetCurrentTime` tool over HTTP. Consumed by the AiService over MCP. |
 | [src/AgenticLab.A2AServer](src/AgenticLab.A2AServer/Program.cs) | Minimal Agent2Agent (A2A) server hosting **config-declared persona-only agents** (a Research agent and a Poet by default) over the A2A protocol (Microsoft Agent Framework's `AddAIAgent` + `MapA2AJsonRpc`), plus a `GET /agents` discovery endpoint. Called by the AiService's `Orchestrator` agent over A2A. |
 
-Key flow: Web → `POST /chat` or `POST /chat/stream` (with an optional agent name and conversation id) on AiService → `AgentCatalog` resolves the selected `ChatClientAgent` (Azure OpenAI) → the agent calls its tool subset → answers. The service is layered for separation of concerns:
+Key flow: Web → `POST /chat` or `POST /chat/stream` (with an optional agent name and conversation id) on AiService → `AgentCatalog` resolves the selected `ChatClientAgent` (configured model provider) → the agent calls its tool subset → answers. The service is layered for separation of concerns:
 
 - [src/AgenticLab.AiService/Program.cs](src/AgenticLab.AiService/Program.cs) is a short composition: it calls the `Add*` registration groups in [Startup/ServiceRegistration.cs](src/AgenticLab.AiService/Startup/ServiceRegistration.cs) and the `Map*Endpoints` groups under [Endpoints/](src/AgenticLab.AiService/Endpoints) — `AgentEndpoints` (`GET /agents`, `POST /agents/workspace`, `POST /harness`, `GET /vendors`), `WorkspaceEndpoints` (`POST /skills`, `POST /instructions`, `POST /workspaces`), `DiscoveryEndpoints` (`GET /mcp`, `GET /a2a`, `GET /discovery`, `POST /discovery/stream`) and `ChatEndpoints` (`POST /chat`, `/chat/stream`, `/chat/control`, `/chat/reset`). Each endpoint file declares its own request/response records at the bottom.
 - [Application/](src/AgenticLab.AiService/Application) is the reusable runtime infrastructure, grouped by feature with a matching namespace (`AgenticLab.AiService.Application.<Folder>`, imported project-wide by [GlobalUsings.cs](src/AgenticLab.AiService/GlobalUsings.cs)): `Agents` (`AgentCatalog`, `AgentInfo`, `ChatClientProvider`, `VendorHarnessCatalog`), `Flow` (`FlowTracer`, `FlowEvent`, `FlowSession`, `FlowControlRegistry`, `BreakpointNotice`, `FlowExecutionScope`, `FlowCaptureScope`, `CapturingChatClient`, `ToolFilteringChatClient`, `ToolFilterScope`, `UserInputScope`, `RunScopeSet`), `Conversations` (`ConversationStore`, `AgentRunScope`, `AgentRunContext`), `Discovery` (`McpToolProvider`, `A2AAgentProvider`, `DiscoveryTracer`, `DiscoveryModels`, `DiscoverySnapshot`), `Workspace` (`WorkspaceScope`, `WorkspaceAgentLoader` + `WorkspaceAgentFileParser` + `WorkspaceToolAliases`, `WorkspaceAgentResolver`, `WorkspaceDefinedAgent`, `WorkspaceAgentDefinition`), `Skills`, `Instructions` and the harness's own `Tools` (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool`). Shared agent definitions and host contracts live in [Extensibility/Agents](src/AgenticLab.Extensibility/Agents).
@@ -160,7 +163,10 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 - Build: `dotnet build AgenticLab.slnx`
 - Run everything (launches the Aspire dashboard): `dotnet run --project src/AgenticLab.AppHost`
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
-- Test: `dotnet test AgenticLab.slnx`. AiService's `FlowExecutionTests` and `ProtocolIntegrationTests` cover agent streaming/history/tool filtering and loopback MCP/A2A round trips without Azure credentials. Protocol tests reference the MCP and A2A server projects and use ephemeral ports with a fake model.
+- Test: `dotnet test AgenticLab.slnx`. AiService's `ModelProviderTests`, `FlowExecutionTests` and
+  `ProtocolIntegrationTests` cover provider configuration/authentication, streaming tools, Gemini
+  signature retention, history, cancellation and loopback MCP/A2A round trips without API credentials.
+  Protocol tests use ephemeral ports, fake models and SDK clients with injected HTTP responses.
 - [CI](.github/workflows/ci.yml) runs solution restore, Release build, and matching no-build tests on
   every PR and main push, without Azure credentials or starting AppHost. Keep its `dotnet-build-test`
   check unconditional. Reproduce the commands in [CONTRIBUTING.md](CONTRIBUTING.md#verification).
@@ -179,7 +185,10 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 
 ## Configuration
 
-Azure OpenAI settings are read from the **AppHost user-secrets** and injected into the AI service as environment variables. Set them on the AppHost project:
+Select one backend at startup with `Models:Provider=AzureOpenAI|OpenAI|Gemini`; absence preserves
+Azure OpenAI. Settings come from **AppHost user-secrets** or environment variables. AppHost explicitly
+forwards only the selected connection settings to AiService and A2AServer, never to Web/BFF/MCP.
+Standalone inference hosts accept the same schema. Existing Azure configuration remains valid:
 
 ```
 dotnet user-secrets set "AzureOpenAI:Endpoint" "<url>" --project src/AgenticLab.AppHost
@@ -187,7 +196,16 @@ dotnet user-secrets set "AzureOpenAI:Deployment" "<deployment>" --project src/Ag
 dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/AgenticLab.AppHost
 ```
 
-Missing config throws at chat-client creation (`ChatClientProvider`). Never commit secrets.
+OpenAI requires `OpenAI:ApiKey` and `OpenAI:Model`; Gemini requires `Gemini:ApiKey` and
+`Gemini:Model`, without any Azure settings. Use `__` instead of `:` for environment variables.
+See [README.md](README.md#configure-a-model-provider) for key setup and billing caveats. Provider
+selection is independent of host branding, requires a restart and has no runtime fallback.
+
+`ModelConnectionOptions` validates only the selected provider and never prints credential values.
+`ModelClientFactory` owns raw SDK construction; each inference host keeps its own wrapper pipeline.
+Keep SDK dependencies out of Extensibility and ServiceDefaults. Gemini's provider-local adapter
+preserves opaque tool continuation metadata with conversation content, scoped to one response while
+streaming; do not replace this with a global signature cache. Never commit secrets.
 
 In-memory conversation retention is configured in the AiService settings. `InactiveTtl` is a sliding
 window refreshed whenever a conversation is used; `CleanupInterval` controls the expiry scan:
@@ -199,7 +217,11 @@ window refreshed whenever a conversation is used; `CleanupInterval` controls the
 }
 ```
 
-Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefaultModel`) are described in [docs/agents.md](docs/agents.md#per-agent-models).
+Per-agent models use `Agents:{Name}:Model`, then Azure-only `Agents:{Name}:Deployment`, then the
+agent/workspace `ModelId`, then the provider default. `Models:ForceDefaultModel` overrides execution;
+when absent, only Azure inherits `AzureOpenAI:ForceDefaultModel`. AppHost forwards explicit agent
+overrides to AiService; A2A specialists use the global default. See
+[docs/agents.md](docs/agents.md#per-agent-models).
 
 ## Conventions
 
@@ -227,7 +249,7 @@ Per-agent model deployments (`Agents:{Name}:Deployment`, `AzureOpenAI:ForceDefau
   new primitives; follow [docs/design-system.md](docs/design-system.md). Native ARIA boolean attributes
   must render explicit `"true"`/`"false"` strings, not minimised Razor boolean attributes.
 - Agent capabilities are plain methods annotated with `[Description]` (on the method and each parameter) and exposed via `AIFunctionFactory.Create(...)` in each tool's `AsTools()` (see `WikiTool`, `CalculatorTool`, `FileSystemTool`, `TerminalTool`). Tools live under [src/AgenticLab.AiService/Application/Tools](src/AgenticLab.AiService/Application/Tools) (harness/app tools, used by the workspace agents) and [src/AgenticLab.AiService/Demo/Tools](src/AgenticLab.AiService/Demo/Tools) (demo tools); add new ones there the same way. Resolve file-tool paths via the active `WorkspaceScope.ResolvePath` and take the terminal working directory from that scope. These lexical path checks and the command allowlist are not a filesystem/process sandbox; preserve the trust-boundary guidance in [SECURITY.md](SECURITY.md).
-- Add a new agent by inheriting `AgentDefinitionBase` and supplying its name, description, `Persona` (its own system prompt, layered on top of the shared harness prompt), and tool subset under `src/AgenticLab.AiService/Demo/Agents/`, then registering it as a singleton `IAgentDefinition` in [Program.cs](src/AgenticLab.AiService/Program.cs). Declare the name as a `public const string AgentName` and return it from `Name`, so vendor harnesses and other call sites reference the constant instead of repeating the string. Override `RequiresWorkspace => true` when the agent's tools need a workspace root (the endpoints then insist on a `Workspace` path and open a `WorkspaceScope` for the run). Override `SupportsSkills => true` to opt into workspace skills (the endpoints then inject the `<skills>` catalogue per run; see [workspace skills](docs/workspace.md#workspace-skills-the-coder-agent)). Override `RiskLevel` (an `AgentRiskLevel`) and `Guardrails` (an `IReadOnlyList<string>` of human-readable safety mechanisms) to communicate how risky the agent is and what constrains it — both default to `None` / empty in `AgentDefinitionBase`, are surfaced over `GET /agents`, and drive the Environment & risk view's risk meter and guardrails chips. Override `ModelId` (a `string?`, default `null`) to declare a preferred Azure OpenAI deployment in code, though the `Agents:{Name}:Deployment` config value takes precedence (see [per-agent models](docs/agents.md#per-agent-models)). Alternatively, ship an agent **in a workspace** as an `agents/<name>.agent.yaml` file (no code, no redeploy) — it can only use existing backend tools and is discovered + run per request; see [workspace-defined agents](docs/workspace.md#workspace-defined-agents-the-agents-folder).
+- Add a new agent by inheriting `AgentDefinitionBase` and supplying its name, description, `Persona` (its own system prompt, layered on top of the shared harness prompt), and tool subset under `src/AgenticLab.AiService/Demo/Agents/`, then registering it as a singleton `IAgentDefinition` in [Program.cs](src/AgenticLab.AiService/Program.cs). Declare the name as a `public const string AgentName` and return it from `Name`, so vendor harnesses and other call sites reference the constant instead of repeating the string. Override `RequiresWorkspace => true` when the agent's tools need a workspace root (the endpoints then insist on a `Workspace` path and open a `WorkspaceScope` for the run). Override `SupportsSkills => true` to opt into workspace skills (the endpoints then inject the `<skills>` catalogue per run; see [workspace skills](docs/workspace.md#workspace-skills-the-coder-agent)). Override `RiskLevel` (an `AgentRiskLevel`) and `Guardrails` (an `IReadOnlyList<string>` of human-readable safety mechanisms) to communicate how risky the agent is and what constrains it — both default to `None` / empty in `AgentDefinitionBase`, are surfaced over `GET /agents`, and drive the Environment & risk view's risk meter and guardrails chips. Override `ModelId` (a `string?`, default `null`) to declare a preferred model or Azure deployment in code, though configured agent model overrides take precedence (see [per-agent models](docs/agents.md#per-agent-models)). Alternatively, ship an agent **in a workspace** as an `agents/<name>.agent.yaml` file (no code, no redeploy) — it can only use existing backend tools and is discovered + run per request; see [workspace-defined agents](docs/workspace.md#workspace-defined-agents-the-agents-folder).
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service discovery, not hardcoded URLs.
 - Agents are stateless; the shared `IChatClient` and the `AgentCatalog` are registered as singletons. Per-conversation history lives outside the agents in the singleton `ConversationStore` (keyed by `ConversationId`), not on the agents themselves, and expires after the configured sliding inactivity window.
 

@@ -1,7 +1,7 @@
 # Claude example
 
 Opt-in, representative Claude host prompt and branding, not Anthropic's actual system prompt or a
-provider integration. The configured Azure OpenAI deployment is unchanged; the model label is
+provider integration. The configured model provider is unchanged; the model label is
 illustrative. The `chat` mode reuses the core, tool-free `ChatAgent` through `SharedAgentNames`.
 This module owns no agents or tools.
 

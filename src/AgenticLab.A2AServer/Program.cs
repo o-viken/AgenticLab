@@ -1,5 +1,4 @@
-using System.ClientModel;
-using Azure.AI.OpenAI;
+using AgenticLab.ModelProviders;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Extensions.AI;
 using AgenticLab.Extensibility.Examples;
@@ -11,17 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.A2A);
 
-// The Azure OpenAI chat client that backs the hosted sub-agent. Settings are injected by the AppHost
-// from its user-secrets (the same values the AI service receives), or read from configuration for a
-// standalone run. This mirrors ChatClientProvider in the AI service, but a single deployment is enough
-// here because the persona-only specialists share the configured deployment.
-var endpoint = Required(builder.Configuration, "AzureOpenAI:Endpoint");
-var deployment = Required(builder.Configuration, "AzureOpenAI:Deployment");
-var apiKey = Required(builder.Configuration, "AzureOpenAI:ApiKey");
-
-IChatClient chatClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey))
-    .GetChatClient(deployment)
-    .AsIChatClient()
+var connection = new ModelConnectionOptions(builder.Configuration);
+IChatClient chatClient = new ModelClientFactory(connection).Create()
     .AsBuilder()
     .UseFunctionInvocation()
     .UseOpenTelemetry()
@@ -88,10 +78,6 @@ app.MapGet("/agents", () => Results.Ok(new A2AAgentsResponse(
     hosted.Select(a => new A2AAgentSummary(a.Name, a.Path, a.Description)).ToList())));
 
 app.Run();
-
-static string Required(IConfiguration configuration, string key) =>
-    configuration[key] ?? throw new InvalidOperationException(
-        $"Missing configuration '{key}'. Set it in appsettings or user-secrets.");
 
 /// <summary>A hosted agent declared in configuration: the persona and the path it is exposed at.</summary>
 internal sealed class A2AAgentConfig

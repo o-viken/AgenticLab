@@ -5,7 +5,7 @@ namespace AgenticLab.AiService.Application.Agents;
 
 /// <summary>
 /// Builds and resolves the set of selectable agents from their <see cref="IAgentDefinition"/>s, all sharing
-/// the same Azure OpenAI chat client. Agents are stateless and built once at construction.
+/// one configured provider with cached per-model clients. Agents are stateless and built once at construction.
 /// </summary>
 public sealed class AgentCatalog
 {
@@ -21,12 +21,11 @@ public sealed class AgentCatalog
     /// <summary>
     /// Composes one <see cref="ChatClientAgent"/> per definition, keyed by name (case-insensitive).
     /// The first definition is treated as the default. Each agent's <see cref="AgentInfo.ModelId"/> is its
-    /// declared deployment (see <see cref="ChatClientProvider.ResolveDeployment"/>) for display, but it
-    /// runs on the chat client for its <see cref="ChatClientProvider.ExecutionDeployment"/> — the same
-    /// deployment when per-agent routing is on, or the default when <c>AzureOpenAI:ForceDefaultModel</c>
-    /// makes the declared model display-only.
+    /// declared model (see <see cref="ChatClientProvider.ResolveDeployment"/>) for display, but it
+    /// runs on the client for its <see cref="ChatClientProvider.ExecutionDeployment"/>. Force-default
+    /// configuration makes the declared model display-only, retaining the legacy Azure setting as a fallback.
     /// </summary>
-    /// <param name="clients">Provides the Azure OpenAI chat client for each agent's deployment.</param>
+    /// <param name="clients">Provides the selected backend's chat client for each agent's model or deployment.</param>
     /// <param name="definitions">The agent definitions to expose.</param>
     /// <exception cref="ArgumentException">Thrown when no definitions are supplied.</exception>
     public AgentCatalog(ChatClientProvider clients, IEnumerable<IAgentDefinition> definitions)

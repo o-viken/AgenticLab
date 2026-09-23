@@ -1,7 +1,7 @@
 # Claude Code example
 
 Opt-in, representative Claude Code host prompt and branding, not Anthropic's actual system prompt
-or a provider integration. The configured Azure OpenAI deployment is unchanged; the model label is
+or a provider integration. The configured model provider is unchanged; the model label is
 illustrative. The `plan` and `agent` modes reuse the core `Plan` and `Coder` agents through
 `SharedAgentNames`, including their workspace confinement and tool controls. This module owns no agents.
 

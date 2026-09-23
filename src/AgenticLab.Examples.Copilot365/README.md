@@ -8,7 +8,7 @@ This is a representative teaching sample, not Microsoft's product implementation
 ## Enable
 
 AppHost enables this module in Development. Use `--Examples:copilot365:Enabled=false` to disable it.
-For other environments, enable it from the repository root with the normal [Azure OpenAI setup](../../README.md):
+For other environments, enable it from the repository root with the normal [model provider setup](../../README.md#configure-a-model-provider):
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=true

@@ -60,13 +60,18 @@ manual stepping, or the working directory to constrain a process.
 
 ## Credentials, Data, and Costs
 
-Keep Azure OpenAI settings in the AppHost's local user-secrets store as described in
-[Run Locally](README.md#run-locally). Aspire supplies configuration to the services that call the
-model. Never put credentials in source, frontend assets, images, sample configuration, or reports.
+Keep Azure OpenAI, OpenAI or Gemini credentials in the AppHost's local user-secrets store or
+server-side environment variables as described in [Run Locally](README.md#run-locally). Aspire
+explicitly forwards only the selected provider's settings to AiService and A2AServer, not to Web,
+BFF or MCP. Provider selection is local startup configuration, not a browser credential field.
+Never put credentials in source, frontend assets, images, sample configuration, or reports.
 The user-secrets store is a development convenience, not a production secret-management system.
 
 Live runs send prompts, conversation history, enabled instructions, selected context, and tool
-results to the configured model service and may incur Azure charges. Wikipedia, web-fetch, MCP,
+results to the configured model service and may incur Azure, OpenAI or Google charges. API usage
+is separate from consumer chat subscriptions; there is no automatic fallback to another provider.
+Gemini tool-call signatures are opaque continuation metadata retained with conversation history,
+not a credential or readable reasoning trace. Wikipedia, web-fetch, MCP,
 and A2A integrations can make additional network requests. Local startup does not mean data stays
 local. Disabling an example or a tool is not a general network or cost limit.
 
