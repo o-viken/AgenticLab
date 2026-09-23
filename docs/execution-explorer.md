@@ -1,205 +1,139 @@
 # Execution explorer and breakpoints
 
-Part of the [Agentic Lab architecture notes](../AGENTS.md). The Execution dock at the bottom of the [flow page](web-flow-page.md): replaying a captured run stage by stage without re-running anything, the bounded per-page archive and its resource baseline, and the server-side execution breakpoints that hold a real run at model/tool boundaries.
+The [Flow page](web-flow-page.md) has two distinct controls: **replay** inspects captured history;
+**breakpoints** pause real execution. Replay makes no model or tool calls. Captures can contain
+sensitive data; see the [security policy](../SECURITY.md).
 
 ## Execution explorer (replay of a captured run)
 
 [![Execution explorer showing a completed exchange, four model turns, and the calculator result of 80.](images/03-execution-replay.png)](images/03-execution-replay.png)
 
-Inspect captured stages and tool results without rerunning them. Select an image to open it at full size.
+Open **Execution** beneath live flow, select an exchange, then a stage. Collapse, resize or maximize
+the dock for larger payloads; its panes stack at narrow widths. See [Execution panel](#execution-panel)
+for the three panes and replay behavior.
 
-Screenshots captured locally on 2026-09-22 from a running Blazor build, using public Wikipedia data
-and real calculator calls. Gray masks cover deployment identifiers. The ChatGPT-labelled host is a
-representative demo backed by Azure OpenAI, not a connection to the ChatGPT product.
-
-Custom telemetry meter names now use the `AgenticLab.*` prefix, including
-`AgenticLab.AiService.Conversations`, `AgenticLab.AiService.Flow`, `AgenticLab.Web.Flow` and
-`AgenticLab.Web.Replay`. Update any external meter-name filters when upgrading; instrument names,
-dimensions and retention behavior are unchanged.
-
-**Bounded archives.** [Flow/ReplayHistory.cs](../src/AgenticLab.Web/Flow/ReplayHistory.cs) owns the Web
-page's archived `ConversationTurn`s, evicting whole oldest exchanges on Send under configured count
-and estimated UTF-16 payload budgets. FlowRunController invalidates derived caches so evicted captures
-are released, resets retention on New conversation, and releases metric totals on disposal.
-ExecutionReplayBuilder accepts a numbering offset; the explorer announces eviction rather than silently
-presenting retained history as complete. Current-exchange capture is exempt until the next Send;
-backend conversation memory is unchanged. The `AgenticLab.Web.Replay` meter reports aggregate archived
-exchange/event/payload totals and cumulative evictions without content or IDs. Options bind and validate
-at Web startup. See [Replay retention](#replay-retention) for settings, measurement semantics and the
-remaining load-test gate. Existing ExecutionReplayTests cover limits, fake-SSE controller lifecycle,
-stable numbering, reset/disposal metrics and a synthetic archive plateau.
-
-**Resource baseline.** The Web flow publishes aggregate `AgenticLab.Web.Flow` instruments for active page
-controllers, retained event count and retained estimated payload bytes. The AiService publishes an
-aggregate `AgenticLab.AiService.Flow` gauge for active `FlowControlRegistry` sessions. These metrics have
-no user, conversation or session-id tags and should be read with runtime heap/allocation and latency
-when comparing Interactive Server with a client-rendered build. A load test still needs to exercise idle
-tabs, active and paused runs, long tool-heavy exchanges, reset, and closed tabs.
-
-The repeatable browser profile lives in [tools/flow-loadtest.mjs](../tools/flow-loadtest.mjs), with setup and
-interpretation in [tools/README.md](../tools/README.md). It uses configurable concurrent Playwright browser
-contexts and reports browser-side timing/heap only; correlate it with Aspire/OpenTelemetry process
-working set, managed heap, allocation rate and the aggregate flow metrics. It is deliberately not part of
-the solution test suite and must not be treated as a CI pass/fail capacity claim.
-
-The **Execution** dock sits beneath live flow in the conversation-first workspace.
-[ExecutionExplorer](../src/AgenticLab.Web/Components/Pages/FlowParts/ExecutionExplorer.razor) reuses
-`SidePanel`: collapse to a rail, resize the top edge by pointer or keyboard, and maximise for larger
-payloads. It is always available before a run. Fresh/reset height is 240px, the permitted range remains
-120-900px, and saved heights win. `PanelState` now adds an adaptive conversation-width flag but accepts
-legacy six-field `agenticlab-panels` values; see [workspace layout](web-flow-page.md).
-`BottomPanelMaximized` remains transient and is not persisted.
-
-Replay commands use shared design-system icon buttons. The three panes reflow by the explorer's own
-width: below 800px the inspector spans a second row; below 440px all panes stack. Internal scrolling
-keeps every pane reachable in a short dock. Contributor rails retain provenance colours while small
-status/stage text uses readable foregrounds. Replay state and causal capture boundaries are unchanged.
-
-The dock holds three panes: the conversation's **exchanges**, the selected exchange's **model turns and their stages**, and a **stage inspector** (a **Data** view of readable blocks, or **Raw**). The grouping is pure and client-side: [Flow/ExecutionModels.cs](../src/AgenticLab.Web/Flow/ExecutionModels.cs) holds `ExecutionExchange`/`ExecutionTurn`/`ExchangeStatus`, [Flow/ExecutionReplayBuilder.cs](../src/AgenticLab.Web/Flow/ExecutionReplayBuilder.cs) groups a run's `FlowEvent`s (`final`/`error` → the exchange's `Outcome`, `Turn <= 0` → `Intake`, the rest by `Turn`) and orders each turn **causally** — `llm-request`, `llm-response`, then the tool calls/results by sequence, because the capture emits a tool call while the response is still streaming — and [Flow/ExecutionStageReader.cs](../src/AgenticLab.Web/Flow/ExecutionStageReader.cs) turns a captured payload into `StageSection`s (system prompt, each re-sent message, tools offered, a call's arguments, a tool's result), reusing `PromptSignatureBuilder.ToStrictJson` because the captured `Data` is display-formatted rather than strict JSON. Anything the capture does not hold is reported as *not captured* rather than reconstructed.
-
-`ConversationTurn` gained a stable `Id` (assigned at send, surviving archiving so a selection stays put) plus the `Vendor`/`Workspace` the run actually used, and `FlowRunController` records them at `SendAsync`; `ArchiveCurrentRun` now archives **by exchange, not by event count**, so a run stopped before anything arrived is still listed. The controller exposes the cached `Exchanges` (recomputed in `EnsureComputed`, including the live run from the moment a message is sent) plus `SelectedExchange`/`SelectedStage`/`Replaying`/`CanStepBack`/`CanStepForward`/`StepBack`/`StepForward`/`CallFor`. The cursor itself is view state (`FlowViewState.Cursor.ExchangeId`/`CursorSequence`/`FollowingLive` + `SelectStage`/`SelectExchange`/`FollowLive`), matching the existing split. Replay is **read-only**: none of it can reach `SendAsync`/`SendControlAsync`, so stepping through history makes no model or tool call and the live run keeps recording while a past stage is pinned.
-
-While a stage is pinned the diagram follows **it** instead of the live run: `NodeClass`/`ArrowClass`/`ActiveArrow`/`ResponseHint`/`ActiveToolName`/`ActiveToolArgs`/`ActiveToolResult`/`LoopLabel`/`LoopActive` switch on `Replaying` and derive from the cursor. Crucially a tool **call** stage shows its arguments but **not** the result that came back afterwards (`ReplayToolResult` only fills on a `tool-result` stage), so an earlier stage never leaks a later one. `FlowEventMapping.StageToolName` was added for the explorer because the existing `ToolNameFor` deliberately ignores a `tool-call` (the live diagram only lights a resource once it has actually been contacted).
+Images here were captured locally on 2026-09-22 using public Wikipedia data and real calculator
+calls. They retain the former **Agentic AI** branding; the product is **Agentic Lab**. Gray masks
+cover deployment identifiers. The ChatGPT-labelled host is an Azure OpenAI-backed demo, not the
+ChatGPT product. Select an image for full size.
 
 ## Chat execution breakpoints
 
-The Settings tab offers four independent execution breakpoints (`before-model`, `after-model`,
-`before-tool`, `after-tool`), all off initially. They pause in Auto as well as Manual mode and remain
-selected for the page lifetime only. See [the reference below](#post-chatcontrol) for the API contract
-and user-facing Continue/Next/Stop behavior.
+Enable any of these in **Settings**. They apply in Auto and Manual, start off, and stay selected
+across conversations until page refresh.
+
+| Breakpoint | Pauses |
+| --- | --- |
+| `before-model` | Before a model request. |
+| `after-model` | After its complete response, including a response requesting tools. |
+| `before-tool` | Before each actual function invocation. |
+| `after-tool` | After a successful tool return. |
 
 [![A real run paused before GetWikiPage, with Continue, Next, and Stop controls.](images/02-execution-breakpoint.png)](images/02-execution-breakpoint.png)
 
-Pause before the host executes a requested tool.
+**Continue** resumes Auto until the next selected breakpoint. **Next** releases the boundary in
+Manual. **Stop** cancels; it cannot undo completed side effects. Changing breakpoint selections affects
+future boundaries without releasing a current pause. Model breakpoints are per round-trip, not token.
+Tool breakpoints cover local/MCP calls and the local A2A delegation call, not remote agent internals.
+Thrown tool errors follow normal error handling rather than `after-tool`.
 
-[FlowSession](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs) owns a separate cancellable latch,
-an occurrence ID and a notification channel. Selection changes affect future boundaries without
-releasing the current latch. Releases require the current occurrence ID; stale releases are rejected.
-[FlowExecutionScope](../src/AgenticLab.AiService/Application/Flow/FlowExecutionScope.cs) is an ambient per-run
-scope, reactivated alongside the existing scopes before each agent advance. Model gates sit in
-`CapturingChatClient` immediately before the inner request and after the complete response is captured.
-`ChatClientProvider` configures the SDK's `FunctionInvoker` delegate to gate each actual function
-invocation (serial, the SDK default), including MCP and local A2A delegation tools. No cached agent or
-tool definitions are mutated. The non-streaming and discovery paths remain breakpoint-free.
+The toolbar keeps Continue/Pause, Next and Stop in fixed positions. At a breakpoint, release actions
+are disabled while a control request is pending; Stop stays available. Outside breakpoints, Next is
+disabled in Auto and Pause is disabled in Manual.
 
-`FlowExecutionScope.AdvanceAsync` multiplexes one pending agent `MoveNextAsync` with breakpoint
-notifications. It does not prefetch further updates, preserving normal manual/auto event pacing.
-The tracer sends `breakpoint` control events immediately, outside display-event gates, and cancellation
-stops and awaits the pending advance before scopes and the session are disposed. The browser consumes
-these notices separately from conversation events, preserving prompt/context totals, and renders the
-shared `FlowBreakpointControls` once inside `FlowRunControls` above live flow. Its `ShowReason`
-parameter names the holding boundary; it displays status/errors only. Continue, Next and Stop stay
-in the toolbar's three fixed icon slots, with the same size, order and alignment as ordinary
-Pause/Resume, Next and Stop. Next is disabled during ordinary Auto runs; Pause is disabled during
-ordinary Manual runs. At a breakpoint both release actions are available and disable while a release
-request is pending; Stop remains available. Descriptive tooltips retain the distinction between
-continuing in Auto and advancing into Manual. Breakpoint selection remains in Settings. The conversation
-also retains its derived status note. `UserInputScope` preserves an answer submitted
-before a breakpoint-delayed `AskQuestion` starts waiting, then re-arms after consumption.
+[FlowSession](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs) and
+[FlowExecutionScope](../src/AgenticLab.AiService/Application/Flow/FlowExecutionScope.cs) gate real
+model/tool execution. Release requests need the current pause ID; ordinary pacing cannot bypass it.
+Discovery and non-streaming `/chat` do not use these breakpoints. Fake-model boundary tests run with:
 
-The focused [test project](../tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj) uses fake
-model responses and counted tools to test real execution boundaries without credentials. Run it with
-`dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj`.
+```sh
+dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj
+```
 
 ## Replay retention
 
-The Web app keeps the current exchange intact and bounds **archived** exchanges per Flow page.
-Configure these initial budgets in [Web appsettings.json](../src/AgenticLab.Web/appsettings.json):
+Web bounds **archived** exchanges per Flow page. Configure the starting budgets in
+[Web settings](../src/AgenticLab.Web/appsettings.json):
 
 ```json
-"ReplayRetention": {
-  "MaxArchivedExchanges": 20,
-  "MaxArchivedPayloadBytes": 16777216
+{
+  "ReplayRetention": {
+    "MaxArchivedExchanges": 20,
+    "MaxArchivedPayloadBytes": 16777216
+  }
 }
 ```
 
-On the next Send, the previous exchange is archived and whole oldest exchanges are removed until
-both limits are met. An oversized archive can be removed entirely; zero exchanges disables archiving.
-Negative limits fail startup. These are tunable starting budgets, not load-tested capacity limits.
-The payload estimate counts UTF-16 text (including captured data, structured tool arguments and exchange
-metadata); it is **not** managed heap size and excludes object overhead and derived display allocations.
-The current exchange is exempt, even after it finishes, until the next Send. A single long run can
-therefore exceed the archive budget. AI service history and its inactivity TTL are independent.
+On Send, [ReplayHistory](../src/AgenticLab.Web/Flow/ReplayHistory.cs) archives the previous exchange
+and removes whole oldest exchanges until both limits hold. Zero exchanges disables archiving;
+negative limits fail startup. An oversized exchange can be evicted entirely. The **current exchange
+is exempt until the next Send**, even after completion, so one long run can exceed the archive budget.
 
-The Web meter `AgenticLab.Web.Replay` exports process-wide sums `replay.archived.exchanges`,
-`replay.archived.events`, `replay.archived.payload_bytes`, and a cumulative `replay.evicted.exchanges`
-counter. Reset and page disposal subtract their retained totals. No identifiers or content are tagged.
+Payload bytes estimate UTF-16 text, including captured data, structured arguments and metadata.
+They exclude object overhead and derived allocations: this is not managed heap size or a tested
+capacity limit. [Backend conversation retention](agents.md#conversation-retention) is independent.
+New conversation clears captures; page disposal releases retained accounting.
 
-For the CSR decision, compare these metrics with Web/AiService runtime heap, allocation rate and CPU
-in Aspire: idle tabs, repeated sends, a long tool-heavy exchange, paused runs, New conversation, and
-closed tabs after circuit retention has elapsed. Archives should plateau at the configured limits;
-reset/disposal should return their totals to baseline. Also measure browser memory and event latency.
-The synthetic retention test verifies bounded accounting, not real concurrent-user capacity.
+| Meter | Aggregate instruments |
+| --- | --- |
+| `AgenticLab.Web.Replay` | `replay.archived.exchanges`, `replay.archived.events`, `replay.archived.payload_bytes`, cumulative `replay.evicted.exchanges` |
+| `AgenticLab.Web.Flow` | `flow.active_pages`, `flow.retained_events`, `flow.retained_payload_bytes` |
+| `AgenticLab.AiService.Flow` | `flow.active_sessions` |
 
-The measurement baseline also includes `AgenticLab.Web.Flow` (`flow.active_pages`,
-`flow.retained_events`, `flow.retained_payload_bytes`) and `AgenticLab.AiService.Flow`
-(`flow.active_sessions`). These aggregate instruments have no user, conversation or session-id tags.
-Use them with runtime heap, allocation rate and request latency when comparing Interactive Server with a
-future client-rendered build.
+These metrics carry no content or user/conversation/session IDs. Compare them with runtime heap,
+allocations and latency, not browser memory alone. The separate [load-test guide](../tools/README.md)
+covers idle/active/paused tabs, long runs, reset and disposal. Neither synthetic retention tests nor
+that browser profile establish a concurrent-user capacity guarantee.
 
 ## `POST /chat/stream`
 
-Uses the [chat request fields](agents.md#post-chat), with a client-supplied `conversationId` and
-`sessionId` (correlates control calls), a `manual` flag, and an
-optional `stepDelayMs` (server-side delay between steps in Auto mode). An optional `breakpoints` array
-accepts `before-model`, `after-model`, `before-tool`, and `after-tool`; omitted or empty means none.
-Unknown breakpoint names return `400 Bad Request`. Returns a
-`text/event-stream` of `flow` events describing the run as it happens — each event has a `sequence`,
-`kind` (including `received`, `llm-request`, `tool-call`, `tool-result`, `llm-response`, `final`, `error`, `breakpoint`),
-`label`, an optional `detail`, the `turn` (1-based LLM round-trip it belongs to), an optional
-`data` payload with the full, untruncated request/response for that step, and — on tool steps — the
-model's own `callId`, so a result can be paired with the call it answers even when the same tool is
-called several times in one turn. An `llm-response` is emitted for **every** round-trip, not just the
-last one, so the response that asked for a tool stays visible. The stream is gated on the
-backend: each real step waits for the session to be allowed to advance, so it stays in sync with the
-agent's execution and telemetry. The Blazor web UI consumes this to animate the data flow — with
-separate send/receive arrows and a loop/turn counter — and to record the run in the Execution panel.
+Accepts the [chat fields](agents.md#post-chat), client-supplied `conversationId` and `sessionId`,
+`manual`, optional `stepDelayMs`, and optional `breakpoints`. The session ID correlates control calls.
+An omitted/empty breakpoint array selects none; unknown names return `400 Bad Request`.
+
+Returns `text/event-stream` with named `flow` events:
+
+| Field | Meaning |
+| --- | --- |
+| `sequence`, `kind`, `label` | Event ordering, type and display label. |
+| `detail`, `data` | Optional detail and full captured payload for the step. |
+| `turn` | One-based model round-trip, with intake outside model turns. |
+| `callId` | Pairs a tool result with its call, including repeated calls to one tool. |
+| `toolCall` | Optional structured tool name/arguments; do not parse display text for routing. |
+
+Kinds include `received`, `llm-request`, `llm-response`, `tool-call`, `tool-result`, `ask-question`,
+`final`, `error` and `breakpoint`. Every completed model round-trip emits `llm-response`, including
+responses that request tools. Auto delay and Manual stepping are server-gated, not client animation.
+
+`breakpoint` notifications bypass normal event pacing so the client can release blocked execution.
+Their `data` is JSON with `Id`, `Kind`, `Tool`, `Paused` and `Manual`. They are control notifications,
+excluded from conversation content, replay stages, Context and Prompt signature totals.
 
 ## Execution panel
 
-The web UI's bottom **Execution** dock is where a run is read back. It pulls out from the bottom of
-the main column (collapse it to a rail, drag its top edge to resize, or expand it to fill the column)
-and holds three panes:
+The dock has three panes:
 
-- **Exchanges** — retained messages you sent, with the agent that ran, how it ended (running / done /
-  stopped / failed) and how many model round-trips it took. The current run appears as soon as you
-  send, and a run that was stopped or failed stays inspectable rather than being reported as complete.
-- **Stages** — the selected exchange broken into intake, each **model turn**, and delivery. A turn
-  reads in causal order: the request sent, the model's response, the tool calls that response asked
-  for, and their results.
-- **Inspector** — the data captured at the selected stage. **Data** shows it in readable blocks (the
-  system prompt, each message re-sent to the model, the tools offered, a call's arguments, a tool's
-  result); **Raw** shows the captured payload verbatim. Anything the capture does not hold is marked
-  as not captured rather than reconstructed.
+- **Exchanges** lists retained messages, agents, outcomes and model-turn counts. Runs appear on Send,
+  including stopped/failed runs and those that produced no events.
+- **Stages** groups intake, model turns and delivery. Each turn reads causally: request, response,
+  requested tool calls, then results. This differs from raw arrival order during streaming.
+- **Inspector** shows captured content as readable **Data** blocks or verbatim **Raw** payloads.
+  Missing data is marked **not captured**, never reconstructed.
 
-**Previous** / **Next** step through the captured stages and cross turn boundaries; clicking any
-exchange or stage jumps straight to it. Selecting a stage moves the diagram to it too, built only
-from what was captured up to that point — standing on a tool call does not reveal the result that
-came back afterwards. Navigating history never re-runs anything: it makes no model or tool calls, and
-the live run keeps recording in the background. **Live** returns to the newest stage of the current
-run. Captures cover the retained portion of the current conversation and are cleared by **New conversation**.
-When the [replay budget](#replay-retention) removes older exchanges, the panel shows a notice and keeps
-the original exchange numbers. Transcript, Context history, and Prompt signature Comparison/Delta
-then cover retained exchanges only; captured requests can still contain older history re-sent by the
-AI service. Starting the next exchange returns the cursor to Live, so it cannot stay on an evicted item.
+Use **Previous / Next** or select a stage directly. The diagram follows that stage; a tool call
+shows its arguments but not a later result. The live run continues recording while history is pinned.
+**Live**, or sending the next message, returns to the current run. Replay never sends control requests.
 
-The expanded harness's **Context** follows playback too: its flat, contributor-colored list shows
-only earlier exchanges and content through the selected stage in the selected exchange. The header
-identifies the replay exchange and stage; later tool results and answers stay hidden until reached.
-The count and growth bar use the captured prompt available at that point (including its captured
-response, using the Prompt signature calculation); before the first request, size is **not captured**.
-**Prompt signature** follows the same cursor: Comparison uses the selected exchange's captured prefix
-and the preceding captured exchange, while Delta includes only earlier exchanges and that prefix.
-The current signature total matches Context at that stage. Before the selected exchange's first
-request, the signature shows **No request captured at this stage**, rather than treating an earlier
-exchange as current. Both panels identify the replay exchange and stage, and **Live** restores their
-latest data. Inference, Embeddings and Neural network continue to show the live run. Browsing playback
-never sends execution-control requests.
+Expanded-host **Context** and **Prompt signature** follow the same causal prefix and earlier retained
+exchanges. Their current size totals agree; before the selected exchange's first request, size and
+signature are unavailable. Comparison uses the preceding captured exchange; Delta includes only
+earlier exchanges and the selected prefix. Inference, Embeddings and Neural network stay live.
 
-`breakpoint` events bypass normal pacing so the browser learns about a pause while execution is
-blocked inside a model or tool call. Their `data` is JSON containing `Id`, `Kind`, `Tool`, `Paused`
-and `Manual`. They are control notifications, not conversation content, and are excluded from the
-Execution panel, prompt signature and context totals.
+Eviction shows a notice and preserves original exchange numbers. Transcript, Context and signature
+history cover retained exchanges only, although a captured request can contain older history re-sent
+by AiService. New conversation clears captures. The pure
+[ExecutionReplayBuilder](../src/AgenticLab.Web/Flow/ExecutionReplayBuilder.cs) owns causal grouping;
+[ExecutionStageReader](../src/AgenticLab.Web/Flow/ExecutionStageReader.cs) reads captured payloads.
 
 ## `POST /chat/control`
 

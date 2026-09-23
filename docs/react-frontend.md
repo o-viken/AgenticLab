@@ -1,9 +1,8 @@
 # React frontend example
 
-The React Flow Workspace is an optional alternative frontend, not a replacement for Blazor. It shows
-how a contributor can design a different interface over the existing agent APIs. It uses React,
-TypeScript and Vite with `createRoot`: rendering and interaction run in the browser, with no React SSR,
-Blazor or SignalR dependency. The existing Blazor application and its feature set are unchanged.
+Agentic Lab's **optional** React/TypeScript frontend runs alongside Blazor, using the same agent APIs.
+It renders in the browser with Vite and `createRoot`, without SSR, Blazor or SignalR.
+**Normal .NET restore/build does not run npm.** Node is needed only to develop or build this example.
 
 ## Architecture
 
@@ -16,11 +15,9 @@ flowchart LR
     AI --> Tools[Tools / MCP / A2A]
 ```
 
-During development Vite forwards `/api` to the BFF using a server-only `BFF_URL`. The BFF reaches
-`https+http://aiservice` through Aspire service discovery, or `AiService:Url` when run standalone.
-For a built application the BFF serves the static React output and the same `/api` routes. Serving
-static JavaScript is not server-side rendering. Node is a build/development prerequisite, not a
-runtime dependency of the built BFF.
+Vite forwards `/api` to the BFF through server-only `BFF_URL`. The BFF uses service discovery
+(`https+http://aiservice`) or standalone `AiService:Url`. After build, it serves static React assets
+and the same API routes without a Node runtime.
 
 The BFF uses YARP direct forwarding and an explicit path/method allowlist:
 
@@ -32,57 +29,41 @@ The BFF uses YARP direct forwarding and an explicit path/method allowlist:
 | `POST /api/chat/control` | `POST /chat/control` |
 | `POST /api/chat/reset` | `POST /chat/reset` |
 
-Payloads and status codes pass through unchanged. There is no catch-all proxy, browser-supplied
-destination, or duplicate agent implementation. Unknown API paths return 404, wrong methods return
-405 and POST bodies require JSON. API failures cannot fall through to the frontend document.
-The development BFF provides `/openapi/v1.json` route metadata and
-[an HTTP request file](../src/AgenticLab.Bff/AgenticLab.Bff.http) for manual exploration.
-No AiService endpoint or CORS change is needed; no Azure key or private service URL is in the bundle.
+Payloads/status codes pass through unchanged. Unknown paths return 404, wrong methods 405, and POST
+bodies require JSON. There is no catch-all proxy or browser-selected destination; API errors never
+fall through to frontend HTML. Development exposes `/openapi/v1.json` and an
+[HTTP request file](../src/AgenticLab.Bff/AgenticLab.Bff.http). No CORS changes, Azure keys or private
+service URLs are needed in the browser bundle.
 
-Agent catalogue entries may include optional `exampleId` and `requiresExampleUi` metadata from
-[example modules](examples.md). React excludes agents requiring a custom example panel, just as it
-excludes workspace-only agents. Missing fields preserve older payload behavior. The BFF allowlist
-does not forward example APIs, and React does not implement their approval or case controls.
-
-AppHost's Development defaults enable ChatGPT, GitHub Copilot and Copilot 365 alongside Default.
-Other environments start with only Default. Enable additional hosts with `Examples:<id>:Enabled=true`
-on AppHost, or disable a Development default with `Examples:<id>:Enabled=false`. The existing
-catalogue-driven selector picks up supported modes without new BFF routes. Hosts with only
-workspace-dependent modes (Copilot and Claude Code) remain excluded from this prototype; enabling a
-module does not bypass the existing agent filters. Branded Blazor assets remain module-owned and
-do not add a React build dependency to the .NET hosts.
+The catalogue filters out workspace agents and agents with `requiresExampleUi=true`. Missing optional
+example metadata remains compatible. Enabling a module does not bypass these filters; Copilot and
+Claude Code have no supported modes here. Module APIs and approval panels are not implemented.
+See [example startup](examples.md#default-startup) for enablement and Development defaults.
 
 ## Run with Aspire
 
-The normal .NET-only workflow remains unchanged. React is disabled unless explicitly requested.
-Install Node **24 LTS** only when working on this example, plus the repository's .NET 10 / Aspire
-13.5.4 prerequisites and existing AppHost Azure OpenAI configuration.
+Install Node **24 LTS** and complete the [.NET 10 / Aspire 13.5.4 and Azure setup](../README.md#run-locally).
+From the repository root:
 
 ```sh
 npm --prefix src/AgenticLab.React ci
 dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
 ```
 
-Alternatively, after installing the frontend dependencies, use the Aspire CLI from the repository root:
+Alternatively, after installing dependencies:
 
 ```sh
 aspire run -- --ReactFrontend:Enabled=true
 ```
 
-The CLI restores and builds the AppHost and its dependencies before starting the application.
-
-Open the **react** resource URL in the dashboard. **react-bff** provides the API boundary; the existing
-**web** resource still opens Blazor. Vite uses Aspire's assigned `PORT` and BFF endpoint. The flag can
-also be supplied as `ReactFrontend__Enabled=true`. Omit it for the original startup.
-
-`AddViteApp` owns dependency installation and Vite execution only when the option is enabled.
-Ordinary .NET restore/build and existing container targets never run npm. Aspire publishing attaches
-the frontend output to BFF `wwwroot` via `PublishWithContainerFiles`, not a Vite runtime server.
+Open **react** in the Aspire dashboard; **react-bff** serves its API and **web** still opens Blazor.
+Vite uses Aspire's assigned `PORT` and BFF endpoint. `ReactFrontend__Enabled=true` is the equivalent
+environment setting; omit it to leave React off. `AddViteApp` runs only when enabled. Aspire publishing
+attaches built assets to BFF `wwwroot` with `PublishWithContainerFiles`, not a Vite runtime server.
 
 ## Standalone development
 
-With AiService running, set its URL on the BFF in one terminal. Substitute its actual HTTP endpoint
-for the example below; the BFF default port is 5181.
+With AiService running, substitute its actual HTTP URL below. BFF defaults to port 5181:
 
 ```sh
 AiService__Url=http://localhost:5039 dotnet run --project src/AgenticLab.Bff
@@ -95,13 +76,13 @@ npm --prefix src/AgenticLab.React ci
 BFF_URL=http://localhost:5181 npm --prefix src/AgenticLab.React run dev
 ```
 
-Vite defaults to `http://127.0.0.1:5173`. Use `-- --port <free-port>` if occupied. These environment
-variables are server-side. An unavailable API produces a retryable error, never silent sample data.
+Vite defaults to `http://127.0.0.1:5173`; use `-- --port <free-port>` if occupied. These variables
+are server-side. An unavailable API shows a retryable error, never silent sample data.
 
 ## Build and host without Vite
 
-Build React **before** publishing the BFF. Its project links an existing `dist` into publish output
-without an npm MSBuild target:
+Build React **before** publishing BFF; its project includes existing `dist` assets without running npm.
+Replace the example AiService URL with your own:
 
 ```sh
 npm --prefix src/AgenticLab.React ci
@@ -111,82 +92,66 @@ AiService__Url=http://localhost:5039 dotnet artifacts/react-bff/AgenticLab.Bff.d
   --contentRoot "$PWD/artifacts/react-bff" --urls http://localhost:5182
 ```
 
-Open `http://localhost:5182`. Missing assets leave an API-only BFF, not an automatic Node installation.
-Build assets again before publishing frontend changes. This prototype adds no registry image and
-does not modify the existing four image-publishing targets.
+Open `http://localhost:5182`. Rebuild assets before publishing frontend changes; missing assets leave
+an API-only BFF. This example adds no registry image or changes to existing image-publishing targets.
 
 ## Prototype scope
 
-The first screen is a conversation-led split view with a compact live flow and current-run activity.
-Host/agent choices come from the API; workspace-dependent agents are excluded in this first slice.
-The model node shows real deployment metadata, not a simulated vendor model.
-The header's GitHub icon opens [the project repository](https://github.com/o-viken/agenticlab) in a
-new tab without replacing the workspace. The locally bundled mark comes from
-[GitHub Octicons](https://github.com/primer/octicons), with its MIT license in `public/licenses`.
+The conversation/live-flow split supports:
 
-- Chat, follow-up messages and explicit New conversation.
-- Auto/Manual, Next, Pause, Resume, Stop and switching modes during a run.
-- User, Agent host, Model and Tools activity driven by real SSE events.
-- Tool requests/results paired by call ID, distinguishing requested from returned.
-- A conditional answer input when an agent asks a question.
-- Loading, empty catalog, control failure, interruption, stopped run and API error states.
-- Keyboard controls, IME-safe Enter/Shift+Enter, reduced motion and responsive layouts.
+- Chat, follow-ups, New conversation and an answer input for agent questions.
+- Auto/Manual, Next, Pause/Resume, Stop and live mode changes.
+- SSE-driven User, Agent host, Model and Tools activity, pairing calls/results by call ID.
+- Loading, empty, failed, interrupted and stopped states; keyboard/IME input and reduced motion.
 
-Learn, anatomy/Details, replay, discovery, workspace tools and simulated model internals stay in
-Blazor. Responses render Markdown without raw HTML. The stream carries execution events, not token
-deltas or hidden reasoning. The answer appears once on `final`; an `llm-response` requesting a tool
-is not another final answer.
+Learn, Details/anatomy, replay, discovery, workspace tools and model simulations stay in Blazor.
+The model label uses declared deployment metadata; [ForceDefaultModel](agents.md#per-agent-models)
+can make the execution deployment differ. Responses render Markdown without raw HTML. Events are
+execution records, not token deltas or hidden reasoning; only `final` delivers the answer.
+The header's repository link opens [Agentic Lab on GitHub](https://github.com/o-viken/agenticlab)
+in a new tab.
 
 ## Transport and state
 
-`api/contracts.ts` validates wire shapes with Zod. `api/stream.ts` uses `eventsource-parser` and
-incremental UTF-8 decoding for POST SSE: split chunks, CRLF and multiline data are supported. Native
-`EventSource` cannot issue the required POST. Captured `data` stays opaque unless its event kind
-needs it. Unknown future event kinds remain readable activity rows.
+[Contracts](../src/AgenticLab.React/src/api/contracts.ts) validate wire shapes with Zod;
+[stream parsing](../src/AgenticLab.React/src/api/stream.ts) uses `eventsource-parser` and incremental
+UTF-8 decoding for POST SSE, including split chunks, CRLF and multiline data. Native `EventSource`
+cannot POST. Payload data stays opaque unless needed; unknown event kinds remain readable rows.
 
-Chat POSTs never retry/reconnect automatically. Each send creates a session UUID; the browser instance
-keeps its conversation UUID until a successful reset. IDs are not persisted or shared between tabs.
-Agent/vendor values are snapshotted per send; selectors lock during a run or reset. Generation guards reject
-late events/acknowledgements. StrictMode does not submit from an effect; unmount cancels the request.
+Chat POSTs **never retry/reconnect automatically**. Each send snapshots agent/vendor and creates a
+session UUID. Conversation IDs last until successful reset, without persistence or sharing between
+tabs. Selectors lock during runs/reset; generation guards reject late events and unmount cancels work.
 
-Choosing a different Host (harness/vendor) resets the conversation before committing the new vendor
-and its default agent. A successful switch gets a fresh conversation UUID and clears the transcript
-and execution activity, preserving the unsent draft and execution mode. Switching back also starts
-fresh. Agent-only changes, selecting the current vendor and initial catalogue loading do not reset.
-A failed reset leaves the current vendor, agent and conversation intact and shows an error; the user
-can retry the switch. Send and selectors stay locked while the reset is pending.
+Changing Host resets before committing the new host/default agent, clearing transcript/activity but
+preserving draft and mode. Agent-only changes and initial loading do not reset. Failed reset preserves
+the current host, agent and conversation and allows retry. Switching back to an earlier host starts fresh.
 
-Manual mode waits before the **first** event, so Next works before headers/data arrive. Only a definite
-initial control 404 gets bounded 100/200/400/800ms retries. Successful or ambiguously failed controls
-are not replayed. Only one control is pending; events arriving before acknowledgement still release
-the pending step correctly. Unexpected breakpoint IDs are honored by Next/Resume without an editor.
+Manual Next works before the first event or headers arrive. Only definite initial control 404s retry
+at 100/200/400/800ms; successful or ambiguous controls are never replayed. One control can be pending;
+early events still release it correctly. Next/Resume honor received breakpoint IDs without an editor.
 
-The SSE forwarder disables idle activity timeout, response buffering and the minimum response data
-rate. It does not use the retrying HttpClient pipeline; normal API calls retain finite timeouts.
-Downstream cancellation propagates upstream. EOF without a terminal event is Interrupted, not
-Completed. Stop cancels locally and sends best-effort backend stop; a racing 404 is not a run failure.
+SSE forwarding disables idle timeout, buffering and minimum response data rate, without a retrying
+HttpClient pipeline. Ordinary APIs retain finite timeouts. Cancellation propagates upstream; EOF
+without a terminal event means **Interrupted**. Stop cancels locally and sends best-effort backend
+stop; a racing 404 is harmless.
 
-The browser keeps 200 lightweight trace rows and 100 tool-call identities, not prompt payload archives.
-The transcript retains the latest 20 exchanges; backend conversation memory uses the existing server
-retention policy. A reset failure preserves the current transcript.
+Browser retention is 200 lightweight trace rows, 100 tool-call identities and 20 transcript exchanges,
+not a prompt archive. [Backend history](agents.md#conversation-retention) has its own lifetime.
 
 ## Customize the appearance
 
 | Area | Files | Change when |
 |---|---|---|
-| Theme | `src/styles/tokens.css` | Changing colors, typography and contributor accents |
-| Presentation | `src/App.tsx`, `src/components/`, their CSS modules | Changing layout, visuals and control arrangement |
-| Behavior/transport | `src/flow/`, `src/api/` | Extending execution behavior or the API contract |
+| Theme | [tokens.css](../src/AgenticLab.React/src/styles/tokens.css) | Colours, typography and contributor accents |
+| Presentation | [App.tsx](../src/AgenticLab.React/src/App.tsx), [components](../src/AgenticLab.React/src/components) and CSS modules | Layout and controls |
+| Behavior/transport | [flow](../src/AgenticLab.React/src/flow), [api](../src/AgenticLab.React/src/api) | Execution or wire contracts |
 
-Change `--accent`, surfaces or local font imports without touching API code. Preserve contributor
-meanings when teaching the existing concepts. For another layout, replace `App` or `LiveFlow`, passing
-the same `RunState` and `FlowRun` actions. Do not fetch inside visual nodes, parse tool names from
-display text, or couple a theme to backend agent names.
+Keep presentation on the existing `RunState`/`FlowRun` actions. Do not fetch inside visual nodes,
+parse tools from display text or couple themes to agent names. Preserve contributor meanings.
 
-IBM Plex Sans/Mono fonts (SIL OFL) and Lucide icons (ISC) are bundled locally. Their original licenses
-ship in `public/licenses`; dependency versions use the committed lockfile. React Compiler is not
-enabled and correctness does not depend on manual memoization. There is no plugin system or published
-UI SDK yet: this is a small, forkable example.
+Local IBM Plex fonts (SIL OFL), Lucide icons (ISC) and the Octicons mark (MIT) retain their
+[licenses](../src/AgenticLab.React/public/licenses). React Compiler is off; correctness must not
+depend on memoization. This is a forkable example, not a plugin system or published UI SDK.
 
 ## Verification
 
@@ -204,17 +169,14 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Build the BFF first (`dotnet test` also builds it). Playwright starts a loopback fixture, actual BFF
-and Vite on test ports 5197, 5183 and 5174. The fixture is never imported or silently used by the app.
-.NET boundary tests use actual AiService `FlowSession` and `FlowEvent` with ASP.NET Core SSE, without
-Azure. Vitest covers parser boundaries, lifecycle races, identity, reset failures and unmount cleanup.
-The dedicated React CI job runs independently of existing image publishing. Full solution tests remain
-a .NET-only compatibility check.
+Build BFF first (`dotnet test` does this). Playwright runs a loopback fixture, real BFF and Vite on
+ports 5197, 5183 and 5174; the app never silently uses the fixture. Tests need no Azure credentials.
+.NET checks forwarding/SSE boundaries; Vitest checks parsing and lifecycle races. React CI is separate
+from the .NET-only solution check and image publishing.
 
 ## Security and release boundary
 
-This is a local example, not production authentication. UUIDs identify runs/conversations but do not
-authorize access. Before public hosting add identity, per-user session/conversation authorization,
-appropriate CSRF protection, quotas, workspace isolation and deployment limits. Keep Azure keys on
-AiService, and do not log captured prompts/tool payloads by default. Configure `AllowedHosts`
-deliberately for a deployed BFF rather than exposing arbitrary access to a local agent service.
+There is no caller authentication; UUIDs identify state, not permission. Before public hosting add
+identity, per-user authorization, CSRF protection, quotas, isolation and deployment limits. Keep keys
+on AiService, avoid logging captured payloads and configure BFF `AllowedHosts` deliberately.
+See [SECURITY.md](../SECURITY.md) for the full boundary.

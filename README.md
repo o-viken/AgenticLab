@@ -104,9 +104,8 @@ For the full local application:
   chat model that supports tool calling, its endpoint, deployment name, and API key.
 - Git to clone the repository, or download and extract its source archive.
 
-Node.js **24 LTS** is needed only for the optional React frontend. Docker is not required for
-the default local setup. The [learning-only option](#learning-only) needs just the .NET SDK
-and the source code, without Azure credentials or Aspire orchestration.
+Docker is not required for the default local setup. The [learning-only option](#learning-only)
+needs just the .NET SDK and the source code, without Azure credentials or Aspire orchestration.
 
 ## Run Locally
 
@@ -175,26 +174,6 @@ dotnet run --project src/AgenticLab.Web
 Open the listening URL printed in the terminal and visit `/learn`. The guide works without
 the AI service; live chat requires the full setup above.
 
-### With the React Frontend
-
-With Node.js **24 LTS** installed and Azure OpenAI configured above, install the frontend
-dependencies and start with React enabled:
-
-```sh
-npm --prefix src/AgenticLab.React ci
-aspire run -- --ReactFrontend:Enabled=true
-```
-
-Or use the .NET CLI after installing the same frontend dependencies:
-
-```sh
-dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
-```
-
-Open the **react** resource's endpoint in the Aspire dashboard. The **web** resource still opens
-Blazor; React runs alongside it and uses the same AI service through a backend-for-frontend.
-See the [React setup guide](docs/react-frontend.md#run-with-aspire) for customization and builds.
-
 ### Console Client
 
 The **console** resource does not start automatically. Start it explicitly from Aspire with an
@@ -232,12 +211,34 @@ dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=tru
 | [Learning](docs/learning.md) | Guided lessons and the contextual Learn panel. |
 | [Workspace Features](docs/workspace.md) | Workspace agents, skills, custom instructions, and file/terminal tools. |
 | [Protocols](docs/protocols.md) | MCP tools, A2A agents, discovery, and protocol integration tests. |
-| [React Frontend](docs/react-frontend.md) | Optional frontend setup, customization, builds, and browser tests. |
+| [React Frontend Example](docs/react-frontend.md) | Adding an alternative frontend on top of the existing AI service. |
 | [Example Modules](docs/examples.md) | Self-contained community examples, extension contracts and registration. |
 | [Architecture and Conventions](AGENTS.md) | Project structure and implementation guidance for contributors. |
 | [Browser Checks](tools/README.md) | Responsive UI smoke checks and separate browser load-test setup. |
 | [Security Policy](SECURITY.md) | Private vulnerability reporting, tool risks, credentials, and data boundaries. |
 | [Contributing](CONTRIBUTING.md) | Development workflow, checks, pull requests, and maintainer publication gates. |
+
+## Alternative Frontend Example (React)
+
+Blazor is the main frontend. The optional React example shows how to add an alternative frontend
+on top of the existing AI service, reusing its APIs through a backend-for-frontend. It runs alongside
+Blazor and is not required for the main application.
+
+To try it, install Node.js **24 LTS** and configure Azure OpenAI as described above, then run:
+
+```sh
+npm --prefix src/AgenticLab.React ci
+aspire run -- --ReactFrontend:Enabled=true
+```
+
+Or use the .NET CLI after installing the same frontend dependencies:
+
+```sh
+dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true
+```
+
+Open the **react** resource's endpoint in the Aspire dashboard. The **web** resource still opens
+Blazor. See the [React setup guide](docs/react-frontend.md#run-with-aspire) for customization and builds.
 
 ## Contributing
 

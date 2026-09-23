@@ -1,131 +1,108 @@
 # MCP, A2A and discovery
 
-Part of the [Agentic Lab architecture notes](../AGENTS.md). The two real cross-service integrations — the MCP server whose tools the `TimeKeeper` agent calls and the A2A server whose agents the `Orchestrator` delegates to — plus the observable discovery process and the Discovery page that visualizes it.
+Agentic Lab uses **MCP** to call remote tools and **A2A** to delegate to remote agents. These are real
+protocol integrations; neither protocol grants trust or authorization. Use trusted services within
+the sample's [security boundary](../SECURITY.md).
 
 ## MCP server (the TimeKeeper agent)
 
-A real Model Context Protocol integration: [McpServer](../src/AgenticLab.McpServer/Program.cs)
-uses `ModelContextProtocol.AspNetCore`, `AddMcpServer().WithHttpTransport().WithTools<TimeTools>()`
-and `MapMcp()`. Its always-on [TimeTools](../src/AgenticLab.McpServer/Tools/TimeTools.cs) exposes
-`GetCurrentTime`; `AddExampleTools` registers additional tools only for enabled modules.
-AppHost runs the `mcpserver` resource and AiService references it. At startup
+[McpServer](../src/AgenticLab.McpServer/Program.cs) exposes `GetCurrentTime` over HTTP, plus tools
+from enabled examples. AppHost runs it as `mcpserver`; it needs no model credentials.
 [McpToolProvider](../src/AgenticLab.AiService/Application/Discovery/McpToolProvider.cs) resolves
-`services:mcpserver:http:0`, connects over HTTP, lists tools and caches them as `AITool` instances.
-Failures degrade to an empty list. [TimeKeeper](../src/AgenticLab.AiService/Demo/Agents/TimeKeeperAgent.cs)
-sets `SupportsMcp => true` and selects only `GetCurrentTime`, never another module's tools.
-`GET /mcp` returns `Servers: [{ Name, Tools: [{ Name, Description }] }]`; the Web host anatomy
-shows the discovered MCP catalogue. The same endpoint can be configured in `.vscode/mcp.json`
-for direct use by VS Code.
+`services:mcpserver:http:0`, lists and caches tools, and returns an empty list on discovery failure.
+`TimeKeeper` selects only `GetCurrentTime`, even when other tools are discovered.
 
-MCP uses the v2 SDK's default **stateless HTTP** transport. The time tool needs no transport session
-or unsolicited server-to-client requests, so no stateful opt-in is required. This is independent of
-the AiService's conversation memory and the Web application's chat SSE stream.
+AiService's `GET /mcp` returns `Servers: [{ Name, Tools: [{ Name, Description }] }]`.
+The MCP server URL can also be configured in VS Code's MCP configuration for direct use.
+
+The v2 MCP SDK uses **stateless HTTP** by default. The time tool needs neither a transport session
+nor unsolicited server-to-client requests. This is separate from chat conversation memory and SSE.
+Registration uses `AddMcpServer().WithHttpTransport().WithTools<TimeTools>()` and `MapMcp()`.
 
 ## A2A server (the Orchestrator agent)
 
-A real Agent2Agent (A2A) integration — the agent-to-agent analogue of the MCP one above (where MCP standardizes model-to-**tool** calls, A2A standardizes agent-to-**agent** calls; there is no protocol distinction between "an agent" and "a sub-agent" — that only names the caller→callee relationship). [src/AgenticLab.A2AServer](../src/AgenticLab.A2AServer/Program.cs) is a minimal ASP.NET Core service that hosts **one or more persona-only agents declared in configuration** (`A2A:Agents` — each an entry of `{ Name, Path?, Description, Instructions }`; ships a `research` and a `poet` agent) via Microsoft Agent Framework: for each it calls `builder.AddAIAgent(name, instructions)` (backed by an Azure OpenAI `IChatClient`), `agent.AddA2AServer()`, and `app.MapA2AJsonRpc(agent, path)` (path defaults to `/a2a/{name}`) from `Microsoft.Agents.AI.Hosting.A2A.AspNetCore`. It also exposes a plain `GET /agents` **discovery** endpoint (`A2AAgentsResponse { Agents: [{ Name, Path, Description }] }`) so a caller can learn the roster without sharing config — adding an agent to `A2A:Agents` surfaces it to callers automatically. Because it hosts LLM agents, the AppHost injects the same `AzureOpenAI__*` settings it gives the AiService (unlike `mcpserver`, which needs none). The AppHost runs it as the `a2aserver` resource and the AiService references it. At startup [Application/Discovery/A2AAgentProvider.cs](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs) resolves the server endpoint (service discovery `services:a2aserver:http:0`, falling back to the `A2A:Endpoint` config value for a standalone run), calls its `GET /agents` to **discover** the hosted agents, and builds one `A2AClient` (from the standalone `A2A` package) per agent keyed by name. It exposes a single generic `DelegateToAgent(agentName, question)` `AITool` (whose description lists the discovered roster) that routes a question to the named agent, sends an A2A message and returns the reply; an unknown name returns the list of valid agents, and any failure degrades gracefully to an empty tool list. The `Orchestrator` agent ([Demo/Agents/OrchestratorAgent.cs](../src/AgenticLab.AiService/Demo/Agents/OrchestratorAgent.cs)) sets `SupportsA2A => true`, carries `Calculate` plus the delegation tool, and is instructed to answer arithmetic itself but delegate specialist questions by name — so a run contrasts a locally-answered turn with a delegated one. Discovery is surfaced over `GET /a2a` (`A2AResponse { Agents: [{ Name, Description }] }`) and as the new `AgentInfo.SupportsA2A` flag; the Web flow page shows an **A2A agents** box in the harness (mirroring the Skills/MCP boxes) listing every discovered agent, and a **Sub-agent (A2A)** resource node that lights up when the delegation tool runs.
+[A2AServer](../src/AgenticLab.A2AServer/Program.cs) hosts persona-only agents declared under
+`A2A:Agents`, with `{ Name, Path?, Description, Instructions }`. Defaults are `research` and `poet`;
+paths default to `/a2a/{name}`. Microsoft Agent Framework registers each with `AddAIAgent`,
+`AddA2AServer` and `MapA2AJsonRpc`. AppHost supplies Azure OpenAI settings to this `a2aserver` resource.
 
-**Separate A2A agent flow.** The **A2A agents** display option renders [A2AAgents.razor](../src/AgenticLab.Web/Components/Pages/FlowParts/A2AAgents.razor)
-below the primary agent row: one harness/model composition per discovered remote agent. Research and Poet
-share a separate A2A server process, not separate hosts; model nodes remain outside that hosting region.
-The parent agent/environment overlays do not enclose the remote row. Styling stays in FlowDiagram.razor.css
-with `::deep`, including container-based stacking. Only observed delegation boundaries highlight/animate;
-remote internal model links stay static and their deployment/prompt details are not claimed as captured.
+The server's `GET /agents` returns `{ Agents: [{ Name, Path, Description }] }`.
+[A2AAgentProvider](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs) resolves
+`services:a2aserver:http:0` (or standalone `A2A:Endpoint`), discovers that roster, and creates named
+clients. Its `DelegateToAgent(agentName, question)` tool returns the remote reply; unknown names
+return the valid roster. Discovery failure leaves an empty tool list.
 
-`FlowEvent.ToolCall` is an optional `FlowToolCall(Name, Arguments)` snapshot (immutable `JsonElement`),
-captured from `FunctionCallContent` while retaining existing event kinds, display payloads and CallId.
-FullCall remains display text, not JSON; routing must not parse it. The pure
-[A2AFlowBuilder](../src/AgenticLab.Web/Flow/A2AFlowBuilder.cs) uses structured arguments and CallId pairing.
-`FlowRunController.Replay.DisplayA2A` caches live/replay state; `ConversationTurn.A2AAgents` and
-`ExecutionExchange.A2AAgents` retain the send-time roster. Replay uses the same causal prefix as Context,
-so later results/agents never leak into an earlier stage. Unknown targets/old captures retain the generic
-resource fallback. Initial load and vendor changes refresh A2A discovery as agent-picker changes already do.
-See [the reference below](#remote-a2a-agents) for visible states and limitations. Focused capture/replay tests
-live in the existing AiService and Web test projects.
+`Orchestrator` has `Calculate` plus delegation: arithmetic can stay local while specialist questions
+go to another agent. AiService's `GET /a2a` returns `{ Agents: [{ Name, Description }] }`.
+"Sub-agent" describes the caller/callee relationship, not another A2A protocol type.
+
+## Optional Example Contributions
+
+[Example modules](examples.md) register their own MCP tools and A2A persona descriptors explicitly.
+Registration and metadata listing must not contact AiService: it discovers protocols before listening.
+MCP adapters may call it at invocation time, but must not create circular startup waits.
+
+Discovery precedes catalogue construction; rediscovery refreshes executable agents and advertised
+tool lists. Examples enforce their own remote allowlists and receive typed delegation outcomes.
+Orchestrator keeps its text-returning contract. Flow shows a selected example's capabilities;
+Discovery shows the full server roster.
 
 ## Protocol integration tests
 
-### Optional Example Contributions
-
-[Example modules](examples.md) contribute MCP tools and A2A persona descriptors through explicit
-role registrations; their implementations and prompts remain in their own projects. Tool registration
-and metadata listing cannot contact AiService. Example MCP adapters may call its operational API
-only when invoked, after startup, so the reverse service reference adds no circular wait dependency.
-TimeKeeper selects only `GetCurrentTime`, even when other MCP tools are discovered.
-
-Startup resolves the agent catalogue after discovery. Rediscovery refreshes both executable agents
-and their advertised tool metadata. The example delegation gateway exposes typed transport outcomes;
-the original Orchestrator's text-returning `DelegateToAgent` contract remains unchanged. Examples
-enforce their own remote allowlists. The selected example's MCP/A2A lists reflect its capabilities;
-the Discovery page still shows the whole server roster.
-
 [ProtocolIntegrationTests.cs](../tests/AgenticLab.AiService.Tests/ProtocolIntegrationTests.cs)
-starts local Kestrel servers on ephemeral loopback ports using the same MCP/A2A registration APIs
-as the production servers. It exercises the production `McpToolProvider` and `A2AAgentProvider`,
-including rediscovery and calls after reconnecting. MCP exposes the real `TimeTools` implementation;
-the A2A server hosts a deterministic fake-model agent and a test discovery roster. No Azure
-credentials or external model calls are needed. Server entry points, Azure client configuration,
-and Aspire service discovery still need a separate full-app smoke test.
-
-The neighboring `FlowExecutionTests` also runs an actual `ChatClientAgent` through the tool-filtering,
-function-invocation and capture middleware. It verifies streamed replies and tool results survive
-into the second conversation turn, and that a model request for a disabled tool cannot execute it.
+uses ephemeral loopback Kestrel servers, real `TimeTools` and a fake-model A2A agent. It exercises the
+production providers, rediscovery and invocation after reconnecting without Azure credentials.
+Neighboring `FlowExecutionTests` checks streamed tool execution, disabled-tool enforcement and
+second-turn history. Use the [upgrade check](#dependency-upgrade-checks) below to run both.
 
 ## Discovery visualization (MCP + A2A)
 
 [![Connected MCP GetCurrentTime tool and A2A research and poet agents in the Discovery view.](images/05-protocol-discovery.png)](images/05-protocol-discovery.png)
 
-Browse tools and specialist agents discovered over MCP and A2A. Select the image to open it at full
-size. Captured locally on 2026-09-22 from a running Blazor build.
+Captured locally on 2026-09-22. Select the image for full size.
 
-Both the MCP tool discovery ([Application/Discovery/McpToolProvider.cs](../src/AgenticLab.AiService/Application/Discovery/McpToolProvider.cs)) and the A2A agent discovery ([Application/Discovery/A2AAgentProvider.cs](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs)) are surfaced as an **observable, re-runnable, step-pable process** with its own Web page. Each provider exposes a `RediscoverAsync(...)` that yields an ordered stream of `DiscoveryEvent`s (`Start`, `Cleanup`, `Endpoint`/`NoEndpoint`, `Connecting`, `Listing`, one `Item` per discovered tool/agent, then `Done`/`Error`) — it first **cleans up** any existing connection (the MCP client is disposed; the A2A clients are cleared) and cached tools, then discovers again. The old `ConnectAsync` used at startup is now a thin wrapper that drains that stream, and each provider also tracks a `DiscoverySourceStatus` (endpoint, state, last-run time, discovered items). The models live in [Application/Discovery/DiscoveryModels.cs](../src/AgenticLab.AiService/Application/Discovery/DiscoveryModels.cs) (the `DiscoveryEventKind`/`DiscoveryState` enums are annotated to serialize as strings). [Application/Discovery/DiscoveryTracer.cs](../src/AgenticLab.AiService/Application/Discovery/DiscoveryTracer.cs) (a singleton) orchestrates a run for a **requested source** — `"mcp"`, `"a2a"`, or `"all"`/null for both, so MCP and A2A can be re-discovered **independently** — and, crucially, calls `AgentCatalog.RefreshDiscoveryAgents()` afterwards: because each `ChatClientAgent` bakes its `Tools` at construction and the `TimeKeeper`/`Orchestrator` agents expose the discovered tools by reference, a re-discovery would otherwise not reach the already-built agents. `RefreshDiscoveryAgents` rebuilds just the agents whose `SupportsMcp`/`SupportsA2A` is set, from the catalog's retained per-agent build (chat client + definition). Concurrent runs are serialized with a `SemaphoreSlim`.
+Open **Discovery** from Flow for a modal, or visit `/discovery` directly. Each source shows its
+connection state, discovered definitions and step log. Choose **Re-discover all** or a source's own
+command, then use Auto/Step, Delay, Next, Pause/Resume and Stop. Startup discovery is a read-only
+status here, configured by `Discovery:OnStartup` (default `true`) in
+[AiService settings](../src/AgenticLab.AiService/appsettings.json).
 
-**Backend-gated stepping.** Discovery **reuses the agent flow's stepping mechanism**: `DiscoveryTracer.StreamAsync(source, session, …)` takes a [Application/Flow/FlowSession.cs](../src/AgenticLab.AiService/Application/Flow/FlowSession.cs) and `await`s `session.WaitForStepAsync(…)` before emitting each event, so the run can be paced (auto with a per-step delay) or advanced one step at a time (manual). It is driven by the **same `POST /chat/control`** endpoint as a chat run (matched by the client-supplied `SessionId`): `next`, `pause`, `resume`, `stop` (and live `Manual`/`DelayMs` changes). The session is created in the `/discovery/stream` endpoint via the shared `FlowControlRegistry` and removed when the run ends.
+The modal initially reads only the last snapshot. It preserves Flow's conversation, draft, settings
+and replay; an active chat continues. Rediscovery is disabled during that parent chat because it
+reconnects shared clients. This is a local UI guard, not cross-client locking. Close, Escape or a
+backdrop click cancels only Discovery's request/stream and restores focus. After rediscovery, Flow
+refreshes live catalogues without changing historical rosters or conversation identity.
 
-**Discover on startup flag.** Whether discovery runs automatically at startup is gated by the **`Discovery:OnStartup`** config flag (default `true`, in [appsettings.json](../src/AgenticLab.AiService/appsettings.json)); when `false`, the two startup `ConnectAsync` calls in [Program.cs](../src/AgenticLab.AiService/Program.cs) are skipped and discovery is left to a manual run (after which the agents are refreshed, so `TimeKeeper`/`Orchestrator` work without a service restart). Two endpoints back the UI: `GET /discovery` returns a `DiscoverySnapshot { DiscoverOnStartup, Sources: [DiscoverySourceStatus] }`, and `POST /discovery/stream` (`DiscoveryStreamRequest { SessionId, Source?, Manual, StepDelayMs }`) runs a re-discovery for the requested source and streams the `DiscoveryEvent`s as Server-Sent Events (POST because it has side effects). The existing `GET /mcp` and `GET /a2a` endpoints are unchanged.
+### Discovery API
 
-**Web view.** [Components/Pages/Discovery.razor](../src/AgenticLab.Web/Components/Pages/Discovery.razor)
-is shared by the Flow header's modal overlay and the standalone `/discovery` route through
-`DiscoveryPage.razor`. Learn has no Discovery navigation entry. The overlay leaves Flow mounted,
-preserving conversation state and live streaming. It loads only the last-known snapshot when opened;
-re-discovery remains an explicit command and is disabled while the parent chat runs. This is a local
-UI guard, not cross-client locking. Closing cancels Discovery's own request/stream and waits for its
-reader to exit, without sending controls to the chat session or resetting its conversation. Snapshot
-and stream completions after disposal do not update the removed view.
+| Endpoint | Contract |
+| --- | --- |
+| `GET /discovery` | Snapshot: `{ DiscoverOnStartup, Sources: [DiscoverySourceStatus] }`. Each source includes endpoint, state, last-run time and items. |
+| `POST /discovery/stream` | `{ SessionId, Source?, Manual, StepDelayMs }`; streams `DiscoveryEvent` records over SSE. Source is `mcp`, `a2a`, or `all`/null for both. |
+| `POST /chat/control` | Uses Discovery's session ID for `next`, `pause`, `resume`, `stop` and live pacing changes. See the [control API](execution-explorer.md#post-chatcontrol). |
 
-Both contexts use the [Blazor design system](design-system.md). The standalone view has `AppHeader`;
-the embedded view does not repeat it. Commands, Auto/Step choices and source states reuse `LabButton`,
-`LabSegmented` and `LabStatus`. The dialog consumes document-level tokens because it is outside the
-Flow root. Pinned local Lucide workflow/wrench/network masks replace font-dependent service symbols.
-This is a presentation change, not a change to discovery timing, session IDs, guards or cancellation.
-
-The shared view shows one card per source (MCP tools, A2A agents), each with a client/server flow
-diagram, directional send/receive arrows, state badge, expandable discovered definitions and step log.
-Its toolbar retains Auto/Step mode, Delay, Next / Pause / Resume / Stop and Re-discover all; each card
-also has an independent Re-discover command. Controls use Discovery's own session ID with
-`POST /chat/control`. Runs use `AiServiceClient.StreamDiscoveryAsync`; snapshot loading and post-run
-reconciliation use `GetDiscoveryAsync`. `Discovery:OnStartup` remains read-only. After a modal that
-started re-discovery closes, Flow refreshes live agent/MCP/A2A catalogs without changing historical
-exchange rosters, conversation identity, draft or replay selection.
+Rediscovery has side effects: it clears old clients/tools, reconnects, lists items and refreshes
+discovery-enabled agents. Events progress through `Start`, `Cleanup`, `Endpoint`/`NoEndpoint`,
+`Connecting`, `Listing`, `Item`, then `Done`/`Error`.
+[DiscoveryTracer](../src/AgenticLab.AiService/Application/Discovery/DiscoveryTracer.cs) serializes
+discovery runs and uses server-side pacing. Disabling startup discovery leaves these manual commands
+available; agents work after discovery without a restart.
 
 ## Remote A2A agents
 
-Select **Orchestrator** and **Expert** to see each discovered remote agent (Research and Poet by
-default) as its own **Agent host + Model** composition below the main flow. Both agent hosts run in the same
-separate **A2A service** process; the cloud-model nodes show each agent's model role, not separate
-deployments. **Agent** outlines each composition, while **Environment & risk** distinguishes the
-shared server process from the cloud models. Narrow panes stack each harness above its model.
-The remote area has a grid-free background, with alternating blue/green bands grouping each agent's
-harness and model. This visual separation remains visible when boundary overlays are off.
+Select Default's **orchestrator** mode and enable **A2A agents** in View options. Each discovered
+agent appears as **Agent host + Model** below the main flow. Research and Poet share one separate
+A2A service process; their model nodes indicate roles, not separate known deployments.
 
-Request/result arrows highlight the targeted agent. The display distinguishes **Delegation requested**
-from **Result returned**: the former is a captured tool request, not confirmation of a network send,
-and a result can contain an error. Remote model calls, prompts and token counts are **not captured**;
-internal model links stay static. Generic model labels do not borrow the Orchestrator's deployment.
+Arrows distinguish **Delegation requested** from **Result returned**. A request is not confirmation
+of a network send, and a returned result can contain an error. Remote model calls, prompts, tools,
+settings and token counts are not captured; internal links stay static. Expand the agent host to
+open read-only remote-agent Details without delegating or changing the selected chat agent.
 
-Execution playback uses the roster saved with that exchange and pairs calls/results by call ID.
-Selecting a request never reveals its future reply. Missing structured metadata or unknown targets
-fall back to the generic resource display. Replay and held/stopped runs do not animate remote links.
+[A2AFlowBuilder](../src/AgenticLab.Web/Flow/A2AFlowBuilder.cs) uses structured `FlowEvent.ToolCall`
+arguments and call IDs, never the display-formatted call text. Replay uses the exchange's saved roster
+and causal prefix: no future replies or later agents appear early. Unknown targets or old captures
+without structured metadata fall back to a generic resource. Replay and held/stopped runs do not animate.
 
 ## Dependency upgrade checks
 
@@ -135,7 +112,5 @@ Run the deterministic agent and protocol integration tests without Azure credent
 dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj --filter "FullyQualifiedName~FlowExecutionTests|FullyQualifiedName~ProtocolIntegrationTests"
 ```
 
-These cover streamed agent tool execution, disabled tools and second-turn conversation history,
-plus MCP discovery/tool calls and A2A discovery/delegation over loopback HTTP. The model is a fake;
-the protocol servers use ephemeral ports and are disposed after each test. These checks do not
-replace a live Azure OpenAI or full AppHost startup smoke test.
+These deterministic checks do not verify live Azure OpenAI, production entry points or Aspire startup;
+those require a separate full-app smoke test.

@@ -1,26 +1,21 @@
 # Blazor design system
 
-Agentic Lab's Blazor UI uses a small, repository-owned design system based on the React frontend's
-visual language. It is not a second UI framework. Shared presentation has no dependency on Flow state,
-the AI service, React or an npm build step.
+Agentic Lab's Blazor design system shares React's visual language, not its runtime. Shared controls
+have no dependency on Flow state, AiService, React or npm.
 
 ## Ownership
 
-- [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css) owns the document-level `--lab-*`
-  tokens and local font faces. [App.razor](../src/AgenticLab.Web/Components/App.razor) loads it once.
-- [app.css](../src/AgenticLab.Web/wwwroot/app.css) contains application resets and framework styles.
-- [Extensibility/Components](../src/AgenticLab.Extensibility/Components) owns `LabButton`, `LabField`,
-  `LabStatus` and `MiniIcon`, reused by Web and self-contained example panels without a Web dependency.
-  [Web Components/Shared](../src/AgenticLab.Web/Components/Shared) retains the page/dock controls.
-  Each component still owns its scoped styles; this extraction does not introduce another palette.
-- `/design-system` is a development-only, interactive catalogue of real shared controls. It makes no
-  backend calls and returns Not Found outside Development. It is not part of production navigation.
+- [design-system.css](../src/AgenticLab.Web/wwwroot/design-system.css): document-level `--lab-*` tokens
+  and local fonts, loaded once by [App.razor](../src/AgenticLab.Web/Components/App.razor).
+- [app.css](../src/AgenticLab.Web/wwwroot/app.css): application resets and framework styles.
+- [Extensibility controls](../src/AgenticLab.Extensibility/Components): `LabButton`, `LabField`,
+  `LabStatus`, `MiniIcon`, reusable by Web and examples. [Web shared controls](../src/AgenticLab.Web/Components/Shared)
+  own page/dock presentation. Each component owns its scoped CSS.
+- `/design-system`: interactive catalogue, with no backend calls. Available only in Development;
+  returns 404 otherwise and is absent from production navigation.
 
-Branded host assets belong to optional example RCLs, not a Web enum or palette. Their manifests
-provide local `_content/<assembly>/host.svg` paths; `VendorIcon` renders a fixed-size current-color
-mask with a neutral fallback. The selector owns its 24px slot, the rail its 21px slot, and diagram
-icons remain 20px. Default uses the existing core icon. Module branding never changes the shared
-tokens, actor colours, layout, capture or replay state; see [example modules](examples.md).
+Host branding belongs to [example modules](examples.md), using local RCL SVG masks with a neutral
+fallback. It must not change shared tokens, contributor meanings, layout or run state.
 
 ## Tokens
 
@@ -41,29 +36,27 @@ tokens, actor colours, layout, capture or replay state; see [example modules](ex
 | `--lab-focus-*`, `--lab-duration`, `--lab-easing` | Visible keyboard focus and restrained motion |
 | `--lab-shadow-overlay`, `--lab-backdrop`, `--lab-layer-*` | Overlays, not decorative section cards |
 
-Reuse semantic tokens instead of repeating palette literals. Existing feature-specific aliases may map
-to these tokens, but must not self-reference or confuse a foreground accent with a tinted background.
-Contributor provenance, risk levels and signed chart scales retain their distinct meanings.
+Reuse tokens, not palette literals. Feature aliases must not self-reference or mix foreground and
+background roles. Contributor provenance, risk levels and signed chart scales keep distinct meanings.
 
 ## Components
 
-`AppHeader` provides the product mark, page context and repository link. Its child content supplies only
-the page's existing actions. Keep it inside the page's render boundary; it does not own navigation or
-run state. Agent guide links from Flow and Discovery open a new tab. Learn has no Discovery entry.
+`AppHeader` provides the product mark, page context and repository link; children supply page actions.
+Keep it inside the page's render boundary, without navigation/run state. Agent guide links open a
+new tab from Flow/Discovery; Learn has no Discovery entry.
 
-`LabButton` supports `primary`, `secondary`, `quiet` and `danger` intents, an optional `MiniIcon`, an
-icon-only mode, disabled/busy states and an optional pressed state. `Label` is required even for an
-icon-only command. Use `OnClick` for actions; use native anchors for navigation. An icon-bearing command
-keeps its icon slot when busy. Keep the label stable during progress to prevent width changes.
+`LabButton` supports `primary`, `secondary`, `quiet`, `danger`, icons, disabled/busy and pressed states.
+`Label` is required even for icon-only commands. Use `OnClick` for actions and anchors for navigation.
+Keep labels and icon slots stable during progress.
 
 ```razor
 <LabButton Label="Send" Icon="send" Variant="primary" OnClick="SendAsync" />
 <LabButton Label="Pause" Icon="pause" IconOnly="true" OnClick="PauseAsync" />
 ```
 
-`LabField` associates its label with a caller-supplied native input using `For`. The caller keeps binding
-and validation. When supplying `Hint` or `Error`, set the input's `aria-describedby` to
-`<id>-description`; also set `aria-invalid` for an error. `Inline` supports compact selection bars.
+`LabField.For` labels a caller-owned native input; binding/validation stay with the caller.
+For `Hint` or `Error`, set `aria-describedby="<id>-description"` and `aria-invalid` on errors.
+`Inline` supports compact selection bars.
 
 ```razor
 <LabField For="workspace" Label="Workspace" Error="@Error">
@@ -72,49 +65,40 @@ and validation. When supplying `Hint` or `Error`, set the input's `aria-describe
 </LabField>
 ```
 
-`LabSegmented` groups a small set of mutually exclusive native buttons. Each button supplies its
-`aria-pressed` state and callback. Render ARIA booleans as the strings `"true"` and `"false"`, not
-Razor boolean attributes (which are minimised). It is a choice group, not a tablist. Real tabs need tab/tabpanel
-relationships, arrow-key navigation and a managed tab stop.
+`LabSegmented` groups mutually exclusive buttons with caller-supplied `aria-pressed` and callbacks.
+Render ARIA booleans as strings `"true"`/`"false"`, not minimized Razor boolean attributes. It is not
+a tablist: real tabs need tab/tabpanel relationships, arrow navigation and a managed tab stop.
 
-`LabStatus` pairs a textual state with a marker. `Tone` is `neutral`, `success`, `warning` or `danger`;
-`Busy` animates only the marker. The label must explain the state without relying on colour or motion.
+`LabStatus` pairs text with a `neutral`, `success`, `warning` or `danger` marker. `Busy` animates only
+the marker; the label must communicate state without colour or motion.
 
-`SidePanel` remains the reusable resizable/collapsible dock. `MiniIcon` and the pinned Lucide assets
-remain the icon source. Native dialogs retain focus containment, Escape dismissal and focus restoration;
-do not substitute visually styled containers for modal semantics.
+`SidePanel` resizes/collapses docks. `ShowHeader` defaults to true; tabbed content can supply its own
+header. Splitters are focusable separators supporting arrows, Shift+arrows, Home/End and dragging;
+the owning layout controls geometry. Use `MiniIcon` and the pinned Lucide assets for icons.
 
-`PageNotice` uses the same header and typography for error and not-found routes without changing their
-HTTP status or diagnostics. `SidePanel.ShowHeader` defaults to true; a tabbed child can supply its own
-header and collapse action. Splitters are focusable separators supporting arrows, Shift+arrows, Home
-and End as well as pointer dragging. Their geometry comes from the owning layout, not the design system.
-The framework reconnect dialog consumes the same colour, font and motion tokens while retaining its
-native JavaScript-driven reconnection lifecycle.
+`PageNotice` shares header/typography without changing error/404 status or diagnostics. The reconnect
+dialog shares tokens without replacing its framework lifecycle. Native modals must retain focus
+containment, Escape dismissal and focus restoration.
 
 ## Accessibility and layout
 
-Use native buttons, labels, selects, checkboxes, ranges and dialogs. Tool actions use labelled icons;
-binary options use checkboxes, mode sets use segmented choices, and numbers use sliders or inputs.
-Hover is never the only way to reach an action. Maintain visible focus, disabled and validation states.
-Normal text should meet WCAG AA contrast; actor colours are supplemental markers. Reduced motion must
-disable decoration, never backend pacing or progression.
+Use native controls: labelled icons for tools, checkboxes for binary options, segmented mode choices,
+and sliders/inputs for numbers. Actions must work without hover. Preserve focus, disabled/error states
+and WCAG AA text contrast. Actor colours are supplemental; reduced motion changes decoration, never
+backend pacing or progression.
 
-Page sections are flush, divider-led layouts, not nested cards. Use fixed type sizes, zero letter spacing
-and container-driven reflow. Set `min-width: 0` on grid/flex children and wrap long labels; only payload
-regions may scroll horizontally. Reflow must not mutate saved panel preferences, run options or state.
-Use the shared spacing scale, but let each feature own its responsive grid and domain-specific diagrams.
+Use flush sections, not nested cards; fixed type sizes, zero letter spacing and container-driven reflow.
+Set `min-width: 0` on flex/grid children and wrap labels. Only payload areas may scroll horizontally.
+Reflow must not mutate preferences or run state. Features own grids/diagrams, using shared spacing.
 
 ## Assets and contributions
 
-Fonts are the Latin subsets of `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono` **5.3.0**:
-Sans 400/500/600, Mono 400. WOFF2 files live under Web's `wwwroot/fonts`, with OFL notices under
-`wwwroot/licenses`. No CDN is contacted at runtime. Diagram icons use the existing pinned Lucide SVGs
-and their bundled licence; the repository link retains the Octicons mark and notice.
+Local Latin font subsets use `@fontsource/ibm-plex-sans` and `@fontsource/ibm-plex-mono` **5.3.0**:
+Sans 400/500/600 and Mono 400. [Fonts](../src/AgenticLab.Web/wwwroot/fonts) retain their
+[OFL notices](../src/AgenticLab.Web/wwwroot/licenses). Pinned Lucide/Octicons assets retain their
+notices too. No runtime CDN is used.
 
-Before adding a shared component, find two real consumers or a repeated accessibility/behaviour contract.
-Prefer parameters and events over dependencies on a feature's state. Add a catalogue example and short
-XML parameter summaries, then verify the actual consumers. Do not build a parallel component library
-that pages do not use. Build Web and check the showcase at desktop/mobile widths before migrating a
-new pattern; run the Web regression tests for layout-state or interaction changes.
-The repeatable no-model-call browser check and temporary Playwright setup are in
-[tools/README.md](../tools/README.md). It checks the catalogue and real pages, not just isolated examples.
+Before adding a primitive, find two real consumers or a repeated accessibility contract. Use parameters
+and events, not feature state; add XML parameter summaries and a catalogue example. Build Web, inspect
+desktop/mobile consumers and run Web tests for interaction/state changes. The
+[browser smoke guide](../tools/README.md) checks the catalogue and real pages without model calls.
