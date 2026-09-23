@@ -1,0 +1,83 @@
+using System.ClientModel;
+using Microsoft.Extensions.Configuration;
+
+namespace AgenticLab.ModelProviders;
+
+/// <summary>The inference backend selected at application startup, independently of agent host branding.</summary>
+public enum ModelProvider
+{
+    /// <summary>An Azure OpenAI deployment, including deployments managed through Foundry.</summary>
+    AzureOpenAI,
+    /// <summary>The direct OpenAI API.</summary>
+    OpenAI,
+    /// <summary>The Gemini API through Google's OpenAI-compatible chat endpoint.</summary>
+    Gemini,
+}
+
+/// <summary>Validates only the selected backend's settings and keeps its credential out of public metadata.</summary>
+public sealed class ModelConnectionOptions
+{
+    /// <summary>Reads server-side settings, retaining Azure OpenAI as the default for existing installations.</summary>
+    public ModelConnectionOptions(IConfiguration configuration)
+    {
+        Provider = configuration["Models:Provider"]?.Trim().ToUpperInvariant() switch
+        {
+            null or "" or "AZUREOPENAI" => ModelProvider.AzureOpenAI,
+            "OPENAI" => ModelProvider.OpenAI,
+            "GEMINI" => ModelProvider.Gemini,
+            _ => throw new InvalidOperationException(
+                "Unsupported configuration 'Models:Provider'. Choose AzureOpenAI, OpenAI or Gemini."),
+        };
+
+        var section = Provider.ToString();
+        Credential = new ApiKeyCredential(Required(configuration, $"{section}:ApiKey"));
+        DefaultModel = Required(configuration, $"{section}:{(Provider == ModelProvider.AzureOpenAI ? "Deployment" : "Model")}");
+        Endpoint = Provider switch
+        {
+            ModelProvider.OpenAI => new Uri("https://api.openai.com/v1/"),
+            ModelProvider.Gemini => new Uri("https://generativelanguage.googleapis.com/v1beta/openai/"),
+            _ => AzureEndpoint(configuration),
+        };
+        ForceDefaultModel = OptionalBoolean(configuration, "Models:ForceDefaultModel")
+            ?? (Provider == ModelProvider.AzureOpenAI
+                && (OptionalBoolean(configuration, "AzureOpenAI:ForceDefaultModel") ?? false));
+    }
+
+    /// <summary>The actual inference provider, not a persona or illustrative product label.</summary>
+    public ModelProvider Provider { get; }
+
+    /// <summary>The server endpoint used by the selected provider.</summary>
+    public Uri Endpoint { get; }
+
+    /// <summary>The default Azure deployment name or direct-provider model identifier.</summary>
+    public string DefaultModel { get; }
+
+    /// <summary>Whether execution uses the default model while retaining agents' declared model labels.</summary>
+    public bool ForceDefaultModel { get; }
+
+    internal ApiKeyCredential Credential { get; }
+
+    private static string Required(IConfiguration configuration, string key) =>
+        string.IsNullOrWhiteSpace(configuration[key])
+            ? throw new InvalidOperationException($"Missing configuration '{key}'. Set it in user-secrets or environment variables.")
+            : configuration[key]!.Trim();
+
+    private static Uri AzureEndpoint(IConfiguration configuration)
+    {
+        var value = Required(configuration, "AzureOpenAI:Endpoint");
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var endpoint)
+            || endpoint.Scheme is not ("https" or "http")
+            || endpoint.UserInfo.Length != 0 || endpoint.Query.Length != 0 || endpoint.Fragment.Length != 0)
+        {
+            throw new InvalidOperationException("Invalid configuration 'AzureOpenAI:Endpoint'. Use an absolute HTTP(S) service URL without credentials, query or fragment.");
+        }
+        return endpoint;
+    }
+
+    private static bool? OptionalBoolean(IConfiguration configuration, string key)
+    {
+        if (configuration[key] is not { } value) return null;
+        return bool.TryParse(value, out var result) ? result
+            : throw new InvalidOperationException($"Invalid configuration '{key}'. Use true or false.");
+    }
+}

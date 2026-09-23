@@ -1,7 +1,7 @@
 # GitHub Copilot example
 
 Opt-in, representative GitHub Copilot host prompt and branding, not GitHub's actual system prompt
-or a provider integration. The configured Azure OpenAI deployment is unchanged; the model label is
+or a provider integration. The configured model provider is unchanged; the model label is
 illustrative. This module owns no agents: `ask`, `plan` and `agent` reuse the core `Ask`, `Plan` and
 `Coder` agents through `SharedAgentNames`, including their workspace confinement and tool controls.
 

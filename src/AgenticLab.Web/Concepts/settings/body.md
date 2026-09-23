@@ -16,7 +16,8 @@ Changing settings can change behaviour without touching a single word of the pro
 
 The **Settings** box is an **agent** layer (yellow). It surfaces two things:
 
-- **model: Azure OpenAI** — the shared chat client backing every agent.
+- **Declared model**: the configured model identifier or Azure deployment, which can differ from
+  the executing model when force-default is enabled. The provider is selected at server startup.
 - **stepping: Auto / Manual** — *Auto* paces the animation with a server-side delay you
   can adjust live; *Manual* blocks each step until you click **Next**.
 

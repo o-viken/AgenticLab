@@ -36,6 +36,6 @@ vector's components plus its 2-D coordinates. Step ② projects those vectors do
 where identical tokens overlap. The companion **Neural network** panel shows the symbolic forward pass that
 consumes these vectors, and a pinned token lights up that network's input layer.
 
-Everything here is **fabricated for teaching** — the backend is Azure OpenAI and exposes no real
+Everything here is **fabricated for teaching**. This view does not request real model
 embeddings, so the vectors and positions are invented (though deterministic, so they don't flicker). It
 conveys the *shape* of embeddings, not the model's real internals.

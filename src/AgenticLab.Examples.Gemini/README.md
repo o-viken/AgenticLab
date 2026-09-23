@@ -1,9 +1,12 @@
 # Gemini example
 
 Opt-in, representative Gemini host prompt and branding, not Google's actual system prompt or a
-provider integration. The configured Azure OpenAI deployment is unchanged; the model label is
+provider integration. The configured model provider is unchanged; the model label is
 illustrative. The `chat` mode reuses the core, tool-free `ChatAgent` through `SharedAgentNames`.
 This module owns no agents or tools.
+
+Direct Gemini API access is selected through [server configuration](../../README.md#configure-a-model-provider),
+independently of whether this example is enabled.
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:gemini:Enabled=true

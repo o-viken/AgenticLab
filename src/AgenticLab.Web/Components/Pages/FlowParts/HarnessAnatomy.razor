@@ -84,7 +84,7 @@
     <div class="layer agent">
         <ConceptInfoButton Id="settings" Title="Learn about settings" />
         <span class="layer-title"><HostSection Section="HostDetailSection.Settings" /></span>
-        <span class="layer-body">model: Azure OpenAI · stepping: @View.Options.Mode</span>
+        <span class="layer-body">Declared model: @(string.IsNullOrWhiteSpace(View.Agent.Info?.ModelId) ? "Service default" : View.Agent.Info.ModelId) · stepping: @View.Options.Mode</span>
         <span class="set-by">Set per agent</span>
     </div>
 

@@ -12,8 +12,9 @@ Report suspected vulnerabilities privately as described in [SECURITY.md](SECURIT
   SDK-paired CLI through `dnx` is the fallback when a compatible CLI is not on `PATH`.
 - Install Node.js **24 LTS** only for the optional React frontend. Docker is only needed when
   validating container builds, not for the standard local setup or .NET tests.
-- Azure OpenAI credentials are needed for live model runs, not for building or deterministic
-  tests. Keep credentials in AppHost user-secrets; never add them to source or frontend assets.
+- Credentials for the selected Azure OpenAI, OpenAI or Gemini provider are needed for live model
+  runs, not for building or deterministic tests. Keep them in AppHost user-secrets or server-side
+  environment variables; never add them to source or frontend assets.
   Live runs can incur charges and transmit context. Read the [security policy](SECURITY.md).
 
 The [learning-only Web guide](README.md#learning-only) works without Azure or Aspire orchestration.
@@ -58,7 +59,10 @@ relevant test project with a build first, for example:
 dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj
 ```
 
-The agent and protocol tests use fake models and local protocol servers, without Azure credentials.
+The agent and protocol tests use fake models, injected provider HTTP responses and local protocol
+servers, without API credentials. `ModelProviderTests` covers provider selection, authentication,
+streaming tools, Gemini signature retention, model overrides and cancellation. Live API compatibility
+requires separately authorized checks with synthetic input; passing mocks does not establish it.
 Do not start AppHost or supply production secrets to reproduce CI. Ordinary .NET builds do not run npm.
 
 For React or BFF changes, also run:

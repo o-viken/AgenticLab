@@ -36,7 +36,7 @@ it that supplies context, manages tools and controls execution.
 This loop continues until the model gives a final answer. A request to use a tool is not permission
 to run it: the host decides what is allowed.
 
-Explore the guided lessons at `/learn` with the [learning-only setup](#learning-only); no Azure
+Explore the guided lessons at `/learn` with the [learning-only setup](#learning-only); no model
 credentials or live model calls are needed.
 
 [![The agent-loop lesson showing context, model decisions, host tool execution, observations, and final answers.](docs/images/06-guided-learning.png)](docs/images/06-guided-learning.png)
@@ -55,7 +55,7 @@ The captured activity shows what the application sends and receives, not the mod
 reasoning. Illustrations of model internals are labelled simulations.
 
 Built with [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
-[Aspire](https://aspire.dev/) and Azure OpenAI. Read the [vision](VISION.md) for more on the project's
+[Aspire](https://aspire.dev/) and your choice of Azure OpenAI, OpenAI or Gemini. Read the [vision](VISION.md) for more on the project's
 purpose and direction.
 
 [![Completed Wikipedia-and-calculator conversation beside the user, agent host, tools, and model diagram.](docs/images/01-live-workspace.png)](docs/images/01-live-workspace.png)
@@ -77,7 +77,7 @@ Use only trusted workspaces and integrations. See the [security policy](SECURITY
 trust boundaries and private vulnerability-reporting channel.
 
 - Live runs send prompts, conversation history, enabled instructions, selected context, and tool
-   results to the configured model service. Azure charges may apply; local startup does not mean
+   results to the configured model service. Provider charges may apply; local startup does not mean
    data stays local. Wikipedia, web-fetch, MCP, and A2A integrations can contact other services.
 - Flow captures include model/tool payloads and can contain private data. Backend conversation
    history and frontend captures have separate lifetimes. Reset does not erase external copies,
@@ -100,12 +100,14 @@ For the full local application:
 - [Aspire CLI](https://aspire.dev/get-started/install-cli/) matching the pinned **13.5.4** version.
   The AppHost restores its Aspire SDK automatically and uses the SDK-paired CLI through `dnx`
   as a fallback when a compatible CLI is not on `PATH`.
-- An [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) resource with a deployed
-  chat model that supports tool calling, its endpoint, deployment name, and API key.
+- One model provider with a chat model that supports tool calling: an
+   [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) deployment (including Foundry),
+   an [OpenAI API key](https://platform.openai.com/api-keys), or a
+   [Gemini API key](https://aistudio.google.com/apikey).
 - Git to clone the repository, or download and extract its source archive.
 
 Docker is not required for the default local setup. The [learning-only option](#learning-only)
-needs just the .NET SDK and the source code, without Azure credentials or Aspire orchestration.
+needs just the .NET SDK and the source code, without model credentials or Aspire orchestration.
 
 ## Run Locally
 
@@ -118,19 +120,58 @@ cd agenticlab
 
 Run the following commands from the repository root.
 
-### Configure Azure OpenAI
+### Configure a Model Provider
 
-Store your settings in the AppHost's local user-secrets store:
+Choose one provider and store its settings in the AppHost's local user-secrets store. Both AiService
+and A2AServer use that provider; restart the application after changing it. Keys stay in server-side
+configuration, not browser settings. Never commit credentials.
+
+#### Configure Azure OpenAI
+
+Azure OpenAI remains the default when `Models:Provider` is absent. Existing Foundry configuration
+continues to work. To select it explicitly, including when switching back from another provider:
 
 ```sh
+dotnet user-secrets set "Models:Provider" "AzureOpenAI" --project src/AgenticLab.AppHost
 dotnet user-secrets set "AzureOpenAI:Endpoint" "<your-azure-openai-endpoint>" --project src/AgenticLab.AppHost
 dotnet user-secrets set "AzureOpenAI:Deployment" "<your-deployment-name>" --project src/AgenticLab.AppHost
 dotnet user-secrets set "AzureOpenAI:ApiKey" "<your-api-key>" --project src/AgenticLab.AppHost
 ```
 
-Use the **deployment name** you created in Azure, not just the model's name. Aspire passes these
-settings to the services that call the model. Never commit credentials. Live runs use your Azure
-resource and may incur charges; prompts and selected context are sent to the configured model service.
+Use the **deployment name** you created in Azure, not just the model's name.
+
+#### OpenAI API
+
+```sh
+dotnet user-secrets set "Models:Provider" "OpenAI" --project src/AgenticLab.AppHost
+dotnet user-secrets set "OpenAI:Model" "<your-openai-model-id>" --project src/AgenticLab.AppHost
+dotnet user-secrets set "OpenAI:ApiKey" "<your-openai-api-key>" --project src/AgenticLab.AppHost
+```
+
+Use an OpenAI API key, not a ChatGPT login. API usage is
+[billed separately from ChatGPT subscriptions](https://help.openai.com/en/articles/8156019-how-can-i-move-my-chatgpt-subscription-to-the-api).
+
+#### Gemini API
+
+```sh
+dotnet user-secrets set "Models:Provider" "Gemini" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Gemini:Model" "<your-gemini-model-id>" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Gemini:ApiKey" "<your-gemini-api-key>" --project src/AgenticLab.AppHost
+```
+
+Get the key from [Google AI Studio](https://aistudio.google.com/apikey). Gemini uses Google's
+[OpenAI-compatible chat API](https://ai.google.dev/gemini-api/docs/openai), including streaming and
+tool calls. This compatibility API is beta; provider-specific features outside chat are not exposed.
+
+OpenAI and Gemini need no Azure credentials or deployment. Choose a model available to your API
+account that supports chat completions and function calling. Selecting a ChatGPT or Gemini **host**
+in the UI only changes the example prompt; it does not select this backend or require its matching
+example to be enabled.
+
+Environment variables work too: use `Models__Provider`, `OpenAI__ApiKey` / `OpenAI__Model`, or
+`Gemini__ApiKey` / `Gemini__Model`. Aspire explicitly forwards only the selected connection settings
+to the inference services. Live requests send context to that provider and may incur its charges.
+See [model configuration](docs/agents.md#model-providers) for model overrides and validation rules.
 
 ### Build and Start
 
@@ -160,12 +201,12 @@ Start with a conversation in Default, or select **ChatGPT / chat** and try:
 > than a 250-metre building.
 
 Watch the model and tool activity, inspect the captured data, or use Manual mode to advance one
-step at a time. The vendor-labelled experiences are representative demos backed by your Azure
-OpenAI deployment, not connections to those vendors' products.
+step at a time. The vendor-labelled experiences are representative demos backed by your configured
+model API, not connections to those vendors' consumer products.
 
 ### Learning Only
 
-To explore the guided lessons without configuring Azure OpenAI, run only the Web project:
+To explore the guided lessons without configuring a model provider, run only the Web project:
 
 ```sh
 dotnet run --project src/AgenticLab.Web
@@ -219,7 +260,7 @@ Blazor is the main frontend. The optional React example shows how to add an alte
 on top of the existing AI service, reusing its APIs through a backend-for-frontend. It runs alongside
 Blazor and is not required for the main application.
 
-To try it, install Node.js **24 LTS** and configure Azure OpenAI as described above, then run:
+To try it, install Node.js **24 LTS** and configure a model provider as described above, then run:
 
 ```sh
 npm --prefix src/AgenticLab.React ci

@@ -2,7 +2,8 @@
 
 An opt-in ChatGPT-style agent host. This module owns the representative host prompt, `ChatGpt`
 agent, branding and tests. It is not OpenAI's actual system prompt or a separate model provider.
-The configured Azure OpenAI deployment is still used; the model label is illustrative.
+The configured model provider is still used; the model label is illustrative. Direct OpenAI API
+access is selected through [server configuration](../../README.md#configure-a-model-provider), not this host.
 
 AppHost enables this module in Development. Elsewhere, enable it from the repository root:
 

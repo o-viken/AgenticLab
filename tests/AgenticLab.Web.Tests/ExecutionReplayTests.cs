@@ -149,11 +149,14 @@ public sealed class ExecutionReplayTests
         Assert.Null(details.A2AAgentName);
     }
 
-    [Fact]
-    public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras()
+    [Theory]
+    [InlineData("test-deployment")]
+    [InlineData("gemini-test-model")]
+    [InlineData(null)]
+    public void HostDetails_ShowsOnlySelectedPartWithoutExecutionOrComposedExtras(string? model)
     {
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
-        view.Roster.SetAgents([new AgentInfo("Coder", "Selected persona description", [], RequiresWorkspace: true, SupportsSkills: true, ModelId: "test-model")]);
+        view.Roster.SetAgents([new AgentInfo("Coder", "Selected persona description", [], RequiresWorkspace: true, SupportsSkills: true, ModelId: model ?? "")]);
         view.SelectedAgent = "Coder";
         view.Harness.SetPrompt("Exact host prompt");
         view.Message = "Unsubmitted draft";
@@ -161,7 +164,7 @@ public sealed class ExecutionReplayTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
         using var run = new FlowRunController(new AiServiceClient(http), view, new());
         var settings = Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run));
-        Assert.Equal("Provider: Azure OpenAI\nDeployment: test-model", settings.Text);
+        Assert.Equal($"Declared model: {model ?? "Service default"}", settings.Text);
         Assert.Equal("Exact host prompt", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.SystemPrompt, view, run)).Text);
         Assert.Equal("Selected persona description", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Persona, view, run)).Text);
         Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Skills, view, run));

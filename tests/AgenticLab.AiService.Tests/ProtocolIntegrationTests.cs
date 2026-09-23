@@ -1,4 +1,7 @@
+using System.ClientModel.Primitives;
+using System.Net;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.AspNetCore.Builder;
@@ -11,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using AgenticLab.AiService.Application.Discovery;
 using AgenticLab.McpServer.Tools;
+using AgenticLab.ModelProviders;
 using Xunit;
 
 namespace AgenticLab.AiService.Tests;
@@ -42,12 +46,27 @@ public sealed class ProtocolIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task A2ADiscoveryAndDelegationReturnTheHostedAgentsAnswerOverHttp()
+    [Theory]
+    [InlineData("Fake")]
+    [InlineData("AzureOpenAI")]
+    [InlineData("OpenAI")]
+    [InlineData("Gemini")]
+    public async Task A2ADiscoveryAndDelegationReturnTheHostedAgentsAnswerOverHttp(string modelProvider)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var builder = CreateBuilder();
-        var model = new EchoModel();
+        using var handler = new EchoProviderHandler();
+        using var httpClient = new HttpClient(handler);
+        var modelConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Models:Provider"] = modelProvider,
+            [$"{modelProvider}:ApiKey"] = "test-key",
+            [$"{modelProvider}:{(modelProvider == "AzureOpenAI" ? "Deployment" : "Model")}"] = "test-model",
+            [$"{modelProvider}:Endpoint"] = "https://example.openai.azure.com/",
+        }).Build();
+        IChatClient model = modelProvider == "Fake" ? new EchoModel()
+            : new ModelClientFactory(new ModelConnectionOptions(modelConfiguration), new HttpClientPipelineTransport(httpClient))
+                .Create().AsBuilder().UseFunctionInvocation().UseOpenTelemetry().Build();
         builder.Services.AddSingleton<IChatClient>(model);
         var agent = builder.AddAIAgent("research", instructions: "Echo the question.");
         agent.AddA2AServer();
@@ -76,6 +95,7 @@ public sealed class ProtocolIntegrationTests
             }, timeout.Token);
             Assert.Equal("Answer: What is the test answer?", result?.ToString());
         }
+        Assert.Equal(modelProvider == "Fake" ? 0 : 2, handler.RequestCount);
     }
 
     private static WebApplicationBuilder CreateBuilder()
@@ -91,6 +111,39 @@ public sealed class ProtocolIntegrationTests
         {
             [key] = Assert.Single(server.Urls),
         }).Build();
+
+    private sealed class EchoProviderHandler : HttpMessageHandler
+    {
+        public int RequestCount { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            RequestCount++;
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            var root = body.RootElement;
+            var content = root.GetProperty("messages").EnumerateArray()
+                .Last(message => message.GetProperty("role").GetString() == "user").GetProperty("content");
+            var question = content.ValueKind == JsonValueKind.String ? content.GetString()
+                : string.Concat(content.EnumerateArray().Select(part => part.GetProperty("text").GetString()));
+            var answer = $"Answer: {question}";
+            var streaming = root.TryGetProperty("stream", out var stream) && stream.GetBoolean();
+            var response = streaming
+                ? "data: " + JsonSerializer.Serialize(new
+                {
+                    id = "reply", @object = "chat.completion.chunk", created = 1, model = "test-model",
+                    choices = new[] { new { index = 0, delta = new { role = "assistant", content = answer }, finish_reason = "stop" } },
+                }) + "\n\ndata: [DONE]\n\n"
+                : JsonSerializer.Serialize(new
+                {
+                    id = "reply", @object = "chat.completion", created = 1, model = "test-model",
+                    choices = new[] { new { index = 0, message = new { role = "assistant", content = answer }, finish_reason = "stop" } },
+                });
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(response, Encoding.UTF8, streaming ? "text/event-stream" : "application/json"),
+            };
+        }
+    }
 
     private sealed class EchoModel : IChatClient
     {

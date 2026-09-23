@@ -14,7 +14,7 @@ standard protocol.
 
 The LLM node is labelled "LLM (MCP)" to show *where* an MCP server would plug in, but this
 sample keeps things simple: the tools are plain **local functions** wired straight into the
-agent, and the model is **Azure OpenAI**. There is **no real MCP server** here — MCP is
+agent, and the model uses the configured cloud API. There is **no real MCP server** here — MCP is
 shown as the concept you'd reach for to share these tools across many agents or apps.
 
 See the introduction linked below for the full picture.

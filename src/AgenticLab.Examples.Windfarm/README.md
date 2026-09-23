@@ -12,7 +12,7 @@ engineering guidance or any company's operating procedure.
 
 ## Run
 
-Use the repository's .NET 10/Aspire prerequisites and existing AppHost Azure OpenAI settings:
+Use the repository's .NET 10/Aspire prerequisites and AppHost model provider settings:
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:windfarm:Enabled=true
@@ -22,7 +22,7 @@ Open **web** from the Aspire dashboard, select **Windfarm Operations / Coordinat
 scenario and select **Start case**. The starter question is filled but not sent automatically.
 Use Technical view to inspect the real tool calls and remote specialist boundaries.
 
-Interactive coordinator/specialist requests use the configured Azure OpenAI deployment and may
+Interactive coordinator/specialist requests use the configured model provider and may
 incur model charges. Deterministic tests do not need model credentials. Normal startup leaves the
 module disabled; it contributes no endpoints, agents, protocol tools or panel until enabled.
 No extra process or operational credentials are needed.

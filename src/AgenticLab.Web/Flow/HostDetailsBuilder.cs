@@ -70,7 +70,7 @@ internal static class HostDetailsBuilder
                 if (view.Agent.ToolNames.Count == 0) Add("Tools", "No tools configured.");
                 break;
             case HostDetailSection.Settings:
-                Add("Settings", $"Provider: Azure OpenAI\nDeployment: {(string.IsNullOrWhiteSpace(view.Agent.Info?.ModelId) ? "Service default" : view.Agent.Info.ModelId)}", "Set per agent");
+                Add("Settings", $"Declared model: {(string.IsNullOrWhiteSpace(view.Agent.Info?.ModelId) ? "Service default" : view.Agent.Info.ModelId)}", "Set per agent");
                 break;
             case HostDetailSection.Instructions:
                 foreach (var instruction in run.Catalogs.KnownInstructions)

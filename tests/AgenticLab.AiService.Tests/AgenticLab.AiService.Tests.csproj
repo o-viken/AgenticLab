@@ -14,5 +14,6 @@
     <ProjectReference Include="../../src/AgenticLab.AiService/AgenticLab.AiService.csproj" />
     <ProjectReference Include="../../src/AgenticLab.McpServer/AgenticLab.McpServer.csproj" />
     <ProjectReference Include="../../src/AgenticLab.A2AServer/AgenticLab.A2AServer.csproj" />
+    <ProjectReference Include="../../src/AgenticLab.ModelProviders/AgenticLab.ModelProviders.csproj" />
   </ItemGroup>
 </Project>

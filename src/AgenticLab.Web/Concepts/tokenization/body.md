@@ -37,7 +37,7 @@ message into word-piece chips and shows a whole-prompt token estimate (≈ chara
 ② replays the agent's final answer as **generated** tokens, revealing them left-to-right; hover
 a generated token to see a list of candidate next-tokens with probability bars.
 
-This view is **fabricated for teaching** — the backend is Azure OpenAI and never exposes its
+This view is **fabricated for teaching**. It does not use the configured model's
 real tokenizer or token probabilities, so the splitting is a crude heuristic and the
 probabilities are invented (though deterministic, so they don't flicker). It conveys the
 *shape* of tokenization and autoregressive generation, not the model's actual internals.
