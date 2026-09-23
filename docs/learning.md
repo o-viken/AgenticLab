@@ -23,8 +23,9 @@ enabled example's metadata; Default has no product topic.
 
 ## Guided agent learning
 
-Open **Agent guide** from Flow or Discovery. It opens a new tab so a live or paused run stays in
-its original page. The guide also works without AiService or Azure credentials:
+Open **Agent guide** from Flow in the same tab; **Live flow** returns to Flow in that tab.
+From Discovery, the guide opens in a new tab. The guide also works without AiService or Azure
+credentials:
 
 ```sh
 dotnet run --project src/AgenticLab.Web
