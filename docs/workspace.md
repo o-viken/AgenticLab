@@ -1,121 +1,175 @@
 # Workspace features (skills, instructions, workspace agents, tools)
 
-Part of the [Agentic Lab architecture notes](../AGENTS.md). Everything the AI service discovers per run
-from the caller's workspace folder: skills (`SKILL.md` playbooks), custom instructions, user-authored
-agents (YAML and markdown conventions plus the VS Code tool-alias table), and tools that use that
-workspace for path checks or their working directory. These checks are not a filesystem or process
-sandbox. Use trusted workspaces and read the [security policy](../SECURITY.md).
+Workspace agents read skills, instructions and agent definitions from a caller-selected folder on
+the AiService machine. Set **Workspace** in Web Settings, use Console's `/workspace <path>`, or send
+`workspace` with a [chat request](agents.md#post-chat). Use only trusted folders: path checks and
+terminal restrictions are **not a sandbox**. Read the [security policy](../SECURITY.md).
 
 ## Workspace skills (the Coder agent)
 
-The `Coder` agent supports **skills**: small, named playbooks that live in the workspace and are loaded on demand, following a progressive-disclosure model. A skill is a folder under a top-level `skills/` directory (or GitHub Copilot's `.github/skills/` or Claude Code's `.claude/skills/`) containing a `SKILL.md` file whose YAML frontmatter declares a `name` and `description`, followed by a markdown body with the full instructions. Flat, one-file playbooks are also discovered — VS Code prompt files (`.github/prompts/*.prompt.md`) and Claude Code slash-command files (`.claude/commands/*.md`), whose name comes from the file name and whose body is loaded on demand:
+Skills are named playbooks loaded on demand through `ReadSkill`. Coder and all workspace-defined
+agents support them. The model receives names/descriptions first, then requests a full body when needed.
 
-```
-skills/get-date/SKILL.md
+Supported locations, relative to the workspace:
+
+| Format | Locations |
+| --- | --- |
+| Folder with YAML-frontmatter `SKILL.md` | `skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.claude/skills/*/SKILL.md` |
+| Flat playbook, named from its file | `.github/prompts/*.prompt.md`, `.claude/commands/*.md` |
+
+For example, a playbook at `skills/get-date/SKILL.md`:
+
+```markdown
 ---
 name: get-date
 description: Get the current date and time on a Windows machine using the terminal.
 ---
-(body with the steps the agent should follow)
+Run Get-Date with PowerShell and report the result.
 ```
 
-Drop a `skills/<name>/SKILL.md` into any workspace and run the Coder with that folder as its workspace to try it. Three pieces under [src/AgenticLab.AiService/Application](../src/AgenticLab.AiService/Application) make this work, plus one tool:
+Skills default **on**. Uncheck them in Settings or send `disabledSkills` on either chat path;
+disabled skills are neither advertised nor loadable through `ReadSkill`. Names match case-insensitively,
+then by unambiguous partial match. A skill supplies guidance, not new tool permissions.
 
-- [Application/Skills/SkillDefinition.cs](../src/AgenticLab.AiService/Application/Skills/SkillDefinition.cs) — the `name`/`description`/`relative path` record for a discovered skill.
-- [Application/Skills/SkillLoader.cs](../src/AgenticLab.AiService/Application/Skills/SkillLoader.cs) — scans the folder-per-skill convention (`skills/*/SKILL.md`, `.github/skills/*/SKILL.md`, `.claude/skills/*/SKILL.md`) and the flat-file convention (`.github/prompts/*.prompt.md`, `.claude/commands/*.md`) in the active `WorkspaceScope`, parses the frontmatter (minimal, no YAML dependency), de-dupes by name, and via `BuildContextBlock()` renders the `<skills>` block (each skill's name + description) — or `null` when the workspace declares none. `LoadAvailable()` is `Load()` minus any skill the caller disabled for the run (skills default **on**, filtered via `SkillFilterScope`), and is what both `BuildContextBlock()` and `ReadSkill` use so a disabled skill is neither listed nor loadable.
-- [Application/Skills/SkillMatcher.cs](../src/AgenticLab.AiService/Application/Skills/SkillMatcher.cs) — resolves a model-supplied skill name to a discovered skill (exact case-insensitive, then unambiguous partial).
-- [Application/Tools/SkillsTool.cs](../src/AgenticLab.AiService/Application/Tools/SkillsTool.cs) — exposes `ReadSkill(name)`, which loads + matches and returns the full `SKILL.md` content using `WorkspaceScope` path validation, subject to the filesystem limitations below.
-
-`SkillLoader.Load()` is also exposed read-only over `POST /skills` (`SkillsRequest { Workspace }` → `SkillsResponse { Skills: [{ Name, Description }] }`): it opens a `WorkspaceScope` for the supplied path and returns the discovered skill names + descriptions (empty when the path is missing/invalid or declares none). The Web flow page calls it whenever the agent or workspace changes so the harness Skills box can show the catalogue **before** a run. **Per-run skill toggles.** A caller can disable a subset of an agent's skills for a single run via `DisabledSkills` on both chat requests (skills default on); it is enforced by the ambient [Application/Skills/SkillFilterScope.cs](../src/AgenticLab.AiService/Application/Skills/SkillFilterScope.cs) (an `AsyncLocal`, same pattern as `ToolFilterScope`) opened by the endpoints and re-`Activate()`d before each streaming advance. The Web **Settings** tab shows a checkbox per discovered skill (checked by default).
-
-**Opt-in and per-run injection.** Skills are opt-in per agent via `IAgentDefinition.SupportsSkills` ([IAgentDefinition.cs](../src/AgenticLab.Extensibility/Agents/IAgentDefinition.cs) / `AgentDefinitionBase` default `false`); the Coder overrides it to `true`. Because each agent's `Instructions` are built **once** at startup (the `ChatClientAgent` is a singleton) but skills live in the **per-request** workspace, the `<skills>` catalogue cannot be baked into the static harness like `TerminalTool.EnvironmentInfo` is. Instead the endpoints build it **per run** while the `WorkspaceScope` is active and pass it as run-scoped instructions: `new ChatClientAgentRunOptions(new ChatOptions { Instructions = block })`. `ChatClientAgent` **concatenates** these after the agent's base instructions for that call only (`$"{agent.Instructions}\n{runInstructions}"`) and does **not** persist them to the conversation session, so the list is re-derived fresh each turn and never accumulates. `POST /chat` does this in [Endpoints/ChatEndpoints.cs](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs) via `RunScopeSet.BuildRunOptions`; `/chat/stream` does the same in [Application/Flow/FlowTracer.cs](../src/AgenticLab.AiService/Application/Flow/FlowTracer.cs) (re-`Activate()`ing the scope first, since the AsyncLocal is reset on `yield`). The Coder's harness tells the model to call `ReadSkill` for any listed skill that fits the task rather than improvising. The sample skill uses `powershell` (added to `TerminalTool`'s default allowlist) to run `Get-Date`. The same `BuildRunOptions` helper also injects the workspace's **custom instructions** (see next section), so a run's run-scoped instructions can carry both blocks.
+`POST /skills` accepts `{ Workspace }` and returns `{ Skills: [{ Name, Description }] }`.
+Missing/invalid paths or no skills produce an empty list. Web reads this catalogue before a run.
+[SkillLoader](../src/AgenticLab.AiService/Application/Skills/SkillLoader.cs) owns discovery and
+deduplication; [SkillsTool](../src/AgenticLab.AiService/Application/Tools/SkillsTool.cs) loads bodies.
+Code-defined agents opt in with `SupportsSkills` (default `false`).
 
 ## Workspace custom instructions (the instructions/ folder)
 
-Any workspace-requiring agent can pick up **custom instructions**: project-specific guidance modelled on GitHub Copilot's custom instructions. Unlike skills (a catalogue injected up front, full body loaded on demand via a tool), a custom instruction's **full content is injected into the agent's context** for a run — but they are **opt-in per run (off by default)**: nothing is injected until the caller enables specific instructions. They are discovered from `*.instructions.md` files (under a top-level `instructions/` folder or GitHub Copilot's `.github/instructions/`), each with an optional YAML frontmatter `description` (the `name` defaults to the file name), plus the whole-file conventions `.github/copilot-instructions.md`, root `CLAUDE.md` and root `AGENTS.md` (the entire file body is the instruction):
+Any workspace-requiring agent can use custom instructions. Unlike skills, their **full body** is
+injected without a tool call. They default **off**: select files in Settings or send their names in
+`enabledInstructions` for the run.
 
-```
-instructions/response-style.instructions.md
+Discovery reads `instructions/*.instructions.md` and `.github/instructions/*.instructions.md`, plus
+whole-file `.github/copilot-instructions.md`, root `CLAUDE.md` and root `AGENTS.md`. Instruction files
+may have a frontmatter `description`; names default to the filename. For example:
+
+```markdown
 ---
 description: How the assistant should format and sign off its replies in this workspace.
 ---
-(the rules the agent should always follow)
+Keep replies concise and state what was verified.
 ```
 
-The repo ships a sample [instructions/response-style.instructions.md](../instructions/response-style.instructions.md) (run any workspace agent — `Ask`, `Plan`, `Coder` — with the repo root as its workspace to try it). Two pieces under [src/AgenticLab.AiService/Application](../src/AgenticLab.AiService/Application) make this work:
+Try the shipped [response-style instructions](../instructions/response-style.instructions.md) with
+Ask, Plan or Coder and this repository as the workspace. The root agent instructions are also
+available but are not injected unless explicitly enabled.
 
-- [Application/Instructions/InstructionDefinition.cs](../src/AgenticLab.AiService/Application/Instructions/InstructionDefinition.cs) — the `name`/`description`/`body`/`relative path` record for a discovered instruction (the body is the injected content).
-- [Application/Instructions/InstructionLoader.cs](../src/AgenticLab.AiService/Application/Instructions/InstructionLoader.cs) — scans `instructions/*.instructions.md` and `.github/instructions/*.instructions.md`, plus the whole-file `.github/copilot-instructions.md`, `CLAUDE.md` and `AGENTS.md` conventions, in the active `WorkspaceScope`, parses the optional frontmatter (minimal, no YAML dependency) and reads each file's body, de-dupes by name, and via `BuildContextBlock()` renders the `<customInstructions>` block with the **full combined content** of every instruction the caller **enabled** — or `null` when none are enabled (instructions default off).
-
-There is **no tool** for custom instructions (they are injected, not loaded on demand), but they **default off**: the caller opts in per run via `EnabledInstructions` on both chat requests, enforced by the ambient [Application/Instructions/InstructionFilterScope.cs](../src/AgenticLab.AiService/Application/Instructions/InstructionFilterScope.cs) (an `AsyncLocal` allow-list, the mirror of `SkillFilterScope`) — `BuildContextBlock()` injects only the enabled ones, so nothing is applied until the user ticks it (the repo's large root `AGENTS.md` is therefore only loaded when explicitly enabled). The injection rides the **same per-run mechanism as skills**: `RunScopeSet.BuildRunOptions` (in [Endpoints/ChatEndpoints.cs](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs) for `/chat`, and in [Application/Flow/FlowTracer.cs](../src/AgenticLab.AiService/Application/Flow/FlowTracer.cs) for `/chat/stream`, re-`Activate()`ing the scopes first) joins the `<customInstructions>` block with any `<skills>` block into one `ChatClientAgentRunOptions`, so neither is baked into the static harness and both are re-derived fresh each turn without persisting to the session. `InstructionLoader.Load()` is also exposed read-only over `POST /instructions` (`InstructionsRequest { Workspace }` → `InstructionsResponse { Instructions: [{ Name, Description }] }`): it opens a `WorkspaceScope` for the supplied path and returns the discovered names + descriptions (empty when the path is missing/invalid or declares none). The Web flow page calls it (via `AiServiceClient.GetInstructionsAsync`, in `FlowRunController.Catalogs.RefreshKnownInstructionsAsync`, wired into `RefreshWorkspaceContextAsync`/`OnAgentChangedAsync`) whenever the agent or workspace changes, populating `FlowRunController.Catalogs.KnownInstructions`; the Web **Settings** tab lists each discovered instruction with a checkbox (**unchecked by default**) so the user opts in per run. In the **Expand agent host** anatomy view, [Components/Pages/FlowParts/HarnessAnatomy.razor](../src/AgenticLab.Web/Components/Pages/FlowParts/HarnessAnatomy.razor) renders a green **Custom Instructions** layer box (gated by `FlowViewState.Agent.SupportsInstructions` — i.e. the agent requires a workspace — *and* `KnownInstructions.Count > 0`) listing the discovered files, with an ⓘ → the `custom-instructions` concept; the actual injected `<customInstructions>` text also shows in the expandable **llm-request** step.
+`POST /instructions` accepts `{ Workspace }` and returns `{ Instructions: [{ Name, Description }] }`,
+or an empty list for a missing/invalid path or no files. Web shows the catalogue in Settings and the
+expanded host; captured `llm-request` data shows the actual injected text.
+[InstructionLoader](../src/AgenticLab.AiService/Application/Instructions/InstructionLoader.cs)
+owns discovery, deduplication and the enabled-content block.
 
 ## Workspace-defined agents (the agents/ folder)
 
-A workspace can also ship its **own agents**, discovered the same way skills are, from either of two shapes across several folders:
+Agents can be declared in either format below. They can select existing backend capabilities, not
+install tools or grant permissions beyond the platform's available set.
 
-- **YAML** (`<name>.agent.yaml`) in a top-level `agents/` folder (or the dotted `.agents/` folder), whose YAML declares a `name`, `description`, a `persona` (the agent's system instructions, layered on top of the shared harness prompt) and a list of `tools` — the **names of existing backend tool functions** the agent may call. Optional fields are `risk` (`None`/`Low`/`Medium`/`High`) and `model` (the Azure OpenAI deployment the agent runs on); a `guardrails:` list may override the derived defaults. (A `skills` field is still parsed onto the definition but no longer gates anything — **every** workspace-defined agent supports workspace skills unconditionally, since it already requires a workspace where the skill catalogue lives.) The repo ships a sample [agents/reviewer.agent.yaml](../agents/reviewer.agent.yaml) (a read-only code reviewer using `ReadFile`/`ListFiles`).
-- **Markdown** (frontmatter + body used **verbatim as the persona**) — the **real GitHub Copilot / VS Code / Claude Code custom-agent conventions** — in `.github/agents/*.md`, `.github/chatmodes/*.chatmode.md`, `.claude/agents/*.md` or `.agents/*.md`, with an optional YAML frontmatter block (`name`, `description`, `tools`, and the same optional `risk`/`skills`/`model`/`guardrails` keys as above). This lets an existing custom-agent/chat-mode/subagent file be picked up as-is, with no conversion.
+| Format | Locations | Persona |
+| --- | --- | --- |
+| YAML | `agents/*.agent.yaml`, `.agents/*.agent.yaml` | `persona` field |
+| Markdown with optional YAML frontmatter | `.github/agents/*.md`, `.github/chatmodes/*.chatmode.md`, `.claude/agents/*.md`, `.agents/*.md` | Body after frontmatter, used verbatim |
 
-```
-agents/reviewer.agent.yaml
+A YAML definition such as [agents/reviewer.agent.yaml](../agents/reviewer.agent.yaml):
+
+```yaml
 name: Reviewer
 description: Reviews the workspace's code for risks without changing anything.
 tools:
   - ReadFile
   - ListFiles
 risk: Low
-# model: gpt-5.3-codex   # optional Azure OpenAI deployment (defaults to the global default)
 persona: |
-  You are a meticulous, read-only code reviewer...
+  Review the code for risks. Do not change files.
 ```
 
-```
-.github/agents/mcp-agent.md
+A Markdown definition can use editor tool aliases:
+
+```markdown
 ---
 name: mcp-agent
 description: Describe what this custom agent does and when to use it.
 tools: [read/readFile, search/fileSearch, search/listDirectory, web/fetch]
 ---
-Define what this custom agent does, including its behavior, capabilities, and any specific
-instructions for its operation.
+Read the workspace and fetch relevant reference pages. Do not change files.
 ```
 
-When the same name is declared in both conventions, the `agents/*.agent.yaml` definition wins.
+Optional fields are `risk` (`None`, `Low`, `Medium`, `High`), `guardrails` and `model` (an Azure
+deployment; see [precedence](agents.md#per-agent-models)). Omitted risk defaults to High for
+write/delete/terminal tools, otherwise Low; guardrails are derived from tools. These are metadata,
+not extra enforcement. The parsed `skills` field does not disable skills: every workspace agent
+requires a workspace, supports skills and receives `ReadSkill` even when omitted from its tool list.
 
-**Tool name mapping.** The markdown conventions declare VS Code's / Claude Code's own tool names (optionally namespaced, e.g. `search/fileSearch`), which don't match this app's backend tool names. `WorkspaceAgentLoader` maps each declared token to a backend tool name via a small `ToolAliases` table (matched case-insensitively on the segment after the last `/` — e.g. `readFile`/`read` → `ReadFile`, `fileSearch`/`listDirectory`/`list`/`search`/`glob`/`grep`/`ls` → `ListFiles`, `editFile`/`edit`/`createFile`/`applyPatch`/`write`/`multiEdit` → `WriteFile`, `deleteFile`/`delete` → `DeleteFile`, `runCommands`/`runInTerminal`/`terminal`/`shell`/`runTasks`/`bash` → `RunCommand`, `readSkill` → `ReadSkill`, `askQuestion`/`ask` → `AskQuestion`, `fetch`/`web`/`webFetch` → `WebFetch`); a token with no known mapping is dropped silently, the same as an unresolved name in the `.agent.yaml` convention. The table is intentionally small and meant to be extended as more VS Code / Claude tool tokens are encountered. Each declared token and the backend tool it resolved to (or `null` when dropped) is recorded on `WorkspaceAgentDefinition.ToolMappings` and surfaced over `POST /agents/workspace` as `AgentInfo.ToolMappings`, so the Web flow page can **show the mapping**: the left panel's **Settings** tab lists each `declared token → mapped tool` line under the Tools toggles (dropped tokens shown as *no matching tool*), and the harness Tools chips' tooltip notes *mapped from &lt;token&gt;*. The `.agent.yaml` convention declares backend names directly, so its mappings are identity and the mapping list stays hidden for those agents.
+YAML definitions take precedence over Markdown for the same name. Invalid/unnamed definitions and
+Markdown files with empty bodies are skipped. Both chat paths try the built-in catalogue first,
+then resolve workspace agents by name, case-insensitively.
 
-Three pieces under [src/AgenticLab.AiService/Application](../src/AgenticLab.AiService/Application) make this work:
+`POST /agents/workspace` accepts `{ Workspace }` and returns agent metadata, including `ToolMappings`.
+Web appends these agents to hosts that already offer a workspace mode, such as GitHub Copilot and
+Claude Code. Discovery is per workspace, not a startup registration.
 
-- [Application/Workspace/WorkspaceAgentDefinition.cs](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAgentDefinition.cs) — the parsed `name`/`description`/`persona`/`tool names`/`risk`/`guardrails`/`skills`/`model` record for a discovered agent, regardless of which convention it came from, plus a `ToolMappings` list (each declared token → the backend tool it resolved to, or `null` when dropped) so the UI can show the mapping.
-- [Application/Workspace/WorkspaceAgentLoader.cs](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAgentLoader.cs) — scans the YAML folders (`agents/`, `.agents/`) and the markdown folders (`.github/agents`, `.github/chatmodes`, `.claude/agents`, `.agents`) in the active `WorkspaceScope` and merges the results (`LoadYamlAgents` + `LoadMarkdownAgents`). Both are parsed with **YamlDotNet** (added as a package dependency; richer than the skills loader's hand-rolled frontmatter parse, since agent files carry a tool list and a multi-line persona) — the markdown files feed only their leading `---`-delimited frontmatter block through the deserializer, then use the remaining markdown as the persona. It skips a file that is unnamed (or, for markdown, has an empty body) or fails to parse, and derives a sensible `risk` (High when the tools can change the workspace — `WriteFile`/`DeleteFile`/`RunCommand` — otherwise Low) and default `guardrails` from the granted tools when the file omits them.
-- [Application/Workspace/WorkspaceAgentResolver.cs](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAgentResolver.cs) — builds a `name → AIFunction` registry from the harness's **application tools only** (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool` — so a workspace agent can never grant itself a tool the platform does not already expose, and the `Application` layer stays free of any `Demo` dependency). `TryResolve` matches a requested name (case-insensitive), resolves its tool subset (dropping any unknown name, and — because every workspace agent supports skills — **always granting the `ReadSkill` tool** even when the agent file omits it, so the model can actually load a skill's body instead of guessing a path with `ReadFile`) and builds a `ChatClientAgent` on the deployment resolved for the agent (the declared `model`, overridable by an `Agents:{Name}:Deployment` config value, else the global default — via `ChatClientProvider.ResolveDeployment`) whose instructions reuse the layered harness via the [Application/Workspace/WorkspaceDefinedAgent.cs](../src/AgenticLab.AiService/Application/Workspace/WorkspaceDefinedAgent.cs) adapter (an `AgentDefinitionBase` that supplies the persona, surfaces the declared `model` as its `ModelId`, always reports `RequiresWorkspace => true`, and always reports `SupportsSkills => true`).
+### Tool name mapping
 
-**Resolution and execution.** Workspace agents are **not** registered in the singleton `AgentCatalog` (they are per-workspace, not known at start-up). Both chat endpoints first try the catalog and, on a miss, fall back to the resolver: `POST /chat` ([Endpoints/ChatEndpoints.cs](../src/AgenticLab.AiService/Endpoints/ChatEndpoints.cs)) opens the `WorkspaceScope` and calls `WorkspaceAgentResolver.TryResolve`, then runs the built agent through the shared `RunChat` helper (which injects the skill catalogue when the agent opts in and applies any per-run tool toggles); `/chat/stream` does the equivalent in [Application/Flow/FlowTracer.cs](../src/AgenticLab.AiService/Application/Flow/FlowTracer.cs), opening the scope when the name is unknown so the workspace agent can be discovered and run under it. `WorkspaceAgentResolver.ListAgents()` is exposed read-only over `POST /agents/workspace` (`WorkspaceAgentsRequest { Workspace }` → an `AgentsResponse` reusing `AgentInfo`); the Web flow page calls it whenever the workspace or vendor changes and **appends** the discovered agents to the Agent picker **after a `───` separator**, but only for vendors that already offer a workspace-requiring agent (GitHub Copilot, Claude Code). On the Web side `FlowViewState` holds the workspace agents (`SetWorkspaceAgents`, surfaced as `WorkspaceAgentChoices`, gated by `VendorHasWorkspaceAgent`) and its `Selected` lookup searches both the built-in and workspace agents so the harness box, tools toggles, skills box and risk view all light up for a selected workspace agent; `FlowRunController.Catalogs.RefreshWorkspaceContextAsync` refreshes both the skill catalogue and the agent roster together.
+YAML uses backend tool names directly. Markdown aliases match case-insensitively after the last `/`;
+for example, `search/fileSearch` maps to `ListFiles`, not a full implementation of the editor's search.
+
+| Backend tool | Aliases |
+| --- | --- |
+| `ReadFile` | `readFile`, `read` |
+| `ListFiles` | `fileSearch`, `listDirectory`, `list`, `search`, `glob`, `grep`, `ls` |
+| `WriteFile` | `editFile`, `edit`, `createFile`, `applyPatch`, `write`, `multiEdit` |
+| `DeleteFile` | `deleteFile`, `delete` |
+| `RunCommand` | `runCommands`, `runInTerminal`, `terminal`, `shell`, `runTasks`, `bash` |
+| `ReadSkill` | `readSkill` |
+| `AskQuestion` | `askQuestion`, `ask` |
+| `WebFetch` | `fetch`, `web`, `webFetch` |
+
+Unknown names are dropped, never replaced with broader access. Settings shows declared-to-backend
+mappings and **no matching tool** for dropped aliases; YAML identity mappings are hidden.
+[WorkspaceToolAliases](../src/AgenticLab.AiService/Application/Workspace/WorkspaceToolAliases.cs)
+owns the map. [WorkspaceAgentLoader](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAgentLoader.cs)
+parses definitions; [WorkspaceAgentResolver](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAgentResolver.cs)
+limits them to application tools, not demo tools or arbitrary editor capabilities.
 
 ## Workspace-scoped tools (the Coder agent)
 
-The `Coder` agent operates against a **workspace root** the caller must supply. Its tools live in [Application/Tools/FileSystemTool.cs](../src/AgenticLab.AiService/Application/Tools/FileSystemTool.cs) (`ReadFile`, `ListFiles`, `WriteFile` (create+overwrite), `DeleteFile` — files only) and [Application/Tools/TerminalTool.cs](../src/AgenticLab.AiService/Application/Tools/TerminalTool.cs) (`RunCommand`, restricted to an **allowlist** of executables — defaults to `dotnet, git, ls, dir, npm, node, python, pip, powershell, pwsh`, overridable via the `Coder:AllowedCommands` config array — with a 60s timeout). Commands are executed **through the OS shell** (`cmd.exe /c` on Windows, `/bin/sh -c` elsewhere) so built-ins like `dir`/`ls` and script commands like `npm.cmd` resolve as they would in a terminal; arguments containing shell operators (`& | ; < > \` $`, newlines) are rejected so the allowlist can't be bypassed by chaining. `TerminalTool.EnvironmentInfo` describes the live OS/shell and allowed commands and is injected into the Coder's harness as an `<environment>` block, so the model picks platform-appropriate commands (`dir` on Windows, `ls` on Unix). The agent declares `RequiresWorkspace => true` ([IAgentDefinition.cs](../src/AgenticLab.Extensibility/Agents/IAgentDefinition.cs) / [AgentDefinitionBase.cs](../src/AgenticLab.Extensibility/Agents/AgentDefinitionBase.cs) default `false`) and overrides the shared harness with stronger coding rules ([Demo/Agents/CoderAgent.cs](../src/AgenticLab.AiService/Demo/Agents/CoderAgent.cs)).
+Coder offers `ReadFile`, `ListFiles`, `WriteFile` (create/overwrite), `DeleteFile` (files only),
+`RunCommand` and `ReadSkill`. Ask and Plan have no write/delete/terminal tools. A missing or invalid
+required workspace causes `POST /chat` to return `400`; `/chat/stream` emits `error` and stops.
 
-The workspace flows in **per request** (the tools are singletons, so it can't be constructor-injected):
-both chat requests carry an optional `Workspace` path, and the endpoints open an ambient
-[Application/Workspace/WorkspaceScope.cs](../src/AgenticLab.AiService/Application/Workspace/WorkspaceScope.cs)
-(an `AsyncLocal<WorkspaceScope>`, same pattern as `FlowCaptureScope`) for the run. File tools resolve
-paths through `WorkspaceScope.ResolvePath`, which checks that the normalized path is the workspace
-root or starts with its directory prefix. Paths that fail that check are rejected, including `..`
-or absolute paths leading outside the root. Absolute paths inside the root can be accepted.
+[FileSystemTool](../src/AgenticLab.AiService/Application/Tools/FileSystemTool.cs) checks normalized
+paths against the workspace root/prefix, rejecting paths outside it. Absolute paths inside it may
+be accepted. **This is a lexical check, not symlink resolution or per-user access control.**
 
-**Security limits:** this is a lexical path check, not symlink resolution or an operating-system
-sandbox. The caller chooses the root; it is not a per-user filesystem permission boundary.
-`RunCommand` uses that root as its working directory, but does not validate file paths inside command
-arguments. Allowed interpreters and build/package tools can execute code, access other files, inherit
-the service's environment, and use the network with the service account's permissions. The executable
-allowlist, shell-operator rejection, and timeout do not prevent those actions. Prompts, skills, and
-manual stepping are not authorization controls. See [SECURITY.md](../SECURITY.md) before use.
+[TerminalTool](../src/AgenticLab.AiService/Application/Tools/TerminalTool.cs) uses the root as its
+working directory and a 60-second timeout. `Coder:AllowedCommands` overrides the default executables:
+`dotnet`, `git`, `ls`, `dir`, `npm`, `node`, `python`, `pip`, `powershell`, `pwsh`. Commands run through
+`cmd.exe /c` on Windows or `/bin/sh -c` elsewhere, with shell operators/interpolation syntax and
+newlines rejected. Coder receives the current OS, shell and allowlist in its environment instructions.
 
-In `/chat/stream` the scope is re-`Activate()`d before each agent advance (the `AsyncLocal` is reset on
-`yield`, exactly like the capture scope). **Workspace validation:** when a workspace-requiring agent
-is selected without a valid, existing `Workspace`, `POST /chat` returns `400` and `/chat/stream`
-emits an `error` flow event and stops. The Console sets it with `/workspace <path>`; the Web flow page
-shows a **Workspace** input when the selected agent needs one.
+**Security limits:** command arguments are not checked for filesystem escape. Allowed interpreters,
+build tools and package tools can execute code, access other files, inherit the service environment
+and use the network with the service account's permissions. The allowlist, path checks and timeout
+do not prevent that. Prompts, skills and manual stepping are not authorization controls.
 
-**Workspace path suggestions (base folders).** So the user doesn't retype absolute paths, the Web **Workspace** input offers an autocomplete `<datalist>` of suggestions, and remembers the paths it has used. In the left panel's **Settings** tab, under the Workspace input, a **Repo base folders** textarea lets the user point at one or more parent folders where their repos live (one path per line, or `;`-separated). The read-only `POST /workspaces` endpoint ([Endpoints/WorkspaceEndpoints.cs](../src/AgenticLab.AiService/Endpoints/WorkspaceEndpoints.cs) `BrowseWorkspaces`; `WorkspaceBrowseRequest { Bases }` → `WorkspaceBrowseResponse { Directories: [{ Path, Name, Base }] }`) lists the **immediate sub-folders** of each existing base (skipping hidden/system folders, de-duped, capped at 300) — the candidate repo folders. The Web client calls it via `AiServiceClient.GetWorkspaceDirectoriesAsync` from `FlowRunController.Catalogs.RefreshWorkspaceSuggestionsAsync` whenever the base folders change, populating `FlowViewState.WorkspacePrefs.Suggestions` (the **recently used** workspaces first, then the discovered sub-folders). Both preferences are persisted client-side in `localStorage` (keys `agenticlab-workspace-bases` and `agenticlab-workspace-recent`, restored in `Flow.razor`'s `OnAfterRenderAsync`): the base-folders string is saved as the user edits it and each used workspace is remembered on run start (`FlowViewState.WorkspacePrefs.AddRecent`, newest-first, capped at 8). The persistence is driven by a dedicated `FlowViewState.WorkspacePrefs.Changed` event (separate from `Changed` so ordinary re-renders don't trigger a save).
+### Workspace path suggestions
+
+In Settings, **Repo base folders** accepts parent paths, one per line or separated by `;`.
+`POST /workspaces` accepts `{ Bases }` and returns `{ Directories: [{ Path, Name, Base }] }`:
+immediate subfolders only, excluding hidden/system folders, deduplicated and capped at 300.
+Web suggests up to eight recent workspaces first, then these folders. Preferences stay in browser
+storage under `agenticlab-workspace-bases` and `agenticlab-workspace-recent`; runs remember the
+selected path. These endpoints inspect the service filesystem, not the browser's local files.
+
+## Per-run implementation
+
+[WorkspaceScope](../src/AgenticLab.AiService/Application/Workspace/WorkspaceScope.cs) carries the
+root for singleton tools. [RunScopeSet](../src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs)
+groups workspace, tool/skill/instruction filters and other ambient scopes, reactivating them across
+streaming advances. Both chat paths use it. Skill catalogues and enabled instruction bodies are
+rebuilt per run, appended to base instructions and not persisted as those instruction blocks in the
+conversation session. Tool results, including loaded skill content, can still enter conversation history.

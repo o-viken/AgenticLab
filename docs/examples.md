@@ -1,31 +1,26 @@
 # Example modules
 
-Examples are explicit, trusted .NET 10 Razor class libraries. Each owns its agents, host prompts,
-tools, API, protocol adapters, data, process rules, UI, assets, documentation and tests. Executable
-hosts provide model clients, discovery, run capture, service discovery and the existing Flow shell.
-There is no runtime download, arbitrary assembly scanning, hot reload or security sandbox for modules.
-
-See [Windfarm](../src/AgenticLab.Examples.Windfarm/README.md) for a full multi-host process example,
-or [Copilot 365](../src/AgenticLab.Examples.Copilot365/README.md) for a smaller agent/tool example
-without a custom panel.
+Examples are trusted, explicitly registered .NET 10 Razor class libraries. Each owns its domain
+code, prompts, tools, adapters, UI, assets, docs and tests. Agentic Lab supplies model clients,
+discovery, capture and the Flow shell. There is no runtime download, assembly scanning, hot reload
+or module sandbox. See the [catalogue](#catalogue) for complete examples.
 
 ## Default startup
 
-Default is the only built-in host, including in Development. All branded hosts are separate opt-in
-modules, enabled with `Examples:<id>:Enabled=true`. The IDs are `chatgpt`, `gemini`, `copilot`,
-`claude-code`, `claude`, `copilot365` and `windfarm`; flags can be combined. The Copilot365 API host
-key remains `microsoft365`, while the other modules use their ID as the host key.
+Base configuration enables only **Default**. AppHost Development additionally enables **ChatGPT**,
+**GitHub Copilot** and **Copilot 365**. Other environments and standalone services need explicit
+example configuration; `--Examples:<id>:Enabled=false` overrides a Development default.
 
-AppHost's Development configuration enables ChatGPT, GitHub Copilot and Copilot 365 alongside Default.
-Other environments and standalone services still require explicit example configuration.
-Override a Development default with `--Examples:<id>:Enabled=false`.
+Enable modules with `Examples:<id>:Enabled=true`. IDs are `chatgpt`, `gemini`, `copilot`,
+`claude-code`, `claude`, `copilot365` and `windfarm`; flags can be combined. Copilot365's API host
+key is `microsoft365`; the others use their module ID.
 
 ```sh
 dotnet run --project src/AgenticLab.AppHost -- --Examples:chatgpt:Enabled=true --Examples:copilot:Enabled=true
 ```
 
-The representative prompts and model labels do not connect to the named vendors' products. Model
-clients and deployment configuration remain host-owned. Shared learning content is always available.
+Vendor prompts/labels are representative demos, not connections to those products. Model configuration
+stays host-owned; shared learning content does not depend on enabled examples.
 
 ## Dependency boundary
 
@@ -40,48 +35,37 @@ flowchart TD
     Web --> Shared
 ```
 
-Production examples reference `AgenticLab.Extensibility`, never an executable host project.
-Host references to an example belong only in project files and composition roots. Do not add a
-domain-specific enum value, Flow collaborator, endpoint, tool, fixture or prompt to the core.
-Tests may reference hosts to exercise their real protocol adapters.
+Production examples reference `AgenticLab.Extensibility`, **never executable hosts**. Host references
+to examples belong in project files and composition roots. Domain enums, Flow state, endpoints,
+tools and fixtures stay out of core. Tests may reference hosts for real protocol checks.
 
-The extension library contains the shared `IAgentDefinition`, `AgentDefinitionBase`, `IVendorHarness`
-contracts; explicit module registration; narrow runtime/panel contracts; and the existing
-`LabButton`, `LabField`, `LabStatus` and `MiniIcon` controls. It does not own example process state
-or a generic approval/workflow engine.
-
-Harness-only examples declare `AgentNames: []`: that list denotes ownership, not every mode a host
-offers. `SharedAgentNames` exposes the stable core `ChatAgent`, `Ask`, `Plan` and `Coder` identities
-without referencing AiService. Claude and Gemini reuse ChatAgent; Copilot reuses Ask/Plan/Coder;
-Claude Code reuses Plan/Coder. These agents stay registered once in core. ChatGPT owns its dedicated
-`ChatGpt` agent, which consumes `IHostToolSource` instead of concrete host tool classes.
+Extensibility owns agent/module/runtime contracts and shared controls, not domain state or an
+approval engine. Harness-only modules declare `AgentNames: []` because that list means ownership.
+They reuse `SharedAgentNames` (`ChatAgent`, `Ask`, `Plan`, `Coder`), registered once in core.
+ChatGPT owns `ChatGpt` and reuses published tools through `IHostToolSource`.
 
 ## Add an example
 
 1. Create `src/AgenticLab.Examples.<Name>` using `Microsoft.NET.Sdk.Razor`, targeting `net10.0` and
-   referencing Extensibility. Keep example-specific files, README, `.http` requests and tests there.
-   If the test project is nested under `Tests`, exclude `Tests/**` from the production project's
-   `DefaultItemExcludes` so test code, dependencies, output and assets are not published with it.
-2. Implement `IExampleModule` with a stable lowercase route-safe ID and an `ExampleManifest`.
-   Declare owned host keys, agent names, MCP names, specialist names, resource labels and tool risks.
-   Names must be unique; prefix protocol names to avoid collisions. Manifest metadata is presentation,
-   not authorization: enforce the actual bounds inside tools and services.
-3. Implement only the relevant role interfaces listed below. Keep the mutable process store in the
-   backend role alone. Register `IAgentDefinition` and `IVendorHarness` implementations using the
-   shared contracts; prompts alone cannot enforce approval or access control.
-4. Reference the example project in the participating executable projects and register it explicitly:
+   referencing Extensibility. Keep its guide, requests and tests inside the project. Exclude nested
+   `Tests/**` through `DefaultItemExcludes` so test files/dependencies/assets are not published.
+2. Implement `IExampleModule` and its manifest with a lowercase route-safe ID and unique owned host,
+   agent and protocol names. Prefix protocol names. Metadata describes capabilities; tools/services
+   must enforce them. Prompts alone cannot enforce approval or access control.
+3. Implement the relevant roles below. Keep mutable process state in the backend role. Reference and
+   register the module in each participating host, and add production/test projects to the solution.
+4. Enable it with `--Examples:<id>:Enabled=true`; AppHost forwards `Examples` configuration.
+   Disabled modules contribute nothing, but referenced assemblies/assets can still build and publish.
+5. Add credential-free tests for domain bounds, disabled contributions, errors/concurrency, loopback
+   protocols and UI lifecycle. Link the module guide in the catalogue.
 
-   ```csharp
-   builder.Services.AddExample<MyExample>(builder.Configuration, ExampleHost.AiService);
-   ```
+Registration in the AiService composition root:
 
-   Use `ExampleHost.Mcp`, `ExampleHost.A2A` or `ExampleHost.Web` in the other composition roots.
-   The existing generic loading/mapping hooks do the rest. Add the project/test project to the solution.
-5. Enable it through `--Examples:<id>:Enabled=true` when starting AppHost. AppHost forwards the
-   `Examples` configuration section to all participating hosts. Disabled modules contribute nothing.
-   Referenced assemblies still build and their static assets may still be present; this is not unloading.
-6. Add credential-free tests for domain invariants, disabled contributions, errors, concurrent cases,
-   real loopback protocols and UI lifecycle. Link the example README from the catalogue here.
+```csharp
+builder.Services.AddExample<MyExample>(builder.Configuration, ExampleHost.AiService);
+```
+
+Use `ExampleHost.Mcp`, `ExampleHost.A2A` or `ExampleHost.Web` for other roles.
 
 ## Role contracts
 
@@ -92,81 +76,56 @@ Claude Code reuses Plan/Coder. These agents stay registered once in core. ChatGP
 | `IA2AExample` | Persona-only `RemoteAgentDefinition` entries | Existing A2A host and its configured model |
 | `IWebExample` | Locally compiled panel type and HTTP-client registrations | One optional conversation panel outlet |
 
-Modules without custom panels set `RequiresUi=false` and do not implement `IWebExample`. Register
-them with `ExampleHost.Web` as well as their backend role so Flow loads their manifest resources and
-tool risks without registering backend services in Web. A module requiring UI is still supported
-only when its local registration implements `IWebExample`. An empty `MapApi` is appropriate when the
-existing host chat routes supply all required functionality.
+Panel-less modules set `RequiresUi=false` and omit `IWebExample`, but still register for Web so
+Flow gets resource/risk metadata without backend services. UI-required modules need a local panel.
+An empty `MapApi` is fine when existing chat routes suffice.
 
-Use normal SDK APIs, not a second tool-schema implementation. `AddExampleTools` takes a snapshot
-before contributions mutate DI. Registration rejects duplicate module identities and conflicting
-declared ownership; the existing agent dictionaries/A2A roster also reject duplicate identities.
-Do not repeat domain names in core switch statements.
-
-The host maps `GET /examples` to public manifests. Agent and vendor responses add optional
-`exampleId` and `requiresExampleUi` fields, defaulting to null/false. Web only renders component
-types registered locally; a remote catalogue cannot select an arbitrary assembly or component.
-React excludes agents requiring an example UI it does not implement; its BFF allowlist is unchanged.
+Use normal SDK tool registration, not another schema layer. Registration rejects duplicate identities
+and ownership conflicts; `AddExampleTools` snapshots registrations before contributions mutate DI.
+`GET /examples` exposes public manifests. Agent/vendor responses include optional `exampleId` and
+`requiresExampleUi` (null/false by default). Remote metadata cannot select arbitrary components.
+React excludes unsupported UI-required agents and does not forward module APIs.
 
 ## Runtime capabilities
 
-- `IAgentRunContext` exposes the host's current conversation and agent identity through a read-only
-  interface. AiService opens an `AgentRunScope` in both chat paths and reactivates it after streaming
-  yields. Bind mutable case tools to this identity, not model-supplied conversation IDs.
-- `IMcpToolSource.GetTools(names)` returns only exact-name discovered tools. Existing TimeKeeper
-  explicitly selects its original time tool. Registering an example must not widen another agent's tools.
-- `IHostToolSource.GetTools(names)` returns explicitly published local tools in requested order and
-   rejects unknown or incorrectly cased names. AiService's `DemoToolSource` publishes only `SearchWiki`,
-   `GetWikiPage` and `Calculate`, preserving their implementations and schemas. Examples reuse these
-   capabilities without referencing host projects or resolving arbitrary host services.
+- `IAgentRunContext` supplies host-owned conversation/agent identity in both chat paths, including
+   streaming resumes. Bind case tools to it, not model-supplied IDs.
+- `IMcpToolSource.GetTools(names)` selects exact-name discovered tools. Never widen another agent's
+   set; TimeKeeper selects only its time tool.
+- `IHostToolSource.GetTools(names)` returns published tools in requested order and rejects unknown
+   or incorrectly cased names. `DemoToolSource` publishes only `SearchWiki`, `GetWikiPage`, `Calculate`.
 - `IAgentDelegation.InvokeAsync` returns a typed success/failure outcome and propagates cancellation.
-  Examples enforce their own specialist allowlists, evidence envelopes and result validation.
-  The existing `DelegateToAgent(agentName, question)` signature remains recognizable in flow replay.
+   Examples enforce specialist allowlists and validate evidence/results. Missing dependencies are
+   failures, not successful review receipts. Orchestrator's `DelegateToAgent` contract is unchanged.
 
-Startup discovery must run before constructing the agent catalogue. Rediscovery rebuilds both
-executable discovery-backed agents and their advertised tool metadata. Missing dependencies must
-not be mistaken for successful tool evidence or review receipts.
-
-MCP tools may call module API routes on AiService through service discovery. The reference is used
-at invocation time only: listing tools must not contact AiService, because AiService performs discovery
-before listening. MCP never `WaitFor(AiService)` while AiService waits for MCP. Example tool constructors
-must not perform network calls. SDK activation may bypass typed-tool `HttpClient` construction; a named
-`IHttpClientFactory` client resolved inside the tool method is a predictable adapter pattern.
+Discovery precedes agent construction; rediscovery refreshes executable tools and advertised metadata.
+MCP can call AiService through service discovery **at invocation time only**. Constructors and tool
+listing must not contact AiService, which discovers protocols before listening; do not create circular
+`WaitFor` dependencies. SDK tool activation may bypass typed-client construction, so use a named
+`IHttpClientFactory` client inside the tool method when needed. See [protocols](protocols.md).
 
 ## UI lifecycle
 
-`ExamplePanelContext` contains conversation/host/agent identity, running state, a run version, a
-draft-text command and an awaited new-conversation command returning the new ID. It does not expose
-Flow state roots. An optional `IExamplePanel.BeforeResetAsync` releases/archives module state before
-the host resets conversation history. Raw `/chat/reset` still resets chat memory only.
+`ExamplePanelContext` exposes identity, running state/version, draft updates and an awaited
+new-conversation command, not Flow state roots. Optional `IExamplePanel.BeforeResetAsync` completes
+module cleanup before chat reset. Raw `/chat/reset` clears chat memory only.
 
-Keep controllers and scenario/case state inside the example and scoped to its component lifetime.
-Cancel work on disposal; compare conversation/generation before publishing asynchronous results.
-Do not let refresh responses invalidate an in-flight command. A failed mutation is not success;
-reconcile authoritative state and use explicit idempotency for retryable side effects.
+Keep controllers/case state inside the module. Cancel work on disposal and reject stale asynchronous
+results by conversation/generation. Reconcile failed mutations and use idempotency for retryable side
+effects. Keep current case state separate from causal replay; never invent tool events for UI actions.
 
-Host selection uses catalogue keys; there is no branding enum. The `agenticlab-vendor`
-preference accepts canonical keys case-insensitively and enabled modules' legacy aliases. Missing or
-disabled selections fall back to available Default, then the first available host. Preserve existing
-state-root constructors, notifications and causal replay behavior. Current case state is separate
-from replay; never invent tool events for UI actions.
+`ExampleManifest.HostPresentation` maps owned host keys to `IconPath`, `DisplayOrder`,
+`ProductConceptId` and `LegacyKeys`. Branding follows host key, not agent ownership. Use local
+RCL `_content/<assembly>/host.svg` assets; registration rejects unowned keys, conflicting aliases
+and attempts to own Default. Web uses a neutral icon when metadata is missing, never remote markup.
 
-`ExampleManifest.HostPresentation` optionally maps owned host keys to `ExampleHostPresentation`:
-`IconPath`, `DisplayOrder`, `ProductConceptId` and `LegacyKeys`. Register the module for Web even when
-it has no panel. Lookup follows the host key, not the selected agent's owner, so shared agents do not
-lose their host's branding or acquire another example's tool risks. Default sorts first; module order
-comes next, then display name. Missing local metadata uses the neutral icon without hiding an otherwise
-supported backend host. Availability still comes only from `GET /vendors` and existing UI gating.
+Host availability comes from `GET /vendors` plus local UI support. Default sorts first, then module
+order and display name. `agenticlab-vendor` accepts case-insensitive canonical keys and enabled
+aliases; unavailable selections fall back to Default, then the first available host.
 
-Move existing logos into the owning RCL's `wwwroot/host.svg`, and use
-`_content/<assembly>/host.svg`. Registration permits only local RCL SVG paths, rejects presentation
-for unowned host keys, reserves Default, and rejects conflicting host keys or legacy aliases.
-Web renders the asset in a fixed-size, current-color mask, never remote markup or a component type.
-Product concept IDs link to the shared Learn curriculum, which does not depend on module enablement.
-
-Reuse the shared controls and host `--lab-*` tokens. Scope styles and static assets to the example,
-using RCL `_content/<assembly>/...` paths. Domain panels remain compact, keyboard accessible and
-responsive, leaving the conversation composer usable. See the [design system](design-system.md).
+Reuse shared controls and `--lab-*` tokens; scope CSS/assets to the module. Panels must remain compact,
+keyboard-accessible and responsive without obstructing the composer. Product concept links point to
+shared Learn content. See the [design system](design-system.md).
 
 ## Catalogue
 
