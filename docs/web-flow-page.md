@@ -178,21 +178,6 @@ cleanup before New conversation; raw `POST /chat/reset` clears chat history only
 The [V8 mockup](../design/mockups/v8-corporate-workbench.html) is historical. Current presentation
 follows the [Blazor design system](design-system.md); this heading preserves existing bookmarks.
 
-## Running the Console
-
-The `console` Aspire resource starts explicitly and needs an attached terminal for input. Start it
-from the dashboard after AppHost is running. Use `/agents` to list agents, `/agent <name>` to switch,
-`/workspace <path>` for workspace agents, `/tools [name]` to toggle tools, and `/new` to clear history.
-An empty line exits.
-
-For a standalone client, pass the running AiService URL shown in the dashboard:
-
-```sh
-dotnet run --project src/AgenticLab.Console -- --AiService:Url "<aiservice-url>"
-```
-
-Under Aspire, service discovery resolves `https+http://aiservice`; no URL override is needed.
-
 ## Running the web UI
 
 With Azure OpenAI configured, start the app and open the automatically started **web** resource:

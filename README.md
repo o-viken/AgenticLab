@@ -174,11 +174,6 @@ dotnet run --project src/AgenticLab.Web
 Open the listening URL printed in the terminal and visit `/learn`. The guide works without
 the AI service; live chat requires the full setup above.
 
-### Console Client
-
-The **console** resource does not start automatically. Start it explicitly from Aspire with an
-attached terminal for input, or follow the [standalone console instructions](docs/web-flow-page.md#running-the-console).
-
 ### Self-Contained Examples
 
 Optional examples are registered as independent projects, keeping their domain code, UI, assets,

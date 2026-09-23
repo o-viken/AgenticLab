@@ -159,7 +159,7 @@ owns the per-run wait.
 ## Toggling an agent's tools (per run)
 
 Send `disabledTools` with case-insensitive tool names. This only narrows the declared set; it cannot
-grant tools. Web exposes checkboxes in Settings (reset on agent change); Console uses `/tools [name]`.
+grant tools. Web exposes checkboxes in Settings (reset on agent change).
 
 [ToolFilteringChatClient](../src/AgenticLab.AiService/Application/Flow/ToolFilteringChatClient.cs)
 filters before function invocation so disabled tools reach neither model nor invocation loop.
