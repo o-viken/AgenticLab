@@ -1,9 +1,9 @@
 # Workspace features (skills, instructions, workspace agents, tools)
 
 Workspace agents read skills, instructions and agent definitions from a caller-selected folder on
-the AiService machine. Set **Workspace** in Web Settings, use Console's `/workspace <path>`, or send
-`workspace` with a [chat request](agents.md#post-chat). Use only trusted folders: path checks and
-terminal restrictions are **not a sandbox**. Read the [security policy](../SECURITY.md).
+the AiService machine. Set **Workspace** in Web Settings or send `workspace` with a
+[chat request](agents.md#post-chat). Use only trusted folders: path checks and terminal restrictions
+are **not a sandbox**. Read the [security policy](../SECURITY.md).
 
 ## Workspace skills (the Coder agent)
 

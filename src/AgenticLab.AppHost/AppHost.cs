@@ -26,13 +26,6 @@ var aiService = builder.AddProject<Projects.AgenticLab_AiService>("aiservice")
     .WithEnvironment("AzureOpenAI__Deployment", builder.Configuration["AzureOpenAI:Deployment"])
     .WithEnvironment("AzureOpenAI__ApiKey", builder.Configuration["AzureOpenAI:ApiKey"]);
 
-// Interactive console: talks to the AI service via service discovery.
-// Started explicitly so it gets an attached terminal for stdin.
-builder.AddProject<Projects.AgenticLab_Console>("console")
-    .WithReference(aiService)
-    .WaitFor(aiService)
-    .WithExplicitStart();
-
 // Blazor web UI that visualizes the live data flow through the agent. Reaches the AI service
 // via service discovery and is exposed on an external HTTP endpoint.
 var web = builder.AddProject<Projects.AgenticLab_Web>("web")
