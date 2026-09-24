@@ -20,8 +20,10 @@ internal static class AgentLearningJourney
     internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
     [
         new("why", "Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),
-        new("what", "What", "An agent combines a model with software that manages context, tools and controls."),
-        new("how", "How", "Follow a task from request to model decision, tool use and result."),
+        new("definition", "What is an agent?", "An agent is a system that can observe its environment, make decisions, and take actions."),
+        new("purpose", "Purpose", "An agent is a system that works toward a goal on your behalf, choosing its next steps and adjusting to results within the permissions and limits it has been given."),
+        new("what", "What makes this possible?", "An agent combines a model with software that manages context, tools and controls."),
+        new("how", "How does it work?", "Follow a task from request to model decision, tool use and result."),
     ]);
 
     internal static IReadOnlyList<LearningNode> Nodes { get; } = Array.AsReadOnly<LearningNode>(

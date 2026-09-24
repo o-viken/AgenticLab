@@ -358,9 +358,16 @@ async function checkA2ADetails(page, width) {
 async function checkLearning(page, width) {
     await page.goto(new URL("/learn", baseUrl).href, { waitUntil: "networkidle" });
     assert.equal(await page.getByRole("button", { name: "Discovery", exact: true }).count(), 0);
-    await page.getByRole("button", { name: "Next step", exact: true }).click();
-    await page.waitForFunction(() => document.querySelector(".intro-count")?.textContent.trim().startsWith("2"));
-    await capture(page, `learn-${width}`);
+    const introduction = ["Why", "What is an agent?", "Purpose", "What makes this possible?", "How does it work?"];
+    for (const [index, title] of introduction.entries()) {
+        if (index > 0) await page.getByRole("button", { name: "Next step", exact: true }).click();
+        await page.waitForFunction(count => document.querySelector(".intro-count")?.textContent.trim() === count,
+            `${index + 1} / ${introduction.length}`);
+        assert.equal((await page.locator(".intro-step.current dt").textContent()).trim(), title);
+        if (title === "What is an agent?") await capture(page, `learn-definition-${width}`);
+        if (title === "Purpose") await capture(page, `learn-${width}`);
+    }
+    assert.ok(await page.getByRole("button", { name: "Next step", exact: true }).isDisabled());
     const stages = ["model-to-agent", "anatomy-of-agent", "where-to-run", "agent-loop", "wider-ecosystem"];
     for (const stage of stages) {
         await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
