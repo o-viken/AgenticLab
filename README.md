@@ -204,6 +204,9 @@ Watch the model and tool activity, inspect the captured data, or use Manual mode
 step at a time. The vendor-labelled experiences are representative demos backed by your configured
 model API, not connections to those vendors' consumer products.
 
+For a coding example, use [sample-workspace](sample-workspace/README.md) with the **GitHub Copilot**
+host and **Coder**. Its short guide shows how to select the folder in Settings and try its sample content.
+
 ### Run With Docker
 
 [docker-compose.yml](docker-compose.yml) builds the four service targets in [Dockerfile](Dockerfile).
