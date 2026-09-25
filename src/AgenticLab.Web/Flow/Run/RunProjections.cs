@@ -10,6 +10,8 @@ namespace AgenticLab.Web.Flow;
 internal sealed class RunProjections(FlowRunController owner)
 {
     private int _cacheVersion = -1;
+    private int _inferenceVersion = -1;
+    private int _embeddingsVersion = -1;
     private IReadOnlyList<ContextEntry> _historyEntries = Array.Empty<ContextEntry>();
     private IReadOnlyList<ContextEntry> _currentEntries = Array.Empty<ContextEntry>();
     private int _contextSize;
@@ -123,9 +125,6 @@ internal sealed class RunProjections(FlowRunController owner)
             ? AnatomySizes.Empty
             : PromptSignatureBuilder.AnatomySizesFor(latestRequest);
 
-        _inference = InferenceBuilder.Build(events);
-        _embeddings = EmbeddingBuilder.Build(_inference);
-
         // The Execution explorer reads every exchange: the archived ones plus the one in the live panels
         // (which exists from the moment a message is sent, even before any event arrives).
         var all = new List<ConversationTurn>(archived.Count + 1);
@@ -181,11 +180,33 @@ internal sealed class RunProjections(FlowRunController owner)
     public string PersonaCharsLabel => $"{PersonaChars:N0} chars";
     public string ToolsCharsLabel => $"{ToolsChars:N0} chars";
 
-    /// <summary>The simulated "inside the LLM" view for the current run. Purely illustrative.</summary>
-    public InferenceView Inference { get { EnsureComputed(); return _inference; } }
+    /// <summary>The illustrative "inside the LLM" view, computed only when requested for the current captured state.</summary>
+    public InferenceView Inference
+    {
+        get
+        {
+            if (_inferenceVersion != owner.StateVersion)
+            {
+                _inference = InferenceBuilder.Build(owner.Events);
+                _inferenceVersion = owner.StateVersion;
+            }
+            return _inference;
+        }
+    }
 
-    /// <summary>The simulated embeddings &amp; neural-network view for the current run. Purely illustrative.</summary>
-    public EmbeddingsView Embeddings { get { EnsureComputed(); return _embeddings; } }
+    /// <summary>The illustrative embeddings/network view, computed on demand without burdening ordinary run updates.</summary>
+    public EmbeddingsView Embeddings
+    {
+        get
+        {
+            if (_embeddingsVersion != owner.StateVersion)
+            {
+                _embeddings = EmbeddingBuilder.Build(Inference);
+                _embeddingsVersion = owner.StateVersion;
+            }
+            return _embeddings;
+        }
+    }
 
     /// <summary>Every exchange in the conversation, oldest first, with each one's stages grouped by model round-trip.</summary>
     public IReadOnlyList<ExecutionExchange> Exchanges { get { EnsureComputed(); return _exchanges; } }

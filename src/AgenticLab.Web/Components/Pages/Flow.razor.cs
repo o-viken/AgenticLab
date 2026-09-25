@@ -12,6 +12,7 @@ namespace AgenticLab.Web.Components.Pages;
 /// (<see cref="FlowViewState"/> for view/preferences, <see cref="FlowRunController"/> for run state),
 /// cascades them to the child components, and bridges their change events to Blazor re-renders.
 /// State is instantiated here (not via DI) so it shares the component's circuit lifetime.
+/// Panel preferences are saved after rendering to keep layout callbacks synchronous.
 /// </summary>
 public partial class Flow : IDisposable
 {
@@ -35,6 +36,8 @@ public partial class Flow : IDisposable
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
     private bool _catalogsLoaded;
+    private bool _savePanelsAfterRender;
+    private long _runRenderVersion;
     private ExamplePanelHost? _examplePanel;
 
     [Inject] private IEnumerable<IExampleModule> Examples { get; set; } = [];
@@ -123,6 +126,12 @@ public partial class Flow : IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_savePanelsAfterRender)
+        {
+            _savePanelsAfterRender = false;
+            await SavePanelsAsync();
+        }
+
         if (!firstRender)
         {
             return;
@@ -215,46 +224,46 @@ public partial class Flow : IDisposable
         await _run.Catalogs.RefreshKnownA2AAsync();
     }
 
-    private Task ToggleLeftPanelAsync()
+    private void ToggleLeftPanel()
     {
+        _savePanelsAfterRender = true;
         _view.Layout.ToggleLeftPanel();
-        return SavePanelsAsync();
     }
 
-    private Task ToggleRightPanelAsync()
+    private void ToggleRightPanel()
     {
+        _savePanelsAfterRender = true;
         _view.Layout.ToggleRightPanel();
-        return SavePanelsAsync();
     }
 
-    private Task SetLeftWidthAsync(int width)
+    private void SetLeftWidth(int width)
     {
+        _savePanelsAfterRender = true;
         _view.Layout.LeftPanelWidth = width;
-        return SavePanelsAsync();
     }
 
-    private Task SetRightWidthAsync(int width)
+    private void SetRightWidth(int width)
     {
+        _savePanelsAfterRender = true;
         _view.Layout.RightPanelWidth = width;
-        return SavePanelsAsync();
     }
 
-    private Task ToggleBottomPanelAsync()
+    private void ToggleBottomPanel()
     {
+        _savePanelsAfterRender = true;
         _view.Layout.ToggleBottomPanel();
-        return SavePanelsAsync();
     }
 
-    private Task SetBottomHeightAsync(int height)
+    private void SetBottomHeight(int height)
     {
+        _savePanelsAfterRender = true;
         _view.Layout.BottomPanelHeight = height;
-        return SavePanelsAsync();
     }
 
-    private Task ResetLayoutAsync()
+    private void ResetLayout()
     {
+        _savePanelsAfterRender = true;
         _view.Layout.Reset();
-        return SavePanelsAsync();
     }
 
     private async Task SavePanelsAsync()
@@ -295,7 +304,11 @@ public partial class Flow : IDisposable
         }
     }
 
-    private Task OnRunChangedAsync() => InvokeAsync(StateHasChanged);
+    private Task OnRunChangedAsync() => InvokeAsync(() =>
+    {
+        _runRenderVersion++;
+        StateHasChanged();
+    });
 
     public void Dispose()
     {

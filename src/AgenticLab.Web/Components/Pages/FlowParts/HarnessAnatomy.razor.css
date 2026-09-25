@@ -1,6 +1,15 @@
 /* The expanded harness anatomy: the contributor-coloured layer boxes (application / agent / user), the
    system-prompt preview toggle, the per-tool risk dots, the instruction list and the char-count badges.
    Rules are anchored on .node.anatomy so they keep precedence over the diagram's shared .node styles. */
+.node.anatomy > * + * {
+    margin-top: .45rem;
+}
+
+.node.anatomy > .anatomy-heading,
+.node.anatomy > .env-badge {
+    display: block;
+}
+
 .node.anatomy .anatomy-heading {
     font-weight: 700;
     letter-spacing: 0;

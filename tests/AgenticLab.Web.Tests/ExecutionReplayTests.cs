@@ -2,9 +2,15 @@ using System.Diagnostics.Metrics;
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 using AgenticLab.Web;
 using AgenticLab.Web.Components.Pages;
 using AgenticLab.Web.Flow;
@@ -91,6 +97,224 @@ public sealed class ExecutionReplayTests
         Assert.False(view.Layout.BottomPanelMaximized);
         Assert.True(view.Layout.AdaptiveConversationWidth);
     }
+
+    [Theory]
+    [InlineData("ToggleLeftPanel", true, false, false)]
+    [InlineData("ToggleRightPanel", false, true, false)]
+    [InlineData("ToggleBottomPanel", false, false, true)]
+    public async Task LayoutCollapse_DoesNotWaitForPreferenceStorage(string handler, bool left, bool right, bool bottom)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Message = "draft";
+        view.Cursor.SelectStage("exchange", 3);
+        var storage = new DelayedPanelStorage();
+        var page = new AgenticLab.Web.Components.Pages.Flow();
+        var pageType = page.GetType();
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        pageType.GetField("_view", flags)!.SetValue(page, view);
+        pageType.GetProperty("JS", flags)!.SetValue(page, storage);
+
+        var click = pageType.GetMethod(handler, flags)!.Invoke(page, null) as Task ?? Task.CompletedTask;
+        try
+        {
+            Assert.True(click.IsCompletedSuccessfully, "Panel clicks must not wait for browser storage or trigger an async completion render.");
+            Assert.Equal((left, right, bottom), (view.Layout.LeftPanelCollapsed, view.Layout.RightPanelCollapsed, view.Layout.BottomPanelCollapsed));
+            Assert.Equal("draft", view.Message);
+            Assert.Equal("exchange", view.Cursor.ExchangeId);
+            Assert.Equal(3, view.Cursor.Sequence);
+            Assert.Empty(storage.Calls);
+
+            var render = (Task)pageType.GetMethod("OnAfterRenderAsync", flags)!.Invoke(page, [false])!;
+            var call = Assert.Single(storage.Calls);
+            Assert.Equal("localStorage.setItem", call.Identifier);
+            Assert.Equal("agenticlab-panels", call.Arguments![0]);
+            Assert.Equal(new PanelState(left, right, bottom, 276, 260, 240, true).Serialize(), call.Arguments[1]);
+            storage.Complete();
+            await render;
+            await (Task)pageType.GetMethod("OnAfterRenderAsync", flags)!.Invoke(page, [false])!;
+            Assert.Single(storage.Calls);
+        }
+        finally
+        {
+            storage.Complete();
+            await click;
+        }
+    }
+
+    private sealed class DelayedPanelStorage : IJSRuntime
+    {
+        private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public List<(string Identifier, object?[]? Arguments)> Calls { get; } = [];
+
+        public void Complete() => _completion.TrySetResult();
+
+        public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) =>
+            InvokeAsync<TValue>(identifier, CancellationToken.None, args);
+
+        public async ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+        {
+            Calls.Add((identifier, args));
+            await _completion.Task.WaitAsync(cancellationToken);
+            return default!;
+        }
+    }
+
+    [Theory]
+    [InlineData("LeftPanelCollapsed", false)]
+    [InlineData("RightPanelCollapsed", false)]
+    [InlineData("BottomPanelCollapsed", false)]
+    [InlineData("LeftPanelCollapsed", true)]
+    [InlineData("RightPanelCollapsed", true)]
+    [InlineData("BottomPanelCollapsed", true)]
+    public async Task LayoutCollapse_DoesNotRerenderRunContents(string panel, bool running)
+    {
+        var concepts = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(concepts);
+        view.Concepts.ShowConcepts = true;
+        view.Diagram.ApplyPreset(DiagramPreset.Technical);
+        view.Diagram.ExpandHarness = true;
+        view.Diagram.ShowPromptSignature = true;
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var client = new AiServiceClient(http);
+        var run = new FlowRunController(client, view, new());
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        typeof(FlowRunController).GetField("_runExchangeId", flags)!.SetValue(run, "layout-test");
+        typeof(FlowRunController).GetField("_runMessage", flags)!.SetValue(run, "Synthetic multi-tool investigation");
+        typeof(FlowRunController).GetField("_running", flags)!.SetValue(run, running);
+        var payload = JsonSerializer.Serialize(new
+        {
+            instructions = "Synthetic case instructions",
+            messages = new[] { new { role = "user", contents = new[] { new { text = new string('x', 32_768) } } } }
+        });
+        var events = (List<FlowEvent>)run.Events;
+        for (var turn = 1; turn <= 60; turn++)
+        {
+            events.Add(Event(events.Count + 1, "llm-request", turn) with { Data = payload });
+            events.Add(Event(events.Count + 1, "tool-call", turn, $"call-{turn}"));
+            events.Add(Event(events.Count + 1, "tool-result", turn, $"call-{turn}") with { Data = payload });
+        }
+        view.Cursor.SelectStage("layout-test", 1);
+        var storage = new DelayedPanelStorage();
+        storage.Complete();
+        await using var services = new ServiceCollection().AddLogging()
+            .AddSingleton(concepts).AddSingleton(client).AddSingleton<IJSRuntime>(storage)
+            .AddSingleton<IOptions<ReplayRetentionOptions>>(Options.Create(new ReplayRetentionOptions()))
+            .BuildServiceProvider();
+        await using var renderer = new LayoutRenderer(services);
+        await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            var page = renderer.CreatePage();
+            var pageType = typeof(AgenticLab.Web.Components.Pages.Flow);
+            pageType.GetField("_view", flags)!.SetValue(page, view);
+            pageType.GetField("_run", flags)!.SetValue(page, run);
+            await renderer.MountAsync(page);
+            Assert.Contains("FlowDiagram", renderer.Updated);
+            Assert.Contains("ExecutionExplorer", renderer.Updated);
+            Assert.Contains("FlowChat", renderer.Updated);
+            Assert.Same(InferenceView.Empty, typeof(RunProjections).GetField("_inference", flags)!.GetValue(run.Projections));
+            Assert.Same(EmbeddingsView.Empty, typeof(RunProjections).GetField("_embeddings", flags)!.GetValue(run.Projections));
+
+            foreach (var collapsed in new[] { true, false })
+            {
+                renderer.Updated.Clear();
+                renderer.Disposed.Clear();
+                typeof(PanelLayout).GetProperty(panel)!.SetValue(view.Layout, collapsed);
+                page.Refresh();
+                Assert.Contains("SidePanel", renderer.Updated);
+                Assert.DoesNotContain("FlowDiagram", renderer.Updated);
+                Assert.DoesNotContain("ExecutionExplorer", renderer.Updated);
+                Assert.DoesNotContain("FlowChat", renderer.Updated);
+                Assert.DoesNotContain("HarnessAnatomy", renderer.Updated);
+                Assert.DoesNotContain("PromptSignature", renderer.Updated);
+                Assert.DoesNotContain("ConceptPanel", renderer.Updated);
+                Assert.Empty(renderer.Disposed);
+            }
+
+            renderer.Updated.Clear();
+            view.Diagram.ShowTools = false;
+            page.Refresh();
+            Assert.Contains("FlowDiagram", renderer.Updated);
+
+            renderer.Updated.Clear();
+            await (Task)pageType.GetMethod("OnRunChangedAsync", flags)!.Invoke(page, null)!;
+            Assert.Contains("ExecutionExplorer", renderer.Updated);
+            Assert.Contains("FlowChat", renderer.Updated);
+
+            renderer.Updated.Clear();
+            run.ReportError("Synthetic page error");
+            page.Refresh();
+            Assert.Contains("FlowChat", renderer.Updated);
+
+            typeof(PanelLayout).GetProperty(panel)!.SetValue(view.Layout, true);
+            page.Refresh();
+            renderer.Updated.Clear();
+            view.Message = "Changed while collapsed";
+            await (Task)pageType.GetMethod("OnRunChangedAsync", flags)!.Invoke(page, null)!;
+            var content = panel switch
+            {
+                "LeftPanelCollapsed" => "FlowChat",
+                "RightPanelCollapsed" => "ConceptPanel",
+                _ => "ExecutionExplorer"
+            };
+            Assert.DoesNotContain(content, renderer.Updated);
+            renderer.Updated.Clear();
+            typeof(PanelLayout).GetProperty(panel)!.SetValue(view.Layout, false);
+            page.Refresh();
+            Assert.Contains(content, renderer.Updated);
+
+            var inference = run.Projections.Inference;
+            Assert.NotSame(InferenceView.Empty, inference);
+            Assert.Same(inference, run.Projections.Inference);
+            Assert.Same(EmbeddingsView.Empty, typeof(RunProjections).GetField("_embeddings", flags)!.GetValue(run.Projections));
+            var embeddings = run.Projections.Embeddings;
+            Assert.NotSame(EmbeddingsView.Empty, embeddings);
+            Assert.Same(embeddings, run.Projections.Embeddings);
+            events.Add(Event(events.Count + 1, "final", 60) with { Data = "Synthetic final answer" });
+            typeof(FlowRunController).GetMethod("BumpState", flags)!.Invoke(run, null);
+            Assert.NotSame(inference, run.Projections.Inference);
+            Assert.NotSame(embeddings, run.Projections.Embeddings);
+        });
+    }
+
+    /// <summary>Exercises the real page's render tree without startup requests or preference restoration.</summary>
+    public sealed class LayoutPage : AgenticLab.Web.Components.Pages.Flow
+    {
+        protected override void OnInitialized() { }
+        protected override Task OnInitializedAsync() => Task.CompletedTask;
+        protected override Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
+        /// <summary>Schedules the same page render used for view notifications.</summary>
+        public void Refresh() => StateHasChanged();
+    }
+
+#pragma warning disable BL0006
+    private sealed class LayoutRenderer(IServiceProvider services)
+        : Renderer(services, services.GetRequiredService<ILoggerFactory>())
+    {
+        public override Dispatcher Dispatcher { get; } = Dispatcher.CreateDefault();
+        public List<string> Updated { get; } = [];
+        public List<int> Disposed { get; } = [];
+        public LayoutPage CreatePage() => (LayoutPage)InstantiateComponent(typeof(LayoutPage));
+        public Task MountAsync(IComponent component) => RenderRootComponentAsync(AssignRootComponentId(component));
+        protected override IComponent ResolveComponentForRenderMode(Type componentType, int? parentComponentId,
+            IComponentActivator componentActivator, IComponentRenderMode renderMode) => componentActivator.CreateInstance(componentType);
+        protected override void HandleException(Exception exception) => throw exception;
+        protected override Task UpdateDisplayAsync(in RenderBatch renderBatch)
+        {
+            for (var index = 0; index < renderBatch.DisposedComponentIDs.Count; index++)
+                Disposed.Add(renderBatch.DisposedComponentIDs.Array[index]);
+            for (var index = 0; index < renderBatch.UpdatedComponents.Count; index++)
+            {
+                var componentId = renderBatch.UpdatedComponents.Array[index].ComponentId;
+                if (renderBatch.DisposedComponentIDs.Count > 0
+                    && Array.IndexOf(renderBatch.DisposedComponentIDs.Array, componentId, 0, renderBatch.DisposedComponentIDs.Count) >= 0)
+                    continue;
+                Updated.Add(GetComponentState(componentId).Component.GetType().Name);
+            }
+            return Task.CompletedTask;
+        }
+    }
+#pragma warning restore BL0006
 
     /// <summary>The client stays outside the host while application-owned host layers retain their contributor.</summary>
     [Fact]

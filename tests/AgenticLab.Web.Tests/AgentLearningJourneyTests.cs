@@ -33,7 +33,7 @@ public sealed class AgentLearningJourneyTests
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
     }
 
-    /// <summary>The concise Why, What and How introduction precedes Agent without adding a diagram.</summary>
+    /// <summary>The introduction defines an agent and its bounded autonomy before explaining its parts and operation.</summary>
     [Fact]
     public void Introduction_SetsTheSceneBeforeAgent()
     {
@@ -41,9 +41,22 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal("why-agents", introduction.Id);
         Assert.Equal("Demystify", introduction.Title);
         Assert.Empty(introduction.HighlightedNodes);
-        Assert.Equal(["Why", "What", "How"], AgentLearningJourney.IntroductionSteps.Select(step => step.Title).ToArray());
+        Assert.Equal(
+            ["Why", "What is an agent?", "Purpose", "What makes this possible?", "How does it work?"],
+            AgentLearningJourney.IntroductionSteps.Select(step => step.Title).ToArray());
+        var definition = AgentLearningJourney.IntroductionSteps[1];
+        Assert.Equal("definition", definition.Id);
+        Assert.Contains("observe its environment", definition.Detail);
+        Assert.Contains("make decisions", definition.Detail);
+        Assert.Contains("take actions", definition.Detail);
+        var purpose = AgentLearningJourney.IntroductionSteps[2];
+        Assert.Equal("purpose", purpose.Id);
+        Assert.Contains("works toward a goal on your behalf", purpose.Detail);
+        Assert.Contains("choosing its next steps", purpose.Detail);
+        Assert.Contains("adjusting to results", purpose.Detail);
+        Assert.Contains("within the permissions and limits", purpose.Detail);
         var copy = $"{introduction.Summary} {introduction.Takeaway} {string.Join(' ', AgentLearningJourney.IntroductionSteps.Select(step => step.Detail))}";
-        Assert.True(copy.Split(' ').Length <= 65);
+        Assert.True(copy.Split(' ').Length <= 100);
         Assert.Equal("model-to-agent", AgentLearningJourney.Move(introduction.Id, 1).Id);
         Assert.Same(introduction, AgentLearningJourney.Move("model-to-agent", -1));
     }

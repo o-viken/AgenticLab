@@ -168,8 +168,11 @@ AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
 ```
 
 The script checks 390, 1024, 1440 and 1920px layouts, locally served assets, case start/reset, risk
-labels and missing-evidence holds. It creates/archives isolated synthetic cases but sends no chat
-and does not run discovery. Screenshots are written to the system temporary directory.
+labels and missing-evidence holds. Conversation/Learn collapse and expand must render before saving
+preferences and retain the active case, draft, mounted panel and pending scenario selection. With
+the host anatomy and prompt signature expanded, dock toggles must finish layout within one second.
+It creates/archives isolated synthetic cases but sends no chat and does not run discovery. Screenshots
+are written to the system temporary directory.
 Live Azure behavior and Aspire startup are separate checks, not proven by fake-model tests.
 
 ## Asset

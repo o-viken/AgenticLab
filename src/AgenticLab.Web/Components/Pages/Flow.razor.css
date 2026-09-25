@@ -135,6 +135,7 @@
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
+    contain: size layout;
     display: flex;
     flex-direction: row;
     overflow: hidden;
@@ -157,12 +158,13 @@
     overflow: hidden;
     display: grid;
     grid-template-columns: minmax(0, 1fr) min(var(--details-w, 0px), 25%) min(var(--right-w, 0px), 25%);
+    grid-template-rows: minmax(0, 1fr);
     gap: 0;
     align-items: stretch;
 }
 
 .primary-workspace { min-width: 0; min-height: 0; overflow: auto; container: workspace / inline-size; }
-.workspace-grid { display: grid; grid-template-columns: var(--left-w, minmax(0, 1.18fr)) minmax(0, 1fr); height: 100%; min-width: 0; min-height: 0; }
+.workspace-grid { display: grid; grid-template-columns: var(--left-w, minmax(0, 1.18fr)) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100%; min-width: 0; min-height: 0; }
 .workspace-grid ::deep .side-left > .panel-inner > .panel-body { padding: 0; overflow: hidden; scrollbar-gutter: auto; }
 
 .details-dock,
@@ -234,6 +236,7 @@
     flex: 1 1 auto;
     min-width: 0;
     min-height: 240px;
+    contain: size layout;
     overflow-y: auto;
     padding: var(--flow-panel-padding) 24px;
     background: var(--lab-surface-muted);
@@ -280,6 +283,7 @@
 
     .flow-shell {
         overflow: visible;
+        contain: none;
     }
 
     .flow-body {
@@ -309,7 +313,7 @@
     .workspace-grid ::deep .side-left .rail-title { writing-mode: horizontal-tb; }
     .flow-main-col { min-height: 680px; overflow: visible; border-top: 1px solid var(--lab-border); }
     .main-panel-body { overflow: visible; }
-    .flow-main-panel { --flow-toolbar-offset: 0px; overflow: visible; }
+    .flow-main-panel { --flow-toolbar-offset: 0px; overflow: visible; contain: none; }
     .main-panel-body.bottom-max .flow-main-panel { max-height: none; }
     .main-panel-body.bottom-max ::deep .side-bottom { min-height: 500px; }
 }

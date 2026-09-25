@@ -45,7 +45,7 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 
 | Stage | ID | Focus |
 | --- | --- | --- |
-| Demystify | `why-agents` | Why agents matter, what they are, and how a task flows through them. |
+| Demystify | `why-agents` | Why agents matter; observing, deciding and acting; bounded autonomy; then what makes this possible and how it works. |
 | Agent | `model-to-agent` | Host + model, their responsibilities, and the exchange between them. |
 | The Agentic Landscape | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
 | Inside the agent host | `inside-the-harness` | Gather context, load instructions, make tools available, manage memory, enforce execution controls. |

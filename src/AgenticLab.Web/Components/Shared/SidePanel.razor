@@ -17,15 +17,15 @@
             <span class="rail-title">@Title</span>
         </button>
     }
-    else
+    @if (!Collapsed || (KeepContentMounted && _contentMounted))
     {
         @if (Side is PanelSide.Right or PanelSide.Bottom)
         {
-            <div class="panel-splitter" @ref="_handle" title="Drag to resize" role="separator"
+            <div class="panel-splitter" hidden="@Collapsed" @ref="_handle" title="Drag to resize" role="separator"
                   tabindex="0" aria-label="@($"Resize the {Title} panel")"
                  aria-orientation="@(Side == PanelSide.Bottom ? "horizontal" : "vertical")"></div>
         }
-        <div class="panel-inner">
+        <div class="panel-inner" hidden="@Collapsed">
             @if (ShowHeader)
             {
             <header class="panel-head">
@@ -45,7 +45,7 @@
         </div>
         @if (Side == PanelSide.Left)
         {
-              <div class="panel-splitter" @ref="_handle" title="Drag to resize" role="separator" aria-orientation="vertical"
+              <div class="panel-splitter" hidden="@Collapsed" @ref="_handle" title="Drag to resize" role="separator" aria-orientation="vertical"
                   tabindex="0" aria-label="@($"Resize the {Title} panel")"></div>
         }
     }
@@ -55,6 +55,7 @@
     private ElementReference _handle;
     private DotNetObjectReference<SidePanel>? _ref;
     private bool _wired;
+    private bool _contentMounted;
 
     /// <summary>Which edge the panel docks to (controls the splitter edge and chevron direction).</summary>
     [Parameter] public PanelSide Side { get; set; }
@@ -69,6 +70,9 @@
 
     /// <summary>Whether the panel is collapsed to a thin rail.</summary>
     [Parameter] public bool Collapsed { get; set; }
+
+    /// <summary>Preserves content and its local state after first expansion instead of remounting on every toggle.</summary>
+    [Parameter] public bool KeepContentMounted { get; set; }
 
     /// <summary>Invoked when the user clicks the collapse/expand button.</summary>
     [Parameter] public EventCallback OnToggleCollapse { get; set; }
@@ -110,10 +114,10 @@
 
     private Task Toggle() => OnToggleCollapse.InvokeAsync();
 
+    protected override void OnParametersSet() => _contentMounted |= !Collapsed;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // The splitter element only exists while expanded, and is recreated each time the panel
-        // re-expands, so (re)wire the resizer whenever it is present and not yet wired.
         if (!Collapsed && !_wired)
         {
             _ref ??= DotNetObjectReference.Create(this);
@@ -127,7 +131,7 @@
                 // JS may be unavailable during prerender; it re-wires on the next interactive render.
             }
         }
-        else if (Collapsed && _wired)
+        else if (Collapsed && _wired && !KeepContentMounted)
         {
             _wired = false;
         }
