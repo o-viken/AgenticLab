@@ -204,6 +204,39 @@ Watch the model and tool activity, inspect the captured data, or use Manual mode
 step at a time. The vendor-labelled experiences are representative demos backed by your configured
 model API, not connections to those vendors' consumer products.
 
+### Run With Docker
+
+[docker-compose.yml](docker-compose.yml) builds the four service targets in [Dockerfile](Dockerfile).
+Set the selected provider's environment variables in the same terminal as Compose; AppHost
+user-secrets are not loaded into containers. For example, in PowerShell:
+
+```powershell
+$env:Models__Provider = "AzureOpenAI"
+$env:AzureOpenAI__Endpoint = "https://<resource>.openai.azure.com/"
+$env:AzureOpenAI__Deployment = "<deployment>"
+$env:AzureOpenAI__ApiKey = Read-Host "Azure OpenAI API key" -MaskInput
+docker compose up --build -d
+```
+
+For OpenAI or Gemini, use the matching provider and environment variables described above.
+Enter keys locally, never in chat or committed files. Inference services require valid provider
+configuration; this full-stack command is not a credential-free learning mode.
+
+Open <http://localhost:8080>. Published ports are bound to localhost: Web 8080, MCP 8081,
+A2A 8082 and AiService 8083. Internal service discovery uses HTTP port 8080 through
+`services__aiservice__http__0`, `services__mcpserver__http__0` and `services__a2aserver__http__0`;
+`ASPNETCORE_HTTP_PORTS` alone does not configure outgoing connections. Compose uses Production
+settings (Default host only), without the Aspire dashboard.
+
+After changing only Compose settings, run `docker compose up -d` from the credential-configured
+terminal; rebuilding is unnecessary. Check `docker compose ps -a` and `docker compose logs --tail 100`.
+Startup ordering is not readiness: if protocol discovery runs before a server is listening, use
+Discovery to retry once the services are ready. Stop with `docker compose down`.
+
+Web's data-protection keys are not persisted across container replacement. Clear this site's
+cookies or use a private window if an old antiforgery cookie cannot be decrypted. This warning is
+separate from service connection errors; the local sample does not disable antiforgery protection.
+
 ### Learning Only
 
 To explore the guided lessons without configuring a model provider, run only the Web project:

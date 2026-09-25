@@ -170,6 +170,11 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 
 - Build: `dotnet build AgenticLab.slnx`
 - Run everything (launches the Aspire dashboard): `dotnet run --project src/AgenticLab.AppHost`
+- Docker: `docker compose up --build -d` builds the four Dockerfile service targets. Configure
+  provider environment variables in that shell; Compose does not load AppHost user-secrets.
+  Localhost ports 8080/8081/8082/8083 expose Web/MCP/A2A/AiService. Compose supplies explicit
+  `services__<name>__http__0` endpoints on internal port 8080, uses Production settings, and
+  orders startup without readiness checks. See [README.md](README.md#run-with-docker).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
 - Test: `dotnet test AgenticLab.slnx`. AiService's `ModelProviderTests`, `FlowExecutionTests` and
   `ProtocolIntegrationTests` cover provider configuration/authentication, streaming tools, Gemini
