@@ -18,7 +18,26 @@ try {
         const page = activePage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on('pageerror', error => errors.push(error.message));
+        await page.addInitScript(() => {
+            const setItem = Storage.prototype.setItem;
+            window.panelLayoutWrites = [];
+            document.addEventListener('click', event => {
+                if (event.target.closest('.panel-collapse, .panel-rail, .collapse-conversation'))
+                    window.panelClickStarted = performance.now();
+            }, true);
+            Storage.prototype.setItem = function (key, value) {
+                if (key === 'agenticlab-panels') {
+                    window.panelLayoutWrites.push({
+                        value,
+                        collapsed: ['.side-left', '.learn-dock .side-right', '.side-bottom']
+                            .map(selector => document.querySelector(selector)?.classList.contains('collapsed') ?? false),
+                    });
+                }
+                return setItem.call(this, key, value);
+            };
+        });
         await page.goto(baseUrl, { waitUntil: 'networkidle' });
+        await page.waitForFunction(() => document.querySelector('.chat-log')?._tsStickInit === true);
         await page.getByRole('combobox', { name: 'Host', exact: true }).selectOption('windfarm');
         const panel = page.getByRole('region', { name: 'Windfarm maintenance case' });
         await panel.getByRole('button', { name: 'Start case', exact: true }).waitFor();
@@ -30,6 +49,38 @@ try {
         assert.match(await panel.locator('.case-id').innerText(), /r0$/);
         assert.match(await page.locator('#message').inputValue(), /WT-07/);
         assert.equal(await panel.getByRole('button', { name: 'Approve plan', exact: true }).count(), 0);
+
+        const draft = await page.locator('#message').inputValue();
+        const mountedPanel = await panel.elementHandle();
+        await panel.getByRole('combobox', { name: 'Scenario' }).selectOption('replanning');
+        await page.getByRole('checkbox', { name: 'Learn', exact: true }).check();
+        await page.getByRole('button', { name: 'Technical', exact: true }).click();
+        await page.getByRole('button', { name: 'View options', exact: true }).click();
+        await page.getByRole('checkbox', { name: 'Expand agent host', exact: true }).check();
+        await page.getByRole('checkbox', { name: 'Prompt signature', exact: true }).check();
+        await page.keyboard.press('Escape');
+        for (const title of ['Learn', 'Conversation', 'Execution']) {
+            for (const command of ['Collapse', 'Expand']) {
+                await page.evaluate(() => { window.panelLayoutWrites = []; });
+                await page.getByRole('button', { name: `${command} the ${title} panel`, exact: true }).click();
+                await page.waitForFunction(() => window.panelLayoutWrites.length > 0);
+                const write = await page.evaluate(() => window.panelLayoutWrites.at(-1));
+                assert.deepEqual(write.collapsed, write.value.split('|').slice(0, 3).map(flag => flag === '1'),
+                    `${title} must render its new layout before saving preferences`);
+                const latency = await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+                    document.querySelector('.flow-body').getBoundingClientRect();
+                    requestAnimationFrame(() => resolve(performance.now() - window.panelClickStarted));
+                })));
+                assert.ok(latency < 1000, `${command} ${title} must not stall on layout (${Math.round(latency)} ms)`);
+            }
+        }
+        await panel.locator('.case-id').waitFor();
+        assert.ok(await mountedPanel.evaluate(element => element.isConnected), 'Collapse must not recreate the case panel');
+        await mountedPanel.dispose();
+        assert.equal(await panel.getByRole('combobox', { name: 'Scenario' }).inputValue(), 'replanning');
+        assert.equal(await panel.locator('.case-id').getAttribute('title'), firstId, 'Collapse must retain the active case');
+        assert.equal(await page.locator('#message').inputValue(), draft, 'Collapse must retain the draft');
+        await page.getByRole('checkbox', { name: 'Learn', exact: true }).uncheck();
 
         await page.getByRole('tab', { name: /^Settings/ }).click();
         await page.getByRole('checkbox', { name: 'WindfarmTelemetry', exact: true }).waitFor();
@@ -67,7 +118,7 @@ try {
         assert.equal(await panel.locator('.case-id').count(), 0);
         await context.close();
         activePage = null;
-        console.log(`Windfarm ${width}px: scenario creation/reset, evidence hold, controls and assets passed`);
+        console.log(`Windfarm ${width}px: scenario creation/reset, panel collapse, evidence hold, controls and assets passed`);
     }
     assert.deepEqual(errors, [], 'No unhandled browser errors');
     console.log(`Screenshots: ${screenshots}`);

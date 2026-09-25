@@ -4,8 +4,8 @@
 <PageTitle>Agentic Lab — @_view.Roster.VendorName</PageTitle>
 
 <div class="flow-app">
-    <CascadingValue Value="_view">
-        <CascadingValue Value="_run">
+    <CascadingValue Value="_view" IsFixed="true">
+        <CascadingValue Value="_run" IsFixed="true">
             <AppHeader Context="Flow workspace">
                 <a class="header-link" href="/learn">Agent guide</a>
                 <button type="button" class="header-link" aria-haspopup="dialog"
@@ -47,7 +47,9 @@
                     </LabField>
                     @if (_view.Roster.CurrentHostPresentation?.ProductConceptId is { } conceptId)
                     {
-                        <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {_view.Roster.VendorName}")" />
+                        <FlowContent RunVersion="_runRenderVersion">
+                            <ConceptInfoButton Id="@conceptId" Title="@($"Learn about {_view.Roster.VendorName}")" />
+                        </FlowContent>
                     }
                 </div>
                 <div class="connection-status">
@@ -64,11 +66,12 @@
                 <div class="flow-body" style="@(_view.Layout.BodyStyle + _view.Details.PanelStyle)">
                     <main class="primary-workspace" aria-label="Agent workspace">
                     <div class="workspace-grid">
-                    <SidePanel Side="PanelSide.Left" Title="Conversation" ShowHeader="false"
+                    <SidePanel Side="PanelSide.Left" Title="Conversation" ShowHeader="false" KeepContentMounted="true"
                                Collapsed="_view.Layout.LeftPanelCollapsed"
-                               OnToggleCollapse="ToggleLeftPanelAsync"
-                               OnResize="SetLeftWidthAsync">
-                        <ControlsPanel OnCollapse="ToggleLeftPanelAsync" OnResetLayout="ResetLayoutAsync" OnNewConversation="NewConversationAsync">
+                               OnToggleCollapse="ToggleLeftPanel"
+                               OnResize="SetLeftWidth">
+                        <FlowContent RunVersion="_runRenderVersion" Visible="@(!_view.Layout.LeftPanelCollapsed)">
+                        <ControlsPanel OnCollapse="ToggleLeftPanel" OnResetLayout="ResetLayout" OnNewConversation="NewConversationAsync">
                             <ExampleContent>
                                 @if (SelectedExample is { } example)
                                 {
@@ -76,6 +79,7 @@
                                 }
                             </ExampleContent>
                         </ControlsPanel>
+                        </FlowContent>
                     </SidePanel>
 
                     <section class="flow-main-col" aria-label="Live execution">
@@ -86,23 +90,29 @@
                                        Busy="@(_run.Running && !_run.Paused && !_run.BreakpointPaused && !_run.AwaitingAnswer && _view.Options.Mode == FlowMode.Auto)"
                                        Tone="@(_run.Status.Activity == AgentActivity.Failed ? "danger" : "neutral")" />
                         </header>
-                        <FlowRunControls />
+                        <FlowContent RunVersion="_runRenderVersion">
+                            <FlowRunControls />
+                        </FlowContent>
                         <div class="@_view.Layout.MainBodyClass">
                             <div class="flow-main-panel">
-                                <FlowDiagram />
+                                <FlowContent RunVersion="_runRenderVersion">
+                                    <FlowDiagram />
+                                </FlowContent>
                             </div>
 
-                            <SidePanel Side="PanelSide.Bottom" Title="Execution"
+                            <SidePanel Side="PanelSide.Bottom" Title="Execution" KeepContentMounted="true"
                                        Collapsed="_view.Layout.BottomPanelCollapsed"
-                                       OnToggleCollapse="ToggleBottomPanelAsync"
-                                       OnResize="SetBottomHeightAsync">
+                                       OnToggleCollapse="ToggleBottomPanel"
+                                       OnResize="SetBottomHeight">
                                 <HeaderActions>
                                     <span class="panel-meta">@ExecutionMeta</span>
                                     <LabButton Label="@MaximizeTitle" Icon="expand" IconOnly="true" Variant="quiet"
                                                Pressed="_view.Layout.BottomPanelMaximized" OnClick="_view.Layout.ToggleBottomMaximized" />
                                 </HeaderActions>
                                 <ChildContent>
-                                    <ExecutionExplorer />
+                                    <FlowContent RunVersion="_runRenderVersion" Visible="@(!_view.Layout.BottomPanelCollapsed)">
+                                        <ExecutionExplorer />
+                                    </FlowContent>
                                 </ChildContent>
                             </SidePanel>
                         </div>
@@ -113,18 +123,22 @@
                     @if (_view.Details.Active)
                     {
                         <div class="details-dock">
-                            <InspectorPanel />
+                            <FlowContent RunVersion="_runRenderVersion">
+                                <InspectorPanel />
+                            </FlowContent>
                         </div>
                     }
 
                     @if (_view.Layout.RightPanelVisible)
                     {
                         <div class="learn-dock">
-                        <SidePanel Side="PanelSide.Right" Title="Learn"
+                        <SidePanel Side="PanelSide.Right" Title="Learn" KeepContentMounted="true"
                                    Collapsed="_view.Layout.RightPanelCollapsed"
-                                   OnToggleCollapse="ToggleRightPanelAsync"
-                                   OnResize="SetRightWidthAsync">
-                            <ConceptPanel />
+                                   OnToggleCollapse="ToggleRightPanel"
+                                   OnResize="SetRightWidth">
+                            <FlowContent RunVersion="_runRenderVersion" Visible="@(!_view.Layout.RightPanelCollapsed)">
+                                <ConceptPanel />
+                            </FlowContent>
                         </SidePanel>
                         </div>
                     }

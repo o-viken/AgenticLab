@@ -112,6 +112,10 @@
     overflow: hidden;
 }
 
+.panel-inner[hidden], .panel-splitter[hidden] {
+    display: none;
+}
+
 .panel-rail {
     width: 100%;
     height: 100%;

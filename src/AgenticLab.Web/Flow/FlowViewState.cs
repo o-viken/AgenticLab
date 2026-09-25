@@ -24,7 +24,7 @@ internal sealed class FlowViewState
     {
         // The drawer and the layout reference each other (open concept reveals the panel; the panel is
         // hidden while the drawer is off), so both take callbacks that are only invoked after construction.
-        var layout = new PanelLayout(Notify, () => Concepts!.ShowConcepts);
+        var layout = new PanelLayout(() => Changed?.Invoke(), () => Concepts!.ShowConcepts);
         Details = new HostDetailsSelection(() => { }, Notify);
         Concepts = new ConceptDrawer(concepts, layout.RevealRight, Notify);
         Layout = layout;
@@ -40,7 +40,14 @@ internal sealed class FlowViewState
     /// <summary>Raised whenever a piece of view state changes so the page can re-render.</summary>
     public event Action? Changed;
 
-    private void Notify() => Changed?.Invoke();
+    /// <summary>Changes to rendered content, excluding panel layout that only affects the page shell.</summary>
+    public int ContentVersion { get; private set; }
+
+    private void Notify()
+    {
+        ContentVersion++;
+        Changed?.Invoke();
+    }
 
     public PanelLayout Layout { get; }
     public ConceptDrawer Concepts { get; }

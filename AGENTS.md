@@ -56,6 +56,14 @@ adaptive conversation sizing; dragging selects pixels. `PanelState` reads legacy
 and writes a seventh adaptive-width flag under the `agenticlab-panels` key. Reflow never
 changes run state or saved preferences; Settings exposes Reset layout.
 
+Flow's root cascades have stable identity. `FlowContent` re-publishes them to content only when
+`FlowViewState.ContentVersion`, captured state, run notifications or errors change; layout notifications
+still raise `Changed` without advancing the content version. Keep run/status/catalogue notifications
+distinct from layout changes. Conversation, Learn and Execution opt into `SidePanel.KeepContentMounted`;
+hidden content defers rendering until expanded. Desktop workspace rows and scroll regions have bounded
+sizing; narrow stacked layouts keep natural height. `RunProjections` builds simulated inference and
+embeddings only on demand, independently of ordinary context/execution projections.
+
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.

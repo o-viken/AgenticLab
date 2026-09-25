@@ -1,0 +1,26 @@
+@{
+    _renderedVersion = Version;
+}
+<CascadingValue Value="View">
+    <CascadingValue Value="Run">
+        @ChildContent
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    [CascadingParameter] private FlowViewState View { get; set; } = default!;
+    [CascadingParameter] private FlowRunController Run { get; set; } = default!;
+
+    /// <summary>Advances for every run notification, including status and catalogue changes.</summary>
+    [Parameter] public long RunVersion { get; set; }
+    /// <summary>Defers hidden content updates until the panel is visible again.</summary>
+    [Parameter] public bool Visible { get; set; } = true;
+    /// <summary>Content whose cascaded state should not be invalidated by panel sizing or collapse.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private (int View, int Capture, long Notification, string? Error) _renderedVersion;
+    private (int View, int Capture, long Notification, string? Error) Version =>
+        (View.ContentVersion, Run.StateVersion, RunVersion, Run.Error);
+
+    protected override bool ShouldRender() => Visible && _renderedVersion != Version;
+}

@@ -133,6 +133,9 @@ These optional panels are teaching aids, **not captured model internals**:
   returned by the configured model service.
 - **Neural network** illustrates a forward pass and token choice, not the model's weights or architecture.
 
+Tokenization and simulated embeddings are computed lazily when their views are requested, not as
+part of every ordinary chat, context or execution update. Their caches refresh with captured state.
+
 Click a prompt token, vector row or map point to pin it across panels; click again to unpin.
 The network uses the same fabricated input. These interactions make no backend calls. Unlike Context
 and Prompt signature, these panels stay on the live run during replay. Reduced motion suppresses
@@ -154,6 +157,16 @@ Narrow layouts stack these regions without changing selections or run state. Dra
 resize, or use arrow keys, Shift+arrows, Home and End. Conversation starts with adaptive sizing;
 dragging saves a pixel width. **Reset layout** restores adaptive sizing without clearing the draft,
 run, replay cursor or Details/Learn selections. Details sizing and Execution maximization are transient.
+
+Collapse, expand, resize and Reset layout update the layout synchronously. Preferences are saved
+after rendering, so a browser-storage wait does not keep the layout event open or trigger another
+page render when saving completes. Layout-only changes update panel chrome without rebuilding
+unchanged chat, diagram or captured-payload content. Conversation, Learn and Execution retain their
+mounted contents after first opening; hidden content catches up with current state on expansion.
+This preserves example-panel inputs and avoids repeated case fetches just to collapse and expand.
+
+Desktop grid rows and scroll regions use the space allocated by the workspace rather than repeatedly
+measuring the expanded diagram's intrinsic height. Stacked narrow layouts keep natural document sizing.
 
 Browser preferences use `agenticlab-vendor`, `agenticlab-panels`, `agenticlab-workspace-bases` and
 `agenticlab-workspace-recent`. Previous product-name keys are not migrated or deleted. Existing

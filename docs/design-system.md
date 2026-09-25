@@ -75,6 +75,8 @@ the marker; the label must communicate state without colour or motion.
 `SidePanel` resizes/collapses docks. `ShowHeader` defaults to true; tabbed content can supply its own
 header. Splitters are focusable separators supporting arrows, Shift+arrows, Home/End and dragging;
 the owning layout controls geometry. Use `MiniIcon` and the pinned Lucide assets for icons.
+`KeepContentMounted` is opt-in: after first expansion, collapsing hides content and splitters with
+native `hidden` attributes instead of disposing them. The owner controls deferred content updates.
 
 `PageNotice` shares header/typography without changing error/404 status or diagnostics. The reconnect
 dialog shares tokens without replacing its framework lifecycle. Native modals must retain focus
