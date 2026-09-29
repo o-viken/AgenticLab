@@ -50,14 +50,14 @@
                 <div class="composition-grid">
                     <div class="application-node story-node" data-node="harness">
                         <span class="story-icon application-icon" aria-hidden="true"></span>
-                        <h3>Agent host</h3>
+                        <h3>Agent host (harness)</h3>
                         <p class="@RevealClass(1, "application-description")" aria-hidden="@IsUnrevealed(1)">Manages the run and executes permitted actions</p>
                         <ul class="@RevealClass(1, "node-list")" aria-hidden="@IsUnrevealed(1)">
-                            <li>Gather context</li>
                             <li>Load instructions</li>
+                            <li>Gather context</li>
                             <li>Make tools available</li>
-                            <li>Manage memory</li>
-                            <li>Enforce execution controls</li>
+                            <li>Check and execute tool requests</li>
+                            <li>Manage conversation memory</li>
                         </ul>
                     </div>
                     <span class="plus" aria-hidden="true">+</span>
@@ -72,13 +72,13 @@
                         </ul>
                     </div>
                     <div class="@RevealClass(4, "exchange-paths")" aria-hidden="@IsUnrevealed(4)">
-                        <div class="send-path"><span>Context + tool definitions + tool results</span><span class="path-line" aria-hidden="true"></span></div>
-                        <div class="@RevealClass(5, "receive-path")" aria-hidden="@IsUnrevealed(5)"><span>Answer or tool request</span><span class="path-line" aria-hidden="true"></span></div>
+                        <div class="send-path"><span>Instructions + conversation + tool definitions</span><span class="path-line" aria-hidden="true"></span></div>
+                        <div class="@RevealClass(5, "receive-path")" aria-hidden="@IsUnrevealed(5)"><span>Response or tool request</span><span class="path-line" aria-hidden="true"></span></div>
                     </div>
                     <div class="@RevealClass(2, "application-tools")" aria-hidden="@IsUnrevealed(2)">
                         <span class="tool-link" aria-hidden="true">&updownarrow;</span>
                         <strong>Agent host executes tools</strong>
-                        <span>Search / Calendar / Files</span>
+                        <span>Examples: Web search / Calendar / Files / Terminal</span>
                         <small>Subject to permissions, approvals and limits</small>
                     </div>
                 </div>
