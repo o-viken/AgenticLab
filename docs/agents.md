@@ -191,6 +191,14 @@ adapters. AiService retains its tool filtering, invocation, capture and telemetr
 its own invocation and telemetry pipeline. Concrete SDK dependencies stay in this shared runtime
 library, outside the frontend and example contracts.
 
+The factory applies a streaming compatibility policy for all three providers: explicit
+`"delta": null` values in chat-completion SSE events become empty objects before the OpenAI
+adapter reads them. This avoids the reasoning-content null-object exception in
+`Microsoft.Extensions.AI.OpenAI` 10.10.0 (also present in 10.10.1). Events are processed individually;
+text, reasoning, tool calls, finish reasons and usage remain intact. Non-streaming responses and
+HTTP errors are unchanged, and failed runs are not silently retried. Remove the workaround only
+after an SDK upgrade passes the null-delta provider regressions.
+
 OpenAI uses `https://api.openai.com/v1/`; Gemini uses
 `https://generativelanguage.googleapis.com/v1beta/openai/`. Native endpoints are fixed, not arbitrary
 proxy URLs. Gemini's compatibility API is beta. Its adapter retains opaque tool-call `extra_content`
