@@ -27,12 +27,14 @@ public sealed class ModelClientFactory
         if (_connection.Provider == ModelProvider.AzureOpenAI)
         {
             var options = new AzureOpenAIClientOptions();
+            options.AddPolicy(new NullDeltaStreamingPolicy(), PipelinePosition.PerCall);
             if (_transport is not null) options.Transport = _transport;
             return new AzureOpenAIClient(_connection.Endpoint, _connection.Credential, options)
                 .GetChatClient(modelId).AsIChatClient();
         }
 
         var nativeOptions = new OpenAIClientOptions { Endpoint = _connection.Endpoint };
+        nativeOptions.AddPolicy(new NullDeltaStreamingPolicy(), PipelinePosition.PerCall);
         if (_transport is not null) nativeOptions.Transport = _transport;
         var client = new OpenAIClient(_connection.Credential, nativeOptions)
             .GetChatClient(modelId).AsIChatClient();

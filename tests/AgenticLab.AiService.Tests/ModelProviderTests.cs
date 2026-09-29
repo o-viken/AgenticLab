@@ -1,4 +1,5 @@
 using System.ClientModel.Primitives;
+using System.IO.Pipelines;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +13,76 @@ namespace AgenticLab.AiService.Tests;
 
 public sealed class ModelProviderTests
 {
+    [Theory]
+    [InlineData("AzureOpenAI", "null")]
+    [InlineData("OpenAI", "null")]
+    [InlineData("Gemini", "null")]
+    [InlineData("AzureOpenAI", "{}")]
+    [InlineData("OpenAI", "{}")]
+    [InlineData("Gemini", "{}")]
+    public async Task StreamingNullDeltaPreservesTextFinishReasonAndUsage(string provider, string delta)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var handler = new ResponseHandler(_ => Task.FromResult(StreamResponse($$$"""
+            : keepalive
+
+            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model",
+            data: "choices":[{"index":0,"delta":{"role":"assistant","content":"Hello","reasoning_content":"Thinking"},"finish_reason":null}]}
+
+            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":{{{delta}}},"finish_reason":"stop"}]}
+
+            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1,"total_tokens":5}}
+
+            data: [DONE]
+
+            """)));
+        using var httpClient = new HttpClient(handler);
+        using var client = new ModelClientFactory(new ModelConnectionOptions(Configuration(provider)),
+            new HttpClientPipelineTransport(httpClient)).Create();
+
+        var response = await client.GetStreamingResponseAsync("Hi", cancellationToken: timeout.Token)
+            .ToChatResponseAsync(cancellationToken: timeout.Token);
+
+        Assert.Equal("Hello", response.Text);
+        Assert.Equal("Thinking", Assert.Single(response.Messages.SelectMany(message => message.Contents)
+            .OfType<TextReasoningContent>()).Text);
+        Assert.Equal(ChatFinishReason.Stop, response.FinishReason);
+        Assert.Equal(5, response.Usage?.TotalTokenCount);
+    }
+
+    [Theory]
+    [InlineData("AzureOpenAI")]
+    [InlineData("OpenAI")]
+    [InlineData("Gemini")]
+    public async Task StreamingDeliversPartialEventsAndHonorsCancellation(string provider)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var pipe = new Pipe();
+        await using var writer = pipe.Writer.AsStream();
+        using var handler = new ResponseHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(pipe.Reader.AsStream())
+            {
+                Headers = { ContentType = new("text/event-stream") },
+            },
+        }));
+        using var httpClient = new HttpClient(handler);
+        using var client = new ModelClientFactory(new ModelConnectionOptions(Configuration(provider)),
+            new HttpClientPipelineTransport(httpClient)).Create();
+        await using var updates = client.GetStreamingResponseAsync("Hi", cancellationToken: timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+
+        await writer.WriteAsync(Encoding.UTF8.GetBytes("data: {\"id\":\"partial\",\"object\":\"chat.completion.chunk\","), timeout.Token);
+        await writer.WriteAsync(Encoding.UTF8.GetBytes("\"created\":1,\"model\":\"test-model\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"finish_reason\":null}]}\n\n"), timeout.Token);
+
+        Assert.True(await updates.MoveNextAsync().AsTask().WaitAsync(timeout.Token));
+        Assert.Equal("Hello", updates.Current.Text);
+        var pending = updates.MoveNextAsync().AsTask();
+        timeout.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
     [Theory]
     [InlineData("OpenAI", "https://api.openai.com/v1/chat/completions")]
     [InlineData("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions")]
@@ -44,6 +115,8 @@ public sealed class ModelProviderTests
     }
 
     [Theory]
+    [InlineData("AzureOpenAI", false)]
+    [InlineData("AzureOpenAI", true)]
     [InlineData("OpenAI", false)]
     [InlineData("OpenAI", true)]
     [InlineData("Gemini", false)]
@@ -268,7 +341,7 @@ public sealed class ModelProviderTests
 
         data: {"id":"tools-1","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"first\"}"}},{"index":1,"function":{"arguments":"\"second\"}"}}]},"finish_reason":null}]}
 
-        data: {"id":"tools-1","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}
+        data: {"id":"tools-1","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":null,"finish_reason":"tool_calls"}]}
 
         data: [DONE]
 
