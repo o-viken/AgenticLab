@@ -24,6 +24,7 @@ internal sealed class RunProjections(FlowRunController owner)
     private ContextSnapshot _liveContext = ContextSnapshot.Empty;
     private A2AFlowView _liveA2A = A2AFlowView.Empty;
     private Dictionary<string, TokenUsageSummary> _tokenUsage = [];
+    private readonly Dictionary<string, PromptTokenSignatureView> _tokenSignatures = [];
 
     /// <summary>Drops the cached collections so the next read recomputes them and releases captured payloads.</summary>
     internal void Invalidate()
@@ -37,6 +38,7 @@ internal sealed class RunProjections(FlowRunController owner)
         _liveContext = ContextSnapshot.Empty;
         _liveA2A = A2AFlowView.Empty;
         _tokenUsage.Clear();
+        _tokenSignatures.Clear();
     }
 
     internal void EnsureComputed()
@@ -153,6 +155,18 @@ internal sealed class RunProjections(FlowRunController owner)
     {
         EnsureComputed();
         return _tokenUsage.GetValueOrDefault(exchangeId, TokenUsageSummary.Empty);
+    }
+
+    /// <summary>Lazily tokenizes representative inputs only when the signature's token view is requested.</summary>
+    public PromptTokenSignatureView TokenSignature(string encoding)
+    {
+        EnsureComputed();
+        if (!_tokenSignatures.TryGetValue(encoding, out var signature))
+        {
+            signature = PromptTokenSignatureBuilder.Build(_exchanges.Select(exchange => (exchange.Message, exchange.Stages)).ToArray(), encoding);
+            _tokenSignatures[encoding] = signature;
+        }
+        return signature;
     }
 
     /// <summary>The LLM round-trip of the most recent step (0 before the first request).</summary>

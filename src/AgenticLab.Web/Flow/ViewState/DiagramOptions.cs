@@ -20,6 +20,8 @@ internal sealed class DiagramOptions(Action notify)
     private bool _expandHarness;
     private bool _showPromptSignature;
     private bool _promptSignatureDelta;
+    private bool _promptSignatureTokens;
+    private string _promptSignatureEncoding = "o200k_base";
     private bool _showInferenceView;
     private bool _showEmbeddingsView;
     private bool _showNetworkView;
@@ -87,6 +89,21 @@ internal sealed class DiagramOptions(Action notify)
 
     /// <summary>Whether the prompt-signature panel shows its delta ("growth") view instead of the comparison.</summary>
     public bool PromptSignatureDelta { get => _promptSignatureDelta; set { _promptSignatureDelta = value; notify(); } }
+
+    /// <summary>Whether the signature shows reference-tokenizer input estimates instead of conversation characters.</summary>
+    public bool PromptSignatureTokens { get => _promptSignatureTokens; set { _promptSignatureTokens = value; notify(); } }
+
+    /// <summary>An explicit reference encoding, never inferred from a provider deployment alias.</summary>
+    public string PromptSignatureEncoding
+    {
+        get => _promptSignatureEncoding;
+        set
+        {
+            if (value is not ("o200k_base" or "cl100k_base")) throw new ArgumentException("Unsupported encoding.", nameof(value));
+            _promptSignatureEncoding = value;
+            notify();
+        }
+    }
 
     /// <summary>Whether the simulated inference panel is shown. The tokens are a client-side fabrication.</summary>
     public bool ShowInferenceView { get => _showInferenceView; set { _showInferenceView = value; notify(); } }

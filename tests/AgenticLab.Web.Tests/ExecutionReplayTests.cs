@@ -26,6 +26,68 @@ namespace AgenticLab.Web.Tests;
 public sealed class ExecutionReplayTests
 {
     [Fact]
+    public void TokenSignature_ReplayDoesNotRevealFutureUsageOrCarryItIntoTheNextCall()
+    {
+        const string payload = """{"messages":[{"role":"user","contents":[{"text":"Hello world"}]}]}""";
+        var exchange = new ConversationTurn("selected", "Hello", "Test", "Done", null, [
+            new(1, "received", "", null),
+            new(2, "llm-request", "", null, 1, payload),
+            new(3, "llm-response", "", null, 1, Usage: new(100, 10, 110, 50)),
+            new(4, "llm-request", "", null, 2, payload),
+            new(5, "llm-response", "", null, 2, Usage: new(200, 10, 210, 100)),
+        ]);
+        var exchanges = ExecutionReplayBuilder.Build([exchange], -1);
+        PromptTokenSignatureView At(int sequence) => ExecutionReplayBuilder.TokenSignatureAt(exchanges, "selected", sequence, "o200k_base");
+        Assert.Null(At(1).Current);
+        Assert.Equal("pending", At(2).Current!.ActualInputLabel);
+        Assert.Equal(100, At(3).Current!.Usage!.Input.Value);
+        Assert.Equal("pending", At(4).Current!.ActualInputLabel);
+        Assert.Equal(200, At(5).Current!.Usage!.Input.Value);
+        Assert.Equal(2, At(5).Current!.EstimatedTokens);
+    }
+
+    [Theory]
+    [InlineData("o200k_base")]
+    [InlineData("cl100k_base")]
+    public void TokenSignature_CountsInputOnlyAndPairsUsageByModelTurn(string encoding)
+    {
+        var request = new FlowEvent(3, "llm-request", "", null, 2, """
+            {"instructions":"Hello world","messages":[
+              {"role":"user","contents":[{"type":"text","text":"Hello world"}]},
+              {"role":"assistant","contents":[{"type":"text","text":"Hello world"}]},
+              {"role":"tool","contents":[{"type":"toolResult","result":"Hello world"}]}],
+             "tools":[{"name":"Search","description":"Find information","parameters":{"type":"object"}}]}
+            """);
+        FlowEvent[] events = [new(2, "llm-response", "", null, 1, Usage: new(999, 1, 1000, 999)), request];
+        var pending = PromptTokenSignatureBuilder.Build([("question", events)], encoding).Current!;
+        Assert.Equal(2, pending.Turn);
+        Assert.Equal("pending", pending.ActualInputLabel);
+        Assert.All(pending.Categories!.Where(category => category.Key != "definitions"), category => Assert.Equal(2, category.Tokens));
+        Assert.True(pending.Categories!.Single(category => category.Key == "definitions").Tokens > 0);
+        var completed = PromptTokenSignatureBuilder.Build([("question", (IReadOnlyList<FlowEvent>)[.. events,
+            new(4, "llm-response", "", null, 2, "{\"text\":\"Not input\"}", Usage: new(100, 10, 110, 50)),
+            new(5, "final", "", null, 2, "A very different answer")])], encoding).Current!;
+        Assert.Equal(pending.EstimatedTokens, completed.EstimatedTokens);
+        Assert.Equal(100, completed.Usage!.Input.Value);
+        Assert.Equal(50, completed.Usage.CachedInput.Value);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("malformed")]
+    [InlineData("{}")]
+    [InlineData("{\"messages\":null}")]
+    [InlineData("{\"messages\":[{\"role\":\"user\",\"contents\":[{\"type\":\"DataContent\"}]}]}")]
+    public void TokenSignature_UnknownPayloadDoesNotInventEstimates(string? payload)
+    {
+        var signature = PromptTokenSignatureBuilder.Build([("question", (IReadOnlyList<FlowEvent>)[
+            new(1, "llm-request", "", null, 1, payload),
+            new(2, "llm-response", "", null, 1, Usage: new(100, 10, 110, 0))])]);
+        Assert.Null(signature.Current!.EstimatedTokens);
+        Assert.Equal(100, signature.Current.Usage!.Input.Value);
+    }
+
+    [Fact]
     public async Task Usage_ControllerArchivesPerExchangeAndClearsOnReset()
     {
         using var handler = new ReplayHandler { IncludeUsage = true };
@@ -47,18 +109,43 @@ public sealed class ExecutionReplayTests
         }
         await SendAsync("first");
         var first = run.RunExchangeId;
+        var firstSignature = run.Projections.TokenSignature("o200k_base");
+        Assert.Same(firstSignature, run.Projections.TokenSignature("o200k_base"));
+        var preset = view.Diagram.Preset;
+        var events = run.Events.ToArray();
+        view.Diagram.PromptSignatureTokens = true;
+        view.Diagram.PromptSignatureEncoding = "cl100k_base";
+        Assert.Equal(preset, view.Diagram.Preset);
+        Assert.Equal(events, run.Events);
+        Assert.NotSame(firstSignature, run.Projections.TokenSignature("cl100k_base"));
+        Assert.Same(firstSignature, run.Projections.TokenSignature("o200k_base"));
         Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
         await SendAsync("second");
         var second = run.RunExchangeId;
+        Assert.NotSame(firstSignature, run.Projections.TokenSignature("o200k_base"));
+        Assert.Equal(2, run.Projections.TokenSignature("o200k_base").Requests.Count);
         Assert.Equal(first, Assert.Single(run.Turns).Id);
         Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
         Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
         view.Cursor.SelectStage(first, 1);
         Assert.Null(run.Replay.SelectedStage!.Usage);
+        Assert.Equal("pending", run.Replay.DisplayPromptTokenSignature("o200k_base").Current!.ActualInputLabel);
         Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
         await run.NewConversationAsync();
         Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(first));
         Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(second));
+        Assert.Empty(run.Projections.TokenSignature("o200k_base").Requests);
+        Assert.Empty(run.Replay.DisplayPromptTokenSignature("cl100k_base").Requests);
+    }
+
+    [Fact]
+    public void TokenSignature_FailedCallDoesNotStayPending()
+    {
+        var signature = PromptTokenSignatureBuilder.Build([("failed", (IReadOnlyList<FlowEvent>)[
+            new(1, "llm-request", "", null, 1, "{\"messages\":[]}"),
+            new(2, "error", "", "Interrupted", 1)])]);
+        Assert.Equal("not reported", signature.Current!.ActualInputLabel);
+        Assert.Equal("not reported", signature.Current.CachedInputLabel);
     }
 
     [Theory]

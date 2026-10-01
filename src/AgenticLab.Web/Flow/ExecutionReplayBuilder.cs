@@ -84,6 +84,20 @@ internal static class ExecutionReplayBuilder
         return exchange.Stages.Take(stageIndex + 1).ToArray();
     }
 
+    /// <summary>Token estimates and actual usage at the selected stage, excluding future responses even within the same model turn.</summary>
+    public static PromptTokenSignatureView TokenSignatureAt(
+        IReadOnlyList<ExecutionExchange> exchanges, string exchangeId, int? sequence, string encoding)
+    {
+        var selected = exchanges.FirstOrDefault(exchange => exchange.Id == exchangeId);
+        if (selected is null) return new([], encoding);
+        var prefix = PrefixThrough(selected, sequence);
+        if (!prefix.Any(stage => stage.Kind == "llm-request")) return new([], encoding);
+        var visible = exchanges.TakeWhile(exchange => exchange.Id != exchangeId)
+            .Select(exchange => (Label: exchange.Message, Events: exchange.Stages)).ToList();
+        visible.Add((selected.Message, prefix));
+        return PromptTokenSignatureBuilder.Build(visible, encoding);
+    }
+
     /// <summary>
     /// Builds the exchange list for the conversation.
     /// </summary>

@@ -133,12 +133,31 @@ separately. Its character estimate agrees with **Prompt signature**, which group
 Assistant and Tool result content. The calculation includes captured replies but excludes the static
 tool catalogue and JSON structure; persona and tool-definition sizes have separate anatomy badges.
 
-Prompt signature has two views:
+Prompt signature defaults to **Characters**, preserving this calculation. Its two character views are:
 
 - **Comparison** compares the last captured request of adjacent conversation exchanges, not adjacent
   model round-trips. **Match** measures their identical prefix, not actual provider cache usage.
 - **Delta** shows reused versus added character counts per exchange. This size-based growth split
   is separate from the prefix-match score.
+
+**Tokens** instead estimates only the representative request's input: System, User, Assistant history,
+Tool results and Tool definitions (including names, descriptions and schemas). It excludes the newly
+generated answer. Comparison shows the last captured request of adjacent exchanges; Delta shows each
+exchange's estimate with a signed change from the previous estimate, not a reused/cache split.
+
+Token counts use offline `Microsoft.ML.Tokenizers` with an explicit **Reference encoding**:
+`o200k_base` (default) or `cl100k_base`. These are content estimates, not authoritative counts for an
+arbitrary model or Azure deployment alias. Gemini and other tokenizers may differ. Message framing,
+provider transformations and hidden content are not attributed to categories. No estimates are scaled
+to force agreement with reported usage; unrecognized/missing payloads have unavailable estimates.
+
+Each token bar separately shows **Actual input** and **Cached input** from the matching model turn's
+captured response, not the exchange-wide conversation footer. Cached input remains a subset of input.
+Before that response they are pending; absent usage or a visible failed call is not reported. Replay
+never reveals a future response's counts. Unit/encoding choices are transient display settings and do
+not change model requests, execution options, preset matching or the Context character count. Live and
+replay tokenization is lazy and cached by captured state, cursor and encoding; no prompt text is kept
+in a global tokenizer cache.
 
 Context and Prompt signature follow the replay cursor. Before an exchange's first captured request,
 its size/signature is unavailable; later results do not appear early. **Live** restores the current

@@ -1,0 +1,80 @@
+@using System.Globalization
+
+@if (Signature.Current is null)
+{
+    <span class="token-note">No input request captured at this stage.</span>
+}
+else
+{
+    <div class="token-caption" title="Content-only estimates using the selected reference encoding. Provider message framing, hidden transformations and model-specific tokenization may differ.">
+        Estimated input composition <span>@Signature.Encoding reference</span>
+    </div>
+    @if (Signature.Current.Categories is { } categories)
+    {
+        <ul class="token-legend">
+            @foreach (var category in categories)
+            {
+                <li title="@category.Label: @category.Tokens.ToString("N0") estimated tokens">
+                    <span class="token-swatch token-@category.Key"></span>
+                    <span>@category.Label</span><strong>@category.Tokens.ToString("N0")</strong>
+                </li>
+            }
+        </ul>
+    }
+    @foreach (var request in Rows)
+    {
+        <section class="token-request" @key="request.Index">
+            <header>
+                <span title="@request.Label">@RowLabel(request)</span>
+                <span>Model turn @request.Turn</span>
+            </header>
+            @if (request.EstimatedTokens is { } total && request.Categories is { } parts)
+            {
+                <div class="token-row">
+                    <div class="token-bar" role="img" aria-label="@BarLabel(request)">
+                        @foreach (var category in parts.Where(category => category.Tokens > 0))
+                        {
+                            var percent = total > 0 ? category.Tokens * 100.0 / total : 0;
+                            <span class="token-segment token-@category.Key" style="width:@(percent.ToString("0.##", CultureInfo.InvariantCulture))%"
+                                  title="@category.Label: @category.Tokens.ToString("N0") estimated tokens">
+                                @if (percent >= 15)
+                                {
+                                    <span>@category.Tokens.ToString("N0")</span>
+                                }
+                            </span>
+                        }
+                    </div>
+                    <span class="token-total">~@total.ToString("N0") tokens</span>
+                </div>
+            }
+            else
+            {
+                <span class="token-note">Estimate unavailable for this captured input.</span>
+            }
+            <dl class="token-metrics" title="Provider-reported counts for this model call only; the conversation footer sums all calls in the exchange.">
+                <div><dt>Actual input</dt><dd>@request.ActualInputLabel</dd></div>
+                <div><dt>Cached input</dt><dd>@request.CachedInputLabel</dd></div>
+                @if (Delta && Change(request) is { } change)
+                {
+                    <div><dt>Estimated change</dt><dd>@change.ToString("+0;-0;0") tokens</dd></div>
+                }
+            </dl>
+        </section>
+    }
+}
+
+@code {
+    [CascadingParameter] private FlowRunController Run { get; set; } = default!;
+    [CascadingParameter] private FlowViewState View { get; set; } = default!;
+    private PromptTokenSignatureView Signature => Run.Replay.DisplayPromptTokenSignature(View.Diagram.PromptSignatureEncoding);
+    private bool Delta => View.Diagram.PromptSignatureDelta;
+
+    private IEnumerable<PromptTokenSignatureRequest> Rows => Delta ? Signature.Requests : Signature.Requests.TakeLast(2);
+    private string RowLabel(PromptTokenSignatureRequest request) => Delta
+        ? $"Exchange {request.Index}"
+        : request == Signature.Current ? "Current" : "Previous";
+    private int? Change(PromptTokenSignatureRequest request) => request.Index > 1
+        ? request.EstimatedTokens - Signature.Requests[request.Index - 2].EstimatedTokens : null;
+    private static string BarLabel(PromptTokenSignatureRequest request) => string.Join(", ",
+        request.Categories!.Select(category => $"{category.Label}: {category.Tokens:N0} estimated tokens"));
+}

@@ -71,6 +71,14 @@ per-exchange counts and independent coverage, cached by `RunProjections`. Conver
 exchange-wide; Execution reads only the selected response's metadata, independently of display JSON.
 Remote A2A usage, billing and simulated tokenization are separate; do not infer cache hits from text.
 
+Prompt signature retains its character calculation and adds a transient Tokens view.
+`PromptTokenSignatureBuilder` uses bundled `Microsoft.ML.Tokenizers` reference encodings
+(`o200k_base`/`cl100k_base`) for input-only category estimates, including tool definitions but excluding
+the new response. `RunProjections` and `RunReplay` compute/cache it only on demand. Actual input/cache
+counts pair with the representative request's model turn inside the same causally bounded exchange;
+they are not exchange totals. Encoding is explicit, not inferred from deployment aliases. Token Delta
+is signed size change, never a cache-reuse claim. See [docs/web-flow-page.md](docs/web-flow-page.md).
+
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.
