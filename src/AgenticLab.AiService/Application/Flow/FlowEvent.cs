@@ -27,7 +27,11 @@ namespace AgenticLab.AiService.Application.Flow;
 /// tool is called several times in one turn; null for every other kind.
 /// </param>
 /// <param name="ToolCall">Optional structured snapshot of a requested function call.</param>
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null);
+/// <param name="Usage">Provider-reported usage for this completed local model response, independent of display payloads.</param>
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, FlowTokenUsage? Usage = null);
+
+/// <summary>Provider-reported counts; null means unavailable and cached input is already included in input and total.</summary>
+public sealed record FlowTokenUsage(long? InputTokenCount, long? OutputTokenCount, long? TotalTokenCount, long? CachedInputTokenCount);
 
 /// <summary>A function name and immutable JSON arguments, independent of the display-formatted payload.</summary>
 public sealed record FlowToolCall(string Name, JsonElement Arguments)

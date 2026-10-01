@@ -25,6 +25,145 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public async Task Usage_ControllerArchivesPerExchangeAndClearsOnReset()
+    {
+        using var handler = new ReplayHandler { IncludeUsage = true };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        using var run = new FlowRunController(new AiServiceClient(http), view);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        async Task SendAsync(string message)
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = message;
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        await SendAsync("first");
+        var first = run.RunExchangeId;
+        Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+        await SendAsync("second");
+        var second = run.RunExchangeId;
+        Assert.Equal(first, Assert.Single(run.Turns).Id);
+        Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+        Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        view.Cursor.SelectStage(first, 1);
+        Assert.Null(run.Replay.SelectedStage!.Usage);
+        Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        await run.NewConversationAsync();
+        Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(first));
+        Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(second));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not json")]
+    [InlineData("{\"text\":\"Hello\"}")]
+    public void Usage_InspectorReadsTypedMetadataRegardlessOfPayload(string? payload)
+    {
+        var response = new FlowEvent(2, "llm-response", "Response", null, 1, payload, Usage: new(100, 20, 120, 50));
+        var section = Assert.Single(ExecutionStageReader.Sections(response), section => section.Title == "Token usage");
+        Assert.Contains("Input: 100", section.Body);
+        Assert.Contains("Total: 120", section.Body);
+        Assert.Contains("Cached input: 50", section.Body);
+        Assert.Contains("% of input", section.Body);
+        Assert.DoesNotContain(ExecutionStageReader.Sections(response with { Kind = "llm-request" }),
+            section => section.Title == "Token usage");
+    }
+
+    [Fact]
+    public void Usage_TransportArchiveAndReplayPreserveOnlyRecordedCounts()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var oldEvent = JsonSerializer.Deserialize<FlowEvent>("""{"sequence":1,"kind":"llm-request","label":"Request","turn":1}""", options)!;
+        Assert.Null(oldEvent.Usage);
+        var response = new FlowEvent(2, "llm-response", "Response", null, 1, Usage: new(100, 20, 120, 50));
+        var restored = JsonSerializer.Deserialize<FlowEvent>(JsonSerializer.Serialize(response, options), options)!;
+        Assert.Equal(response, restored);
+        var exchange = Assert.Single(ExecutionReplayBuilder.Build([
+            new ConversationTurn("usage", "Hello", "Test", "Hi", null, [oldEvent, restored]),
+        ], -1));
+        Assert.Null(TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 1)).Input.Value);
+        Assert.Equal(120, TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 2)).Total.Value);
+        var missing = ExecutionStageReader.Sections(response with { Usage = null });
+        Assert.Contains(missing, section => section.Title == "Token usage" && section.Body.Contains("not reported"));
+    }
+
+    [Fact]
+    public void Usage_SumsEachCallOnceAndWeightsCacheShareByInput()
+    {
+        var first = new FlowEvent(2, "llm-response", "", null, 1, Usage: new(100, 10, 110, 100));
+        FlowEvent[] events =
+        [
+            new(1, "llm-request", "", null, 1), first, first,
+            new(3, "llm-request", "", null, 2),
+            new(4, "llm-response", "", null, 2, Usage: new(900, 20, 920, 0)),
+            new(5, "final", "", null, 2, Usage: new(1000, 30, 1030, 100)),
+        ];
+        var usage = TokenUsageBuilder.Build(events);
+        Assert.Equal(2, usage.Calls);
+        Assert.Equal(1000, usage.Input.Value);
+        Assert.Equal(30, usage.Output.Value);
+        Assert.Equal(1030, usage.Total.Value);
+        Assert.Equal(100, usage.CachedInput.Value);
+        Assert.Equal(10m, usage.CachedInputPercent);
+        Assert.DoesNotContain("partial", usage.TotalLabel);
+    }
+
+    [Fact]
+    public void Usage_PreservesPartialAndUnknownCountsWithoutInventingTotals()
+    {
+        FlowEvent[] events =
+        [
+            new(1, "llm-response", "", null, 1, Usage: new(3000000000, 0, null, 0)),
+            new(2, "llm-request", "", null, 2),
+        ];
+        var stopped = TokenUsageBuilder.Build(events);
+        Assert.Equal(3000000000, stopped.Input.Value);
+        Assert.Equal(0, stopped.Output.Value);
+        Assert.Null(stopped.Total.Value);
+        Assert.Null(stopped.CachedInputPercent);
+        Assert.Contains("partial", stopped.InputLabel);
+        Assert.Contains("1/2 calls", stopped.CachedInputLabel);
+        Assert.Equal("not reported", stopped.TotalLabel);
+        var live = TokenUsageBuilder.Build(events, running: true);
+        Assert.Contains("so far", live.InputLabel);
+        Assert.Equal("pending", live.TotalLabel);
+        Assert.Equal("pending", TokenUsageBuilder.Build([], running: true).InputLabel);
+        Assert.Equal("not reported", TokenUsageBuilder.Build([]).InputLabel);
+    }
+
+    [Theory]
+    [InlineData(100L, null)]
+    [InlineData(0L, 0L)]
+    [InlineData(100L, 101L)]
+    [InlineData(100L, -1L)]
+    public void Usage_DoesNotInventCachePercentages(long input, long? cached)
+    {
+        var usage = TokenUsageBuilder.Build([new(1, "llm-response", "", null, 1, Usage: new(input, 1, input + 1, cached))]);
+        Assert.Null(usage.CachedInputPercent);
+    }
+
+    [Fact]
+    public void Usage_CacheCoverageIsIndependentOfTokenCoverage()
+    {
+        var usage = TokenUsageBuilder.Build([
+            new(1, "llm-response", "", null, 1, Usage: new(100, 10, 110, 100)),
+            new(2, "llm-response", "", null, 2, Usage: new(900, 20, 920, null)),
+        ]);
+        Assert.Equal(2, usage.Total.ReportedCalls);
+        Assert.Equal(1, usage.CachedInput.ReportedCalls);
+        Assert.DoesNotContain("partial", usage.TotalLabel);
+        Assert.Contains("partial", usage.CachedInputLabel);
+        Assert.Null(usage.CachedInputPercent);
+    }
+
     [Theory]
     [InlineData("1|0|1|400|300|450", false)]
     [InlineData("1|0|1|400|300|450|0", false)]
@@ -892,6 +1031,7 @@ public sealed class ExecutionReplayTests
 
     private sealed class ReplayHandler : HttpMessageHandler
     {
+        internal bool IncludeUsage { get; init; }
         internal int Resets { get; private set; }
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
@@ -917,6 +1057,12 @@ public sealed class ExecutionReplayTests
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
                 Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
             ];
+            if (IncludeUsage)
+            {
+                var calls = ConversationIds.Count;
+                events = [events[0], new FlowEvent(2, "llm-response", "Response", null, 1,
+                    Usage: new(calls * 100, calls * 10, calls * 110, calls * 50)), events[1] with { Sequence = 3 }];
+            }
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(string.Concat(events.Select(stage => $"event: flow\ndata: {JsonSerializer.Serialize(stage)}\n\n"))),

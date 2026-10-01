@@ -28,6 +28,27 @@ see the [workspace guide](workspace.md). Switching tabs preserves the chat log a
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
 near the composer. Replies are displayed as escaped text.
 
+Each reply has a **Token usage** footer: provider-reported input, output, total and cached
+input counts for that Send, summed across all completed local model calls, including tool loops.
+Re-sent history and tools count again when the provider counts them as input. Cached input is already
+included in input and total; its percentage is the token-weighted cached share of input, not an
+average of per-call percentages or a request cache-hit rate.
+The heading's tooltip clarifies that counts cover captured model calls and exclude remote A2A agents.
+
+Counts appear as responses complete: **pending**, **so far**, **partial** with call coverage, or
+**not reported** where unavailable. Token and cache coverage are independent; partial cache coverage
+suppresses the request-wide percentage, as does a zero or invalid denominator. Explicit zero remains
+zero. The OpenAI-compatible SDK preserves absent cache details as unavailable but defaults a missing
+cached count inside a present details object to zero; these are SDK-reported counts, not a separate
+cache hit/miss detector. Availability depends on the endpoint and model, including Gemini's
+OpenAI-compatible endpoint.
+
+These figures exclude remote A2A model calls and any unobserved retries. They are not billing totals,
+cache-write counts, cache configuration, or estimates of money/time saved. Prompt signature overlap
+and the simulated Inference tokenizer remain separate from actual usage. Footers stay with retained
+replies and do not change when replay is pinned; **Execution** shows the selected model response's
+own usage. New conversation clears local usage along with captures.
+
 ### Run controls
 
 The toolbar above live flow owns **Auto / Manual**, delay, Pause/Resume, Next and Stop. Auto advances

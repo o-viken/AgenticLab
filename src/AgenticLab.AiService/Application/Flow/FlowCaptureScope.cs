@@ -25,6 +25,9 @@ public sealed class LlmTurn(int turnNumber, string requestData, string requestSu
 
     /// <summary>A short, single-line summary of what the model returned this turn (its answer, or the tool calls it requested); null until completed.</summary>
     public string? ResponseSummary { get; internal set; }
+
+    /// <summary>Provider-reported usage for the completed response; absent when the provider did not report it.</summary>
+    public FlowTokenUsage? Usage { get; internal set; }
 }
 
 /// <summary>

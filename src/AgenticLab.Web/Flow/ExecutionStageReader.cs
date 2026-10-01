@@ -25,6 +25,18 @@ internal static class ExecutionStageReader
     /// <summary>Breaks a stage's captured payload into the blocks shown in the Data view.</summary>
     public static IReadOnlyList<StageSection> Sections(FlowEvent stage)
     {
+        var sections = PayloadSections(stage);
+        if (stage.Kind != "llm-response")
+        {
+            return sections;
+        }
+        var usage = TokenUsageBuilder.Build([stage]);
+        return sections.Prepend(new StageSection("Token usage", "provider reported; excludes remote A2A",
+            $"Input: {usage.InputLabel}\nOutput: {usage.OutputLabel}\nTotal: {usage.TotalLabel}\nCached input: {usage.CachedInputLabel}", "app")).ToArray();
+    }
+
+    private static IReadOnlyList<StageSection> PayloadSections(FlowEvent stage)
+    {
         var data = stage.Data;
         if (string.IsNullOrWhiteSpace(data))
         {

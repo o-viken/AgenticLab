@@ -64,6 +64,13 @@ hidden content defers rendering until expanded. Desktop workspace rows and scrol
 sizing; narrow stacked layouts keep natural height. `RunProjections` builds simulated inference and
 embeddings only on demand, independently of ordinary context/execution projections.
 
+`CapturingChatClient` snapshots provider `UsageContent` into optional typed `FlowEvent.Usage` on
+completed local `llm-response` events. Counts include input/output/total and cached input (already
+part of input), with nullable missing values. Web mirrors the wire DTO; `TokenUsageBuilder` aggregates
+per-exchange counts and independent coverage, cached by `RunProjections`. Conversation footers remain
+exchange-wide; Execution reads only the selected response's metadata, independently of display JSON.
+Remote A2A usage, billing and simulated tokenization are separate; do not infer cache hits from text.
+
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.
