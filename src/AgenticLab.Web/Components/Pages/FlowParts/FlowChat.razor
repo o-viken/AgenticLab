@@ -24,7 +24,10 @@
                         {
                             <p>@turn.Reply</p>
                         }
-                        @UsageSummary(Run.Projections.UsageFor(turn.Id))
+                        @if (View.Presentation.ShowTokenUsageSummaries)
+                        {
+                            @UsageSummary(Run.Projections.UsageFor(turn.Id))
+                        }
                     </article>
                 </div>
             }
@@ -62,7 +65,10 @@
                         {
                             <p class="status-note">@note</p>
                         }
-                        @UsageSummary(Run.Projections.UsageFor(Run.RunExchangeId))
+                        @if (View.Presentation.ShowTokenUsageSummaries)
+                        {
+                            @UsageSummary(Run.Projections.UsageFor(Run.RunExchangeId))
+                        }
                     </article>
                 </div>
             }

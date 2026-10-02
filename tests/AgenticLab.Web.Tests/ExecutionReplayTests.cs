@@ -25,6 +25,31 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public void UsageVisibility_NotifiesContentOnlyWhenChangedAndIsIndependentOfPresets()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        var notifications = 0;
+        view.Changed += () => notifications++;
+        var version = view.ContentVersion;
+        var configurationVersion = view.ConfigurationVersion;
+        var preset = view.Diagram.Preset;
+        Assert.False(view.Presentation.ShowTokenUsageSummaries);
+        view.Presentation.ShowTokenUsageSummaries = false;
+        Assert.Equal(0, notifications);
+        view.Presentation.ShowTokenUsageSummaries = true;
+        Assert.Equal(version + 1, view.ContentVersion);
+        Assert.Equal(1, notifications);
+        Assert.Equal(configurationVersion, view.ConfigurationVersion);
+        Assert.Equal(preset, view.Diagram.Preset);
+        view.Presentation.ShowTokenUsageSummaries = true;
+        Assert.Equal(1, notifications);
+        view.Diagram.ApplyPreset(DiagramPreset.Technical);
+        Assert.True(view.Presentation.ShowTokenUsageSummaries);
+        view.Presentation.ShowTokenUsageSummaries = false;
+        Assert.False(view.Presentation.ShowTokenUsageSummaries);
+    }
+
     [Theory]
     [InlineData(155, 178, 178, 23)]
     [InlineData(178, 155, 178, -23)]
@@ -160,7 +185,20 @@ public sealed class ExecutionReplayTests
         Assert.Null(run.Replay.SelectedStage!.Usage);
         Assert.Equal("pending", run.Replay.DisplayPromptTokenSignature("o200k_base").Current!.ActualInputLabel);
         Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        var replayStage = run.Replay.SelectedStage;
+        var signature = run.Projections.TokenSignature("o200k_base");
+        events = run.Events.ToArray();
+        foreach (var visible in new[] { true, false, true })
+        {
+            view.Presentation.ShowTokenUsageSummaries = visible;
+            Assert.Same(replayStage, run.Replay.SelectedStage);
+            Assert.Same(signature, run.Projections.TokenSignature("o200k_base"));
+            Assert.Equal(events, run.Events);
+            Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+            Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        }
         await run.NewConversationAsync();
+        Assert.True(view.Presentation.ShowTokenUsageSummaries);
         Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(first));
         Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(second));
         Assert.Empty(run.Projections.TokenSignature("o200k_base").Requests);

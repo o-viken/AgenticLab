@@ -85,14 +85,20 @@ else
             {
                 <span class="token-note">Estimate unavailable for this captured input.</span>
             }
-            <dl class="token-metrics" title="Provider-reported counts for this model call only; the conversation footer sums all calls in the exchange.">
-                <div><dt>Actual input</dt><dd>@request.ActualInputLabel</dd></div>
-                <div><dt>Cached input</dt><dd>@request.CachedInputLabel</dd></div>
+            @if (View.Presentation.ShowTokenUsageSummaries || (Delta && request == Signature.Current && Signature.Previous is not null))
+            {
+            <dl class="token-metrics">
+                @if (View.Presentation.ShowTokenUsageSummaries)
+                {
+                    <div title="Provider-reported input for this model call only."><dt>Actual input</dt><dd>@request.ActualInputLabel</dd></div>
+                    <div title="Provider-reported cached input for this model call only."><dt>Cached input</dt><dd>@request.CachedInputLabel</dd></div>
+                }
                 @if (Delta && request == Signature.Current && Signature.Previous is not null)
                 {
                     <div title="Input-size change, not content reuse or cached tokens."><dt>Estimated change</dt><dd>@(Signature.EstimatedChange is { } change ? $"{change:+0;-0;0} tokens" : "unavailable")</dd></div>
                 }
             </dl>
+            }
         </section>
     }
 }

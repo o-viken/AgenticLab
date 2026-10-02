@@ -24,6 +24,7 @@ try {
         await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
         await checkExecutionControls(page);
+        await checkUsagePreference(page);
         await capture(page, `flow-${viewport.width}`);
         const layout = await page.evaluate(() => {
             const conversation = document.querySelector(".side-left").getBoundingClientRect();
@@ -378,6 +379,31 @@ async function checkLearning(page, width) {
         }
         await capture(page, `learn-${stage}-${width}`);
     }
+}
+
+async function checkUsagePreference(page) {
+    const checkbox = page.getByRole("checkbox", { name: "Show token usage summaries", exact: true });
+    await page.getByRole("tab", { name: /^Settings/ }).click();
+    assert.equal(await checkbox.isChecked(), false, "Usage summaries default off");
+    await checkbox.focus();
+    await checkbox.press("Space");
+    await page.waitForFunction(() => localStorage.getItem("agenticlab-token-usage") === "true");
+    await page.getByRole("button", { name: "Reset layout", exact: true }).click();
+    assert.equal(await checkbox.isChecked(), true, "Reset layout preserves presentation preferences");
+    await openFlow(page);
+    await page.getByRole("tab", { name: /^Settings/ }).click();
+    assert.equal(await checkbox.isChecked(), true, "Usage preference restores after reload");
+    await checkbox.uncheck();
+    await page.waitForFunction(() => localStorage.getItem("agenticlab-token-usage") === "false");
+    await openFlow(page);
+    await page.getByRole("tab", { name: /^Settings/ }).click();
+    assert.equal(await checkbox.isChecked(), false, "Hidden preference restores after reload");
+    await page.evaluate(() => localStorage.setItem("agenticlab-token-usage", "invalid"));
+    await openFlow(page);
+    await page.getByRole("tab", { name: /^Settings/ }).click();
+    assert.equal(await checkbox.isChecked(), false, "Invalid stored preferences default off");
+    await page.evaluate(() => localStorage.removeItem("agenticlab-token-usage"));
+    await page.getByRole("tab", { name: "Conversation", exact: true }).click();
 }
 
 async function openFlow(page) {

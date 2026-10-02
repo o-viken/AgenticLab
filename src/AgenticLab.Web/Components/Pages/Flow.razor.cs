@@ -18,6 +18,7 @@ public partial class Flow : IDisposable
 {
     private const string VendorStorageKey = "agenticlab-vendor";
     private const string PanelStorageKey = "agenticlab-panels";
+    private const string TokenUsageStorageKey = "agenticlab-token-usage";
     private const string WorkspaceBasesStorageKey = "agenticlab-workspace-bases";
     private const string RecentWorkspacesStorageKey = "agenticlab-workspace-recent";
 
@@ -37,6 +38,7 @@ public partial class Flow : IDisposable
     private FlowRunController _run = default!;
     private bool _catalogsLoaded;
     private bool _savePanelsAfterRender;
+    private bool _tokenUsagePreferenceChanged;
     private long _runRenderVersion;
     private ExamplePanelHost? _examplePanel;
 
@@ -139,6 +141,18 @@ public partial class Flow : IDisposable
 
         try
         {
+            var storedUsage = await JS.InvokeAsync<string?>("localStorage.getItem", TokenUsageStorageKey);
+            if (!_tokenUsagePreferenceChanged)
+            {
+                _view.Presentation.ShowTokenUsageSummaries = bool.TryParse(storedUsage, out var visible) && visible;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
             var stored = await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
             var restored = _view.Roster.RestoreHost(stored);
             if (restored != _view.HostKey)
@@ -177,6 +191,19 @@ public partial class Flow : IDisposable
         catch
         {
             // localStorage may be unavailable (prerender); ignore and keep the default vendor.
+        }
+    }
+
+    private async Task SetTokenUsageVisibilityAsync(bool visible)
+    {
+        _tokenUsagePreferenceChanged = true;
+        _view.Presentation.ShowTokenUsageSummaries = visible;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", TokenUsageStorageKey, visible ? "true" : "false");
+        }
+        catch
+        {
         }
     }
 

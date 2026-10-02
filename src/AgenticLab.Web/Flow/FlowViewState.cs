@@ -31,6 +31,7 @@ internal sealed class FlowViewState
         Options = new RunOptions(Notify);
         WorkspacePrefs = new WorkspacePrefs(Notify);
         Diagram = new DiagramOptions(Notify);
+        Presentation = new PresentationOptions(Notify);
         Cursor = new ReplayCursor(Notify);
         Roster = new AgentRoster(this, Notify);
         Agent = new SelectedAgentView(this);
@@ -54,6 +55,8 @@ internal sealed class FlowViewState
     public RunOptions Options { get; }
     public WorkspacePrefs WorkspacePrefs { get; }
     public DiagramOptions Diagram { get; }
+    /// <summary>Page-wide display choices that do not participate in diagram presets or execution options.</summary>
+    public PresentationOptions Presentation { get; }
     public ReplayCursor Cursor { get; }
     public AgentRoster Roster { get; }
     public SelectedAgentView Agent { get; }

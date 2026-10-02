@@ -28,7 +28,14 @@ see the [workspace guide](workspace.md). Switching tabs preserves the chat log a
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
 near the composer. Replies are displayed as escaped text.
 
-Each reply has a **Token usage** footer: provider-reported input, output, total and cached
+**Settings → Display → Show token usage summaries** is off by default and saved per browser/origin.
+It shows or hides the conversation footers and Prompt signature's actual/cache rows together,
+including retained replies. Token estimates, Delta changes and Execution details stay visible.
+Capture continues while hidden; switching on restores retained counts without rerunning. The setting
+survives new conversations, host changes, diagram presets and Reset layout. Missing or invalid saved
+values default off; unavailable storage still allows a session-only choice.
+
+When enabled, each reply has a **Token usage** footer: provider-reported input, output, total and cached
 input counts for that Send, summed across all completed local model calls, including tool loops.
 Re-sent history and tools count again when the provider counts them as input. Cached input is already
 included in input and total; its percentage is the token-weighted cached share of input, not an
@@ -155,7 +162,7 @@ arbitrary model or Azure deployment alias. Gemini and other tokenizers may diffe
 provider transformations and hidden content are not attributed to categories. No estimates are scaled
 to force agreement with reported usage; unrecognized/missing payloads have unavailable estimates.
 
-Each token bar separately shows **Actual input** and **Cached input** from the matching model turn's
+With **Show token usage summaries** enabled, each token bar shows **Actual input** and **Cached input** from the matching model turn's
 captured response, not the exchange-wide conversation footer. Cached input remains a subset of input.
 Before that response they are pending; absent usage or a visible failed call is not reported. Replay
 never reveals a future response's counts. Unit/encoding choices are transient display settings and do

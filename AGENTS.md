@@ -71,6 +71,13 @@ per-exchange counts and independent coverage, cached by `RunProjections`. Conver
 exchange-wide; Execution reads only the selected response's metadata, independently of display JSON.
 Remote A2A usage, billing and simulated tokenization are separate; do not infer cache hits from text.
 
+`FlowViewState.Presentation` (`PresentationOptions`) owns page-wide display preferences independently
+of diagram presets and run controls. `ShowTokenUsageSummaries` defaults off and uses the content
+notification path. Settings exposes it under Display; `Flow.razor.cs` restores/saves the independent
+`agenticlab-token-usage` browser key with best-effort storage. It gates conversation footers and prompt
+signature actual/cache rows, not estimates, Delta changes, Execution details or capture. Layout reset,
+new conversations and host changes preserve it; do not extend `PanelState` for presentation settings.
+
 Prompt signature retains its character calculation and adds a transient Tokens view.
 `PromptTokenSignatureBuilder` uses bundled `Microsoft.ML.Tokenizers` reference encodings
 (`o200k_base`/`cl100k_base`) for input-only category estimates, including tool definitions but excluding

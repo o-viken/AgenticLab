@@ -46,7 +46,9 @@ locally without a model call. It is not automatically matched to an Azure deploy
 provider's tokenizer. Provider framing and hidden transformations are omitted, so the estimate need
 not equal actual usage. Unknown captured content has no estimate rather than a guessed count.
 
-Actual input and cached input alongside each bar come from that request's matching response. They
+Enable **Settings → Display → Show token usage summaries** to show actual input and cached input
+alongside each bar. This saved preference defaults off; it does not hide estimates, Delta changes or
+Execution details, or stop capture. The reported counts come from that request's matching response. They
 are per-call counts; the conversation footer sums the exchange. Cached input is already included in
 input. Counts remain pending until the response is captured and are not reported when unavailable.
 Token Delta shows only the previous and current exchange, with the user prompt above each bar on a
