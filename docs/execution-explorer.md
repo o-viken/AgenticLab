@@ -127,14 +127,9 @@ The dock has three panes:
 - **Inspector** shows captured content as readable **Data** blocks or verbatim **Raw** payloads.
   Missing data is marked **not captured**, never reconstructed.
 
-With **Settings → Display → Show token usage summaries** enabled (off by default), a model response's
-**Token usage** block shows input, output, total and cached
-input, plus the cached share of input when both counts are valid and input is positive. The block
-uses typed metadata even if display payload text cannot be parsed. It never borrows usage from a
-later response when a request stage is selected. Hiding it leaves other inspector blocks, selection
-and capture unchanged; enabling it restores retained counts. **Raw** continues to show the display payload,
-not the full event envelope. See [conversation usage](web-flow-page.md#conversation-and-settings)
-for partial coverage, SDK cache defaults, provider limitations and local-only accounting.
+The inspector has no separate token-usage block. Reported usage remains captured and is available in
+[conversation footers and Prompt signature](web-flow-page.md#conversation-and-settings) when enabled
+in Settings. **Raw** shows the display payload, not the full event envelope.
 
 Use **Previous / Next** or select a stage directly. The diagram follows that stage; a tool call
 shows its arguments but not a later result. The live run continues recording while history is pinned.

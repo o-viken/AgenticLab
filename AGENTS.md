@@ -68,15 +68,19 @@ embeddings only on demand, independently of ordinary context/execution projectio
 completed local `llm-response` events. Counts include input/output/total and cached input (already
 part of input), with nullable missing values. Web mirrors the wire DTO; `TokenUsageBuilder` aggregates
 per-exchange counts and independent coverage, cached by `RunProjections`. Conversation footers remain
-exchange-wide; Execution reads only the selected response's metadata, independently of display JSON.
+exchange-wide; Execution displays captured payloads without a separate token-usage block.
 Remote A2A usage, billing and simulated tokenization are separate; do not infer cache hits from text.
+
+`TokenUsageFooter` owns conversation usage rendering, scoped CSS, visibility and per-exchange
+projection lookup; `FlowChat` passes only the exchange ID for current and archived replies.
+`PromptTokenSignature` owns the token chart and its scoped CSS. Keep capture and counting out of
+these presentation components; they consume the existing cached projections.
 
 `FlowViewState.Presentation` (`PresentationOptions`) owns page-wide display preferences independently
 of diagram presets and run controls. `ShowTokenUsageSummaries` defaults off and uses the content
 notification path. Settings exposes it under Display; `Flow.razor.cs` restores/saves the independent
 `agenticlab-token-usage` browser key with best-effort storage. It gates conversation footers and prompt
-signature actual/cache rows and Execution's Token usage block, not estimates, Delta changes, other
-Execution details or capture. Layout reset,
+signature actual/cache rows, not estimates, Delta changes, Execution details or capture. Layout reset,
 new conversations and host changes preserve it; do not extend `PanelState` for presentation settings.
 
 Prompt signature retains its character calculation and adds a transient Tokens view.

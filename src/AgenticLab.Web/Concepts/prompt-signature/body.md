@@ -47,8 +47,8 @@ provider's tokenizer. Provider framing and hidden transformations are omitted, s
 not equal actual usage. Unknown captured content has no estimate rather than a guessed count.
 
 Enable **Settings → Display → Show token usage summaries** to show actual input and cached input
-alongside each bar, conversation footers and Execution's **Token usage** block. This saved preference
-defaults off; it does not hide estimates, Delta changes or other Execution details, or stop capture.
+alongside each bar and in conversation footers. This saved preference defaults off; it does not hide
+estimates, Delta changes or Execution details, or stop capture.
 The reported counts come from that request's matching response. They
 are per-call counts; the conversation footer sums the exchange. Cached input is already included in
 input. Counts remain pending until the response is captured and are not reported when unavailable.

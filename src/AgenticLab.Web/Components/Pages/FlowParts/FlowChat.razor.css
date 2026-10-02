@@ -98,40 +98,6 @@
     color: var(--text-dim);
 }
 
-.token-usage {
-    margin-top: var(--lab-space-3);
-    color: var(--lab-muted);
-    font-size: var(--lab-text-xs);
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.usage-title {
-    font-weight: 500;
-}
-
-.token-usage dl {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--lab-space-1) var(--lab-space-4);
-    margin: var(--lab-space-1) 0 0;
-}
-
-.token-usage dl > div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--lab-space-1);
-    min-width: 0;
-    max-width: 100%;
-}
-
-.token-usage dd {
-    margin: 0;
-    font-family: var(--lab-font-mono);
-    font-variant-numeric: tabular-nums;
-    min-width: 0;
-}
-
 /* The composer pinned to the bottom of the chat tab. */
 .chat-composer {
     flex: 0 0 auto;

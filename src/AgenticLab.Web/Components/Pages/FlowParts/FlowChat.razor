@@ -24,10 +24,7 @@
                         {
                             <p>@turn.Reply</p>
                         }
-                        @if (View.Presentation.ShowTokenUsageSummaries)
-                        {
-                            @UsageSummary(Run.Projections.UsageFor(turn.Id))
-                        }
+                        <TokenUsageFooter ExchangeId="@turn.Id" />
                     </article>
                 </div>
             }
@@ -65,10 +62,7 @@
                         {
                             <p class="status-note">@note</p>
                         }
-                        @if (View.Presentation.ShowTokenUsageSummaries)
-                        {
-                            @UsageSummary(Run.Projections.UsageFor(Run.RunExchangeId))
-                        }
+                        <TokenUsageFooter ExchangeId="@Run.RunExchangeId" />
                     </article>
                 </div>
             }
@@ -112,16 +106,6 @@
 </section>
 
 @code {
-    private RenderFragment UsageSummary(TokenUsageSummary usage) => @<footer class="token-usage">
-        <span class="usage-title" title="Provider-reported usage across captured model calls. Excludes remote A2A agents.">Token usage</span>
-        <dl>
-            <div><dt>Input</dt><dd>@usage.InputLabel</dd></div>
-            <div><dt>Output</dt><dd>@usage.OutputLabel</dd></div>
-            <div><dt>Total</dt><dd>@usage.TotalLabel</dd></div>
-            <div><dt>Cached input</dt><dd>@usage.CachedInputLabel</dd></div>
-        </dl>
-    </footer>;
-
     private ElementReference _logRef;
 
     [CascadingParameter]

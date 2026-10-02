@@ -216,22 +216,16 @@ public sealed class ExecutionReplayTests
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("not json")]
-    [InlineData("{\"text\":\"Hello\"}")]
-    public void Usage_InspectorReadsTypedMetadataRegardlessOfPayload(string? payload)
+    [InlineData(null, "(not captured)")]
+    [InlineData("not json", "not json")]
+    [InlineData("{\"text\":\"Hello\"}", "Hello")]
+    public void Usage_InspectorOmitsUsageWithoutChangingPayloadOrCapture(string? payload, string expectedBody)
     {
         var response = new FlowEvent(2, "llm-response", "Response", null, 1, payload, Usage: new(100, 20, 120, 50));
-        var section = Assert.Single(ExecutionStageReader.Sections(response), section => section.Title == "Token usage");
-        Assert.Contains("Input: 100", section.Body);
-        Assert.Contains("Total: 120", section.Body);
-        Assert.Contains("Cached input: 50", section.Body);
-        Assert.Contains("% of input", section.Body);
-        var hidden = ExecutionStageReader.Sections(response, includeTokenUsage: false);
-        Assert.DoesNotContain(hidden, section => section.Title == "Token usage");
-        Assert.Equal(ExecutionStageReader.Sections(response).Where(section => section.Title != "Token usage"), hidden);
-        Assert.Equal(section, Assert.Single(ExecutionStageReader.Sections(response, includeTokenUsage: true),
-            section => section.Title == "Token usage"));
+        var sections = ExecutionStageReader.Sections(response);
+        Assert.DoesNotContain(sections, section => section.Title == "Token usage");
+        Assert.Equal(expectedBody, Assert.Single(sections).Body);
+        Assert.Equal(ExecutionStageReader.Sections(response with { Usage = null }), sections);
         Assert.Equal(new FlowTokenUsage(100, 20, 120, 50), response.Usage);
         Assert.DoesNotContain(ExecutionStageReader.Sections(response with { Kind = "llm-request" }),
             section => section.Title == "Token usage");
@@ -252,7 +246,7 @@ public sealed class ExecutionReplayTests
         Assert.Null(TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 1)).Input.Value);
         Assert.Equal(120, TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 2)).Total.Value);
         var missing = ExecutionStageReader.Sections(response with { Usage = null });
-        Assert.Contains(missing, section => section.Title == "Token usage" && section.Body.Contains("not reported"));
+        Assert.DoesNotContain(missing, section => section.Title == "Token usage");
     }
 
     [Fact]

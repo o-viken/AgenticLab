@@ -1,0 +1,21 @@
+@if (View.Presentation.ShowTokenUsageSummaries)
+{
+    var usage = Run.Projections.UsageFor(ExchangeId);
+    <footer class="token-usage">
+        <span class="usage-title" title="Provider-reported usage across captured model calls. Excludes remote A2A agents.">Token usage</span>
+        <dl>
+            <div><dt>Input</dt><dd>@usage.InputLabel</dd></div>
+            <div><dt>Output</dt><dd>@usage.OutputLabel</dd></div>
+            <div><dt>Total</dt><dd>@usage.TotalLabel</dd></div>
+            <div><dt>Cached input</dt><dd>@usage.CachedInputLabel</dd></div>
+        </dl>
+    </footer>
+}
+
+@code {
+    /// <summary>The retained or current exchange whose reported usage is displayed.</summary>
+    [Parameter, EditorRequired] public string ExchangeId { get; set; } = string.Empty;
+
+    [CascadingParameter] private FlowViewState View { get; set; } = default!;
+    [CascadingParameter] private FlowRunController Run { get; set; } = default!;
+}
