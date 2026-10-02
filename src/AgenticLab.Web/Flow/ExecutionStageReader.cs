@@ -22,11 +22,11 @@ internal static class ExecutionStageReader
 {
     private const string Missing = "(not captured)";
 
-    /// <summary>Breaks a stage's captured payload into the blocks shown in the Data view.</summary>
-    public static IReadOnlyList<StageSection> Sections(FlowEvent stage)
+    /// <summary>Breaks a stage's captured payload into Data view blocks, optionally including reported token usage without changing the capture.</summary>
+    public static IReadOnlyList<StageSection> Sections(FlowEvent stage, bool includeTokenUsage = true)
     {
         var sections = PayloadSections(stage);
-        if (stage.Kind != "llm-response")
+        if (!includeTokenUsage || stage.Kind != "llm-response")
         {
             return sections;
         }

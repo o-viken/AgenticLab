@@ -160,7 +160,7 @@
                     else
                     {
                         <div class="stage-sections">
-                            @foreach (var section in ExecutionStageReader.Sections(stage))
+                            @foreach (var section in ExecutionStageReader.Sections(stage, View.Presentation.ShowTokenUsageSummaries))
                             {
                                 var sectionClass = "stage-section source-" + section.Source;
                                 <section class="@sectionClass">

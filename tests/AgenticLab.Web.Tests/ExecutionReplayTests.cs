@@ -227,6 +227,12 @@ public sealed class ExecutionReplayTests
         Assert.Contains("Total: 120", section.Body);
         Assert.Contains("Cached input: 50", section.Body);
         Assert.Contains("% of input", section.Body);
+        var hidden = ExecutionStageReader.Sections(response, includeTokenUsage: false);
+        Assert.DoesNotContain(hidden, section => section.Title == "Token usage");
+        Assert.Equal(ExecutionStageReader.Sections(response).Where(section => section.Title != "Token usage"), hidden);
+        Assert.Equal(section, Assert.Single(ExecutionStageReader.Sections(response, includeTokenUsage: true),
+            section => section.Title == "Token usage"));
+        Assert.Equal(new FlowTokenUsage(100, 20, 120, 50), response.Usage);
         Assert.DoesNotContain(ExecutionStageReader.Sections(response with { Kind = "llm-request" }),
             section => section.Title == "Token usage");
     }

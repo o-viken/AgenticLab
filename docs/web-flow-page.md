@@ -29,8 +29,9 @@ see the [workspace guide](workspace.md). Switching tabs preserves the chat log a
 near the composer. Replies are displayed as escaped text.
 
 **Settings → Display → Show token usage summaries** is off by default and saved per browser/origin.
-It shows or hides the conversation footers and Prompt signature's actual/cache rows together,
-including retained replies. Token estimates, Delta changes and Execution details stay visible.
+It shows or hides the conversation footers, Prompt signature's actual/cache rows and Execution's
+**Token usage** block together, including retained replies and replay. Token estimates, Delta changes
+and other Execution details stay visible.
 Capture continues while hidden; switching on restores retained counts without rerunning. The setting
 survives new conversations, host changes, diagram presets and Reset layout. Missing or invalid saved
 values default off; unavailable storage still allows a session-only choice.

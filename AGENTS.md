@@ -75,7 +75,8 @@ Remote A2A usage, billing and simulated tokenization are separate; do not infer 
 of diagram presets and run controls. `ShowTokenUsageSummaries` defaults off and uses the content
 notification path. Settings exposes it under Display; `Flow.razor.cs` restores/saves the independent
 `agenticlab-token-usage` browser key with best-effort storage. It gates conversation footers and prompt
-signature actual/cache rows, not estimates, Delta changes, Execution details or capture. Layout reset,
+signature actual/cache rows and Execution's Token usage block, not estimates, Delta changes, other
+Execution details or capture. Layout reset,
 new conversations and host changes preserve it; do not extend `PanelState` for presentation settings.
 
 Prompt signature retains its character calculation and adds a transient Tokens view.
