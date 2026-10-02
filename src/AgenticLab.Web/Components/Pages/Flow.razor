@@ -71,7 +71,8 @@
                                OnToggleCollapse="ToggleLeftPanel"
                                OnResize="SetLeftWidth">
                         <FlowContent RunVersion="_runRenderVersion" Visible="@(!_view.Layout.LeftPanelCollapsed)">
-                        <ControlsPanel OnCollapse="ToggleLeftPanel" OnResetLayout="ResetLayout" OnNewConversation="NewConversationAsync">
+                        <ControlsPanel OnCollapse="ToggleLeftPanel" OnResetLayout="ResetLayout" OnNewConversation="NewConversationAsync"
+                                       OnTokenUsageChanged="SetTokenUsageVisibilityAsync">
                             <ExampleContent>
                                 @if (SelectedExample is { } example)
                                 {

@@ -28,6 +28,14 @@
     </div>
     <div class="tab-body settings-body" id="settings-panel" role="tabpanel" aria-labelledby="settings-tab"
          hidden="@(View.ActiveControlsTab != ControlsTab.Settings)">
+        <fieldset class="presentation-options">
+            <legend>Display</legend>
+            <label>
+                <input type="checkbox" checked="@View.Presentation.ShowTokenUsageSummaries"
+                       @onchange="args => OnTokenUsageChanged.InvokeAsync(args.Value is true)" />
+                <span>Show token usage summaries</span>
+            </label>
+        </fieldset>
         <FlowControls />
         <div class="layout-actions"><LabButton Label="Reset layout" Icon="expand" OnClick="OnResetLayout" /></div>
     </div>
@@ -48,6 +56,9 @@
     [Parameter] public EventCallback OnCollapse { get; set; }
     /// <summary>Restores the page's default layout without resetting conversation or execution state.</summary>
     [Parameter] public EventCallback OnResetLayout { get; set; }
+
+    /// <summary>Lets the page persist the reported-usage display preference without coupling this panel to browser storage.</summary>
+    [Parameter] public EventCallback<bool> OnTokenUsageChanged { get; set; }
 
     /// <summary>Optional example-owned conversation content supplied by the page.</summary>
     [Parameter] public RenderFragment? ExampleContent { get; set; }

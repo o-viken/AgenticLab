@@ -51,6 +51,11 @@ Both chat paths support these optional fields:
 | `disabledSkills` | Disable named skills; available skills default on. |
 | `enabledInstructions` | Inject selected workspace instructions; default off. |
 
+The [streaming API](execution-explorer.md#post-chatstream) additionally exposes optional typed
+`usage` on each completed local model response: input, output, total and cached input token counts.
+These are provider-reported, not tokenizer estimates; cached input is already part of input.
+Missing usage remains unavailable. The non-streaming `/chat` response above is unchanged.
+
 ### `POST /chat/reset`
 
 Clear remembered history with `{ "conversationId": "example-conversation-id" }`.

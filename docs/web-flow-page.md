@@ -28,6 +28,39 @@ see the [workspace guide](workspace.md). Switching tabs preserves the chat log a
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
 near the composer. Replies are displayed as escaped text.
 
+**Settings → Display → Show token usage summaries** is off by default and saved per browser/origin.
+It shows or hides the conversation footers and Prompt signature's actual/cache rows together,
+including retained replies and replay. Token estimates, Delta changes and Execution details stay visible.
+Capture continues while hidden; switching on restores retained counts without rerunning. The setting
+survives new conversations, host changes, diagram presets and Reset layout. Missing or invalid saved
+values default off; unavailable storage still allows a session-only choice.
+
+When enabled, each reply has a **Token usage** footer: provider-reported input, output, total and cached
+input counts for that Send, summed across all completed local model calls, including tool loops.
+Re-sent history and tools count again when the provider counts them as input. Cached input is already
+included in input and total; its percentage is the token-weighted cached share of input, not an
+average of per-call percentages or a request cache-hit rate.
+The heading's tooltip clarifies that counts cover captured model calls and exclude remote A2A agents.
+
+Counts appear as responses complete: **pending**, **so far**, **partial** with call coverage, or
+**not reported** where unavailable. Token and cache coverage are independent; partial cache coverage
+suppresses the request-wide percentage, as does a zero or invalid denominator. Explicit zero remains
+zero. The OpenAI-compatible SDK preserves absent cache details as unavailable but defaults a missing
+cached count inside a present details object to zero; these are SDK-reported counts, not a separate
+cache hit/miss detector. Availability depends on the endpoint and model, including Gemini's
+OpenAI-compatible endpoint.
+
+These figures exclude remote A2A model calls and any unobserved retries. They are not billing totals,
+cache-write counts, cache configuration, or estimates of money/time saved. Prompt signature overlap
+and the simulated Inference tokenizer remain separate from actual usage. Footers stay with retained
+replies and do not change when replay is pinned. **Execution** has no separate token-usage block.
+New conversation clears local usage along with captures.
+
+Token presentation is split into focused Flow components: `TokenUsageFooter` owns conversation
+usage markup, scoped styles, visibility and the per-exchange projection lookup; `FlowChat` supplies
+only the exchange ID. `PromptTokenSignature` owns the estimated-input chart and its scoped styles.
+Capture and counting remain in their existing services and builders.
+
 ### Run controls
 
 The toolbar above live flow owns **Auto / Manual**, delay, Pause/Resume, Next and Stop. Auto advances
@@ -112,12 +145,35 @@ separately. Its character estimate agrees with **Prompt signature**, which group
 Assistant and Tool result content. The calculation includes captured replies but excludes the static
 tool catalogue and JSON structure; persona and tool-definition sizes have separate anatomy badges.
 
-Prompt signature has two views:
+Prompt signature defaults to **Characters**, preserving this calculation. Its two character views are:
 
 - **Comparison** compares the last captured request of adjacent conversation exchanges, not adjacent
   model round-trips. **Match** measures their identical prefix, not actual provider cache usage.
 - **Delta** shows reused versus added character counts per exchange. This size-based growth split
   is separate from the prefix-match score.
+
+**Tokens** instead estimates only the representative request's input: System, User, Assistant history,
+Tool results and Tool definitions (including names, descriptions and schemas). It excludes the newly
+generated answer. Both token views show only the previous and current visible exchange, with the user
+prompt above each bar. Comparison keeps the category composition. Delta uses a common token scale:
+the previous size is a muted baseline, increases are green, and decreases are outlined tails outside
+the current input size. A signed change appears only for the current exchange and only when both
+estimates exist. Equal sizes show zero change; the first exchange has no change value. This compares
+sizes, not reused content or cached tokens. Characters / Delta remains unchanged.
+
+Token counts use offline `Microsoft.ML.Tokenizers` with an explicit **Reference encoding**:
+`o200k_base` (default) or `cl100k_base`. These are content estimates, not authoritative counts for an
+arbitrary model or Azure deployment alias. Gemini and other tokenizers may differ. Message framing,
+provider transformations and hidden content are not attributed to categories. No estimates are scaled
+to force agreement with reported usage; unrecognized/missing payloads have unavailable estimates.
+
+With **Show token usage summaries** enabled, each token bar shows **Actual input** and **Cached input** from the matching model turn's
+captured response, not the exchange-wide conversation footer. Cached input remains a subset of input.
+Before that response they are pending; absent usage or a visible failed call is not reported. Replay
+never reveals a future response's counts. Unit/encoding choices are transient display settings and do
+not change model requests, execution options, preset matching or the Context character count. Live and
+replay tokenization is lazy and cached by captured state, cursor and encoding; no prompt text is kept
+in a global tokenizer cache.
 
 Context and Prompt signature follow the replay cursor. Before an exchange's first captured request,
 its size/signature is unavailable; later results do not appear early. **Live** restores the current

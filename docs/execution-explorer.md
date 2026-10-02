@@ -100,10 +100,17 @@ Returns `text/event-stream` with named `flow` events:
 | `turn` | One-based model round-trip, with intake outside model turns. |
 | `callId` | Pairs a tool result with its call, including repeated calls to one tool. |
 | `toolCall` | Optional structured tool name/arguments; do not parse display text for routing. |
+| `usage` | Optional provider-reported counts on `llm-response`: nullable `inputTokenCount`, `outputTokenCount`, `totalTokenCount`, `cachedInputTokenCount`. Cached input is included in input/total, not additional tokens. |
 
 Kinds include `received`, `llm-request`, `llm-response`, `tool-call`, `tool-result`, `ask-question`,
 `final`, `error` and `breakpoint`. Every completed model round-trip emits `llm-response`, including
 responses that request tools. Auto delay and Manual stepping are server-gated, not client animation.
+
+Usage is captured from `UsageContent.Details` in the model stream and transported separately from
+display-formatted `data`. It is attached once per completed local model response, never duplicated
+on `final` or tool events. Omitted fields mean unavailable, not zero; reported totals are preserved
+without reconstructing missing fields. Cancellation before response completion leaves that call's
+usage unavailable. The non-streaming `/chat` response contract is unchanged.
 
 `breakpoint` notifications bypass normal event pacing so the client can release blocked execution.
 Their `data` is JSON with `Id`, `Kind`, `Tool`, `Paused` and `Manual`. They are control notifications,
@@ -119,6 +126,10 @@ The dock has three panes:
   requested tool calls, then results. This differs from raw arrival order during streaming.
 - **Inspector** shows captured content as readable **Data** blocks or verbatim **Raw** payloads.
   Missing data is marked **not captured**, never reconstructed.
+
+The inspector has no separate token-usage block. Reported usage remains captured and is available in
+[conversation footers and Prompt signature](web-flow-page.md#conversation-and-settings) when enabled
+in Settings. **Raw** shows the display payload, not the full event envelope.
 
 Use **Previous / Next** or select a stage directly. The diagram follows that stage; a tool call
 shows its arguments but not a later result. The live run continues recording while history is pinned.
