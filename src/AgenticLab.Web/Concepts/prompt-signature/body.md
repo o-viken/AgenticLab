@@ -49,5 +49,8 @@ not equal actual usage. Unknown captured content has no estimate rather than a g
 Actual input and cached input alongside each bar come from that request's matching response. They
 are per-call counts; the conversation footer sums the exchange. Cached input is already included in
 input. Counts remain pending until the response is captured and are not reported when unavailable.
-In token Delta, the signed change compares estimates across exchanges, not cache reuse. Replay
-bounds both the estimates and reported counts to the selected stage.
+Token Delta shows only the previous and current exchange, with the user prompt above each bar on a
+shared scale. The muted baseline represents previous size, green shows an increase, and an outlined
+tail shows a decrease outside the current size. The signed change compares estimates, not content
+reuse or caching. Missing estimates have no calculated change. Replay bounds both the estimates and
+reported counts to the selected stage.

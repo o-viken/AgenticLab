@@ -108,4 +108,13 @@ internal sealed record PromptTokenSignatureView(IReadOnlyList<PromptTokenSignatu
 {
     public PromptTokenSignatureRequest? Current => Requests.LastOrDefault();
     public PromptTokenSignatureRequest? Previous => Requests.Count > 1 ? Requests[^2] : null;
+
+    /// <summary>Only the adjacent visible exchanges participate in the displayed comparison.</summary>
+    public IEnumerable<PromptTokenSignatureRequest> ComparedRequests => Requests.TakeLast(2);
+
+    /// <summary>The common Delta scale excludes older exchanges and treats unavailable estimates as absent.</summary>
+    public int MaxComparedTokens => Math.Max(Current?.EstimatedTokens ?? 0, Previous?.EstimatedTokens ?? 0);
+
+    /// <summary>Signed input-size change, unavailable without both estimates; never a content-reuse measurement.</summary>
+    public int? EstimatedChange => Current?.EstimatedTokens - Previous?.EstimatedTokens;
 }

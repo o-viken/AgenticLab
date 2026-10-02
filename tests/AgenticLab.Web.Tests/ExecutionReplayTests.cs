@@ -25,6 +25,35 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Theory]
+    [InlineData(155, 178, 178, 23)]
+    [InlineData(178, 155, 178, -23)]
+    [InlineData(155, 155, 155, 0)]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(0, 10, 10, 10)]
+    [InlineData(10, 0, 10, -10)]
+    [InlineData(null, 178, 178, null)]
+    [InlineData(155, null, 155, null)]
+    public void TokenSignature_DeltaComparesOnlyAdjacentSizes(int? previous, int? current, int maximum, int? change)
+    {
+        var signature = new PromptTokenSignatureView([
+            new(1, "Older prompt", 1, [], 10000, null, false),
+            new(2, "Previous prompt", 1, [], previous, null, false),
+            new(3, "Current prompt", 1, [], current, null, true)], "o200k_base");
+        Assert.Equal(["Previous prompt", "Current prompt"], signature.ComparedRequests.Select(request => request.Label));
+        Assert.Equal(maximum, signature.MaxComparedTokens);
+        Assert.Equal(change, signature.EstimatedChange);
+    }
+
+    [Fact]
+    public void TokenSignature_DeltaWithoutPreviousHasNoChange()
+    {
+        var signature = new PromptTokenSignatureView([new(1, "First prompt", 1, [], 155, null, true)], "o200k_base");
+        Assert.Single(signature.ComparedRequests);
+        Assert.Equal(155, signature.MaxComparedTokens);
+        Assert.Null(signature.EstimatedChange);
+    }
+
     [Fact]
     public void TokenSignature_ReplayDoesNotRevealFutureUsageOrCarryItIntoTheNextCall()
     {

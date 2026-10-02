@@ -7,9 +7,20 @@
 else
 {
     <div class="token-caption" title="Content-only estimates using the selected reference encoding. Provider message framing, hidden transformations and model-specific tokenization may differ.">
-        Estimated input composition <span>@Signature.Encoding reference</span>
+        @(Delta ? "Estimated input growth" : "Estimated input composition") <span>@Signature.Encoding reference</span>
     </div>
-    @if (Signature.Current.Categories is { } categories)
+    @if (Delta)
+    {
+        <ul class="token-legend" title="Size comparison only, not reused content or provider cache usage.">
+            <li><span class="token-swatch token-baseline"></span><span>@(Signature.Previous?.EstimatedTokens is not null ? "Previous size" : "Input size")</span></li>
+            @if (Signature.EstimatedChange is not null)
+            {
+                <li><span class="token-swatch token-growth"></span><span>Increase</span></li>
+                <li><span class="token-swatch token-decrease"></span><span>Decrease</span></li>
+            }
+        </ul>
+    }
+    else if (Signature.Current.Categories is { } categories)
     {
         <ul class="token-legend">
             @foreach (var category in categories)
@@ -21,15 +32,37 @@ else
             }
         </ul>
     }
-    @foreach (var request in Rows)
+    @foreach (var request in Signature.ComparedRequests)
     {
         <section class="token-request" @key="request.Index">
             <header>
-                <span title="@request.Label">@RowLabel(request)</span>
+                <span>@(request == Signature.Current ? "Current" : "Previous")</span>
                 <span>Model turn @request.Turn</span>
             </header>
+            <div class="token-prompt" title="@request.Label">@request.Label</div>
             @if (request.EstimatedTokens is { } total && request.Categories is { } parts)
             {
+                @if (Delta)
+                {
+                    var change = request == Signature.Current ? Signature.EstimatedChange ?? 0 : 0;
+                    var baseline = total - Math.Max(change, 0);
+                    <div class="token-row token-delta-row">
+                        <div class="token-delta-track" role="img" aria-label="@DeltaLabel(total, change)">
+                            <span class="token-segment token-baseline" style="width:@Width(baseline)" title="Input size: @baseline.ToString("N0") tokens"></span>
+                            @if (change > 0)
+                            {
+                                <span class="token-segment token-growth" style="width:@Width(change)" title="Increase: +@change.ToString("N0") tokens"></span>
+                            }
+                            else if (change < 0)
+                            {
+                                <span class="token-segment token-decrease" style="width:@Width(-change)" title="Decrease: @change.ToString("N0") tokens"></span>
+                            }
+                        </div>
+                        <span class="token-total">~@total.ToString("N0") tokens</span>
+                    </div>
+                }
+                else
+                {
                 <div class="token-row">
                     <div class="token-bar" role="img" aria-label="@BarLabel(request)">
                         @foreach (var category in parts.Where(category => category.Tokens > 0))
@@ -46,6 +79,7 @@ else
                     </div>
                     <span class="token-total">~@total.ToString("N0") tokens</span>
                 </div>
+                }
             }
             else
             {
@@ -54,9 +88,9 @@ else
             <dl class="token-metrics" title="Provider-reported counts for this model call only; the conversation footer sums all calls in the exchange.">
                 <div><dt>Actual input</dt><dd>@request.ActualInputLabel</dd></div>
                 <div><dt>Cached input</dt><dd>@request.CachedInputLabel</dd></div>
-                @if (Delta && Change(request) is { } change)
+                @if (Delta && request == Signature.Current && Signature.Previous is not null)
                 {
-                    <div><dt>Estimated change</dt><dd>@change.ToString("+0;-0;0") tokens</dd></div>
+                    <div title="Input-size change, not content reuse or cached tokens."><dt>Estimated change</dt><dd>@(Signature.EstimatedChange is { } change ? $"{change:+0;-0;0} tokens" : "unavailable")</dd></div>
                 }
             </dl>
         </section>
@@ -69,12 +103,8 @@ else
     private PromptTokenSignatureView Signature => Run.Replay.DisplayPromptTokenSignature(View.Diagram.PromptSignatureEncoding);
     private bool Delta => View.Diagram.PromptSignatureDelta;
 
-    private IEnumerable<PromptTokenSignatureRequest> Rows => Delta ? Signature.Requests : Signature.Requests.TakeLast(2);
-    private string RowLabel(PromptTokenSignatureRequest request) => Delta
-        ? $"Exchange {request.Index}"
-        : request == Signature.Current ? "Current" : "Previous";
-    private int? Change(PromptTokenSignatureRequest request) => request.Index > 1
-        ? request.EstimatedTokens - Signature.Requests[request.Index - 2].EstimatedTokens : null;
+    private string Width(int tokens) => (tokens * 100.0 / Math.Max(Signature.MaxComparedTokens, 1)).ToString("0.####", CultureInfo.InvariantCulture) + "%";
+    private static string DeltaLabel(int total, int change) => $"{total:N0} estimated input tokens; change {change:+0;-0;0} tokens";
     private static string BarLabel(PromptTokenSignatureRequest request) => string.Join(", ",
         request.Categories!.Select(category => $"{category.Label}: {category.Tokens:N0} estimated tokens"));
 }

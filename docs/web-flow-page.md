@@ -142,8 +142,12 @@ Prompt signature defaults to **Characters**, preserving this calculation. Its tw
 
 **Tokens** instead estimates only the representative request's input: System, User, Assistant history,
 Tool results and Tool definitions (including names, descriptions and schemas). It excludes the newly
-generated answer. Comparison shows the last captured request of adjacent exchanges; Delta shows each
-exchange's estimate with a signed change from the previous estimate, not a reused/cache split.
+generated answer. Both token views show only the previous and current visible exchange, with the user
+prompt above each bar. Comparison keeps the category composition. Delta uses a common token scale:
+the previous size is a muted baseline, increases are green, and decreases are outlined tails outside
+the current input size. A signed change appears only for the current exchange and only when both
+estimates exist. Equal sizes show zero change; the first exchange has no change value. This compares
+sizes, not reused content or cached tokens. Characters / Delta remains unchanged.
 
 Token counts use offline `Microsoft.ML.Tokenizers` with an explicit **Reference encoding**:
 `o200k_base` (default) or `cl100k_base`. These are content estimates, not authoritative counts for an
