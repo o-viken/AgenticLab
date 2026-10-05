@@ -64,6 +64,33 @@ hidden content defers rendering until expanded. Desktop workspace rows and scrol
 sizing; narrow stacked layouts keep natural height. `RunProjections` builds simulated inference and
 embeddings only on demand, independently of ordinary context/execution projections.
 
+`CapturingChatClient` snapshots provider `UsageContent` into optional typed `FlowEvent.Usage` on
+completed local `llm-response` events. Counts include input/output/total and cached input (already
+part of input), with nullable missing values. Web mirrors the wire DTO; `TokenUsageBuilder` aggregates
+per-exchange counts and independent coverage, cached by `RunProjections`. Conversation footers remain
+exchange-wide; Execution displays captured payloads without a separate token-usage block.
+Remote A2A usage, billing and simulated tokenization are separate; do not infer cache hits from text.
+
+`TokenUsageFooter` owns conversation usage rendering, scoped CSS, visibility and per-exchange
+projection lookup; `FlowChat` passes only the exchange ID for current and archived replies.
+`PromptTokenSignature` owns the token chart and its scoped CSS. Keep capture and counting out of
+these presentation components; they consume the existing cached projections.
+
+`FlowViewState.Presentation` (`PresentationOptions`) owns page-wide display preferences independently
+of diagram presets and run controls. `ShowTokenUsageSummaries` defaults off and uses the content
+notification path. Settings exposes it under Display; `Flow.razor.cs` restores/saves the independent
+`agenticlab-token-usage` browser key with best-effort storage. It gates conversation footers and prompt
+signature actual/cache rows, not estimates, Delta changes, Execution details or capture. Layout reset,
+new conversations and host changes preserve it; do not extend `PanelState` for presentation settings.
+
+Prompt signature retains its character calculation and adds a transient Tokens view.
+`PromptTokenSignatureBuilder` uses bundled `Microsoft.ML.Tokenizers` reference encodings
+(`o200k_base`/`cl100k_base`) for input-only category estimates, including tool definitions but excluding
+the new response. `RunProjections` and `RunReplay` compute/cache it only on demand. Actual input/cache
+counts pair with the representative request's model turn inside the same causally bounded exchange;
+they are not exchange totals. Encoding is explicit, not inferred from deployment aliases. Token Delta
+is signed size change, never a cache-reuse claim. See [docs/web-flow-page.md](docs/web-flow-page.md).
+
 Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies the standalone
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.

@@ -32,6 +32,32 @@
     gap: .35rem;
 }
 
+.sig-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lab-space-2);
+    max-width: 100%;
+}
+
+.sig-encoding {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lab-space-2);
+    font-size: var(--lab-text-xs);
+    color: var(--lab-muted);
+}
+
+.sig-encoding select {
+    font: inherit;
+    max-width: 100%;
+    color: var(--lab-ink);
+    background: var(--lab-surface);
+    border: 1px solid var(--lab-border);
+    border-radius: 4px;
+    padding: var(--lab-space-1);
+}
+
 .sig-title-group ::deep .concept-info {
     position: static;
     align-self: center;

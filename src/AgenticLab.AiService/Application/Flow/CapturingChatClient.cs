@@ -33,6 +33,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         var text = new System.Text.StringBuilder();
         var toolCalls = new List<object>();
         var toolCallNames = new List<string>();
+        UsageDetails? usage = null;
 
         var execution = FlowExecutionScope.Current;
         if (execution is not null)
@@ -55,6 +56,9 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
                             toolCalls.Add(new { name = call.Name, arguments = call.Arguments });
                             toolCallNames.Add(call.Name);
                             break;
+                        case UsageContent reported:
+                            (usage ??= new UsageDetails()).Add(reported.Details);
+                            break;
                     }
                 }
             }
@@ -64,8 +68,10 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
 
         if (turn is not null)
         {
-            turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
+            turn.Usage = usage is null ? null : new FlowTokenUsage(
+                usage.InputTokenCount, usage.OutputTokenCount, usage.TotalTokenCount, usage.CachedInputTokenCount);
             turn.ResponseSummary = SummarizeResponse(text.ToString(), toolCallNames);
+            turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
         }
 
         if (execution is not null)

@@ -11,6 +11,77 @@ namespace AgenticLab.AiService.Tests;
 /// </summary>
 public sealed class FlowCaptureTests
 {
+    [Fact]
+    public async Task UsageContributionsMatchSdkAggregationAndPreserveLargeCounts()
+    {
+        using var model = new UsageModel([
+            new() { InputTokenCount = 3000000000, CachedInputTokenCount = 2000000000 },
+            new() { InputTokenCount = 100, OutputTokenCount = 0, TotalTokenCount = 3000000100, CachedInputTokenCount = 50 },
+        ]);
+        using var client = new CapturingChatClient(model);
+        using var capture = FlowCaptureScope.Begin();
+        var response = await client.GetStreamingResponseAsync("Test").ToChatResponseAsync();
+        var turn = Assert.Single(capture.Turns);
+        Assert.Equal(new FlowTokenUsage(3000000100, 0, 3000000100, 2000000050), turn.Usage);
+        Assert.Equal(response.Usage!.InputTokenCount, turn.Usage!.InputTokenCount);
+        Assert.Equal(response.Usage.CachedInputTokenCount, turn.Usage.CachedInputTokenCount);
+    }
+
+    [Fact]
+    public async Task MissingUsageIsNotZeroAndUncapturedStreamsStillForwardUsage()
+    {
+        using var model = new UsageModel([]);
+        using var client = new CapturingChatClient(model);
+        using (var capture = FlowCaptureScope.Begin())
+        {
+            await client.GetStreamingResponseAsync("Test").ToChatResponseAsync();
+            Assert.Null(Assert.Single(capture.Turns).Usage);
+        }
+        using var reportingModel = new UsageModel([new() { InputTokenCount = 0 }]);
+        using var reportingClient = new CapturingChatClient(reportingModel);
+        var response = await reportingClient.GetStreamingResponseAsync("Test").ToChatResponseAsync();
+        Assert.Equal(0, response.Usage!.InputTokenCount);
+        Assert.Null(response.Usage.CachedInputTokenCount);
+        Assert.Null(FlowCaptureScope.Current);
+    }
+
+    [Fact]
+    public async Task CancellationDoesNotPublishAnIncompleteResponseOrUsage()
+    {
+        using var model = new UsageModel([new() { InputTokenCount = 100 }], cancel: true);
+        using var client = new CapturingChatClient(model);
+        using var capture = FlowCaptureScope.Begin();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await client.GetStreamingResponseAsync("Test").ToChatResponseAsync());
+        var turn = Assert.Single(capture.Turns);
+        Assert.Null(turn.ResponseData);
+        Assert.Null(turn.Usage);
+    }
+
+    private sealed class UsageModel(IReadOnlyList<UsageDetails> reports, bool cancel = false) : IChatClient
+    {
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            yield return new ChatResponseUpdate(ChatRole.Assistant, "Text");
+            foreach (var report in reports)
+            {
+                yield return new ChatResponseUpdate { Contents = [new UsageContent(report)] };
+            }
+            if (cancel)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+        }
+
+        public Task<Microsoft.Extensions.AI.ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+        public void Dispose() { }
+    }
+
     /// <summary>Structured call metadata survives serialization and snapshots mutable arguments.</summary>
     [Theory]
     [InlineData("research")]
@@ -49,6 +120,8 @@ public sealed class FlowCaptureTests
         Assert.Contains("Search", turns[0].ResponseData!);
         Assert.DoesNotContain("Done", turns[0].ResponseData!);
         Assert.Contains("Done", turns[1].ResponseData!);
+        Assert.Equal(new FlowTokenUsage(100, 10, 110, 80), turns[0].Usage);
+        Assert.Equal(new FlowTokenUsage(200, 20, 220, 160), turns[1].Usage);
     }
 
     [Fact]
@@ -127,6 +200,17 @@ public sealed class FlowCaptureTests
             {
                 yield return new ChatResponseUpdate(ChatRole.Assistant, "Done") { FinishReason = ChatFinishReason.Stop };
             }
+
+            yield return new ChatResponseUpdate
+            {
+                Contents = [new UsageContent(new UsageDetails
+                {
+                    InputTokenCount = _requests * 100,
+                    OutputTokenCount = _requests * 10,
+                    TotalTokenCount = _requests * 110,
+                    CachedInputTokenCount = _requests * 80,
+                })],
+            };
         }
 
         public Task<Microsoft.Extensions.AI.ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages,

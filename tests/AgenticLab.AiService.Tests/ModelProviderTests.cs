@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using AgenticLab.AiService.Application.Agents;
+using AgenticLab.AiService.Application.Flow;
 using AgenticLab.ModelProviders;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -23,15 +24,15 @@ public sealed class ModelProviderTests
     public async Task StreamingNullDeltaPreservesTextFinishReasonAndUsage(string provider, string delta)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        using var handler = new ResponseHandler(_ => Task.FromResult(StreamResponse($$$"""
+        using var handler = new ResponseHandler(_ => Task.FromResult(StreamResponse($$$$"""
             : keepalive
 
             data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model",
             data: "choices":[{"index":0,"delta":{"role":"assistant","content":"Hello","reasoning_content":"Thinking"},"finish_reason":null}]}
 
-            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":{{{delta}}},"finish_reason":"stop"}]}
+            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[{"index":0,"delta":{{{{delta}}}},"finish_reason":"stop"}]}
 
-            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1,"total_tokens":5}}
+            data: {"id":"reply-null","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1,"total_tokens":5,"prompt_tokens_details":{"cached_tokens":2}}}
 
             data: [DONE]
 
@@ -40,7 +41,9 @@ public sealed class ModelProviderTests
         using var client = new ModelClientFactory(new ModelConnectionOptions(Configuration(provider)),
             new HttpClientPipelineTransport(httpClient)).Create();
 
-        var response = await client.GetStreamingResponseAsync("Hi", cancellationToken: timeout.Token)
+        using var capture = FlowCaptureScope.Begin();
+        using var capturingClient = new CapturingChatClient(client);
+        var response = await capturingClient.GetStreamingResponseAsync("Hi", cancellationToken: timeout.Token)
             .ToChatResponseAsync(cancellationToken: timeout.Token);
 
         Assert.Equal("Hello", response.Text);
@@ -48,6 +51,40 @@ public sealed class ModelProviderTests
             .OfType<TextReasoningContent>()).Text);
         Assert.Equal(ChatFinishReason.Stop, response.FinishReason);
         Assert.Equal(5, response.Usage?.TotalTokenCount);
+        Assert.Equal(4, response.Usage?.InputTokenCount);
+        Assert.Equal(1, response.Usage?.OutputTokenCount);
+        Assert.Equal(2, response.Usage?.CachedInputTokenCount);
+        var usage = Assert.Single(capture.Turns).Usage;
+        Assert.Equal(new FlowTokenUsage(4, 1, 5, 2), usage);
+        var capturedEvent = new FlowEvent(2, "llm-response", "Response", Usage: usage);
+        Assert.Equal(capturedEvent, JsonSerializer.Deserialize<FlowEvent>(JsonSerializer.Serialize(capturedEvent)));
+    }
+
+    [Theory]
+    [InlineData("AzureOpenAI")]
+    [InlineData("OpenAI")]
+    [InlineData("Gemini")]
+    public async Task CachedUsagePreservesMissingDetailsAndSdkZeroDefaults(string provider)
+    {
+        foreach (var (details, expected) in new (string Details, long? Expected)[]
+        {
+            ("", null),
+            (",\"prompt_tokens_details\":{\"cached_tokens\":0}", 0),
+            (",\"prompt_tokens_details\":{}", 0),
+        })
+        {
+            using var handler = new ResponseHandler(_ => Task.FromResult(StreamResponse($$$$"""
+                data: {"id":"cache","object":"chat.completion.chunk","created":1,"model":"test-model","choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1,"total_tokens":5{{{{details}}}}}}
+
+                data: [DONE]
+
+                """)));
+            using var httpClient = new HttpClient(handler);
+            using var client = new ModelClientFactory(new ModelConnectionOptions(Configuration(provider)),
+                new HttpClientPipelineTransport(httpClient)).Create();
+            var response = await client.GetStreamingResponseAsync("Hi").ToChatResponseAsync();
+            Assert.Equal(expected, response.Usage?.CachedInputTokenCount);
+        }
     }
 
     [Theory]

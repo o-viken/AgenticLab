@@ -25,6 +25,299 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public void UsageVisibility_NotifiesContentOnlyWhenChangedAndIsIndependentOfPresets()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        var notifications = 0;
+        view.Changed += () => notifications++;
+        var version = view.ContentVersion;
+        var configurationVersion = view.ConfigurationVersion;
+        var preset = view.Diagram.Preset;
+        Assert.False(view.Presentation.ShowTokenUsageSummaries);
+        view.Presentation.ShowTokenUsageSummaries = false;
+        Assert.Equal(0, notifications);
+        view.Presentation.ShowTokenUsageSummaries = true;
+        Assert.Equal(version + 1, view.ContentVersion);
+        Assert.Equal(1, notifications);
+        Assert.Equal(configurationVersion, view.ConfigurationVersion);
+        Assert.Equal(preset, view.Diagram.Preset);
+        view.Presentation.ShowTokenUsageSummaries = true;
+        Assert.Equal(1, notifications);
+        view.Diagram.ApplyPreset(DiagramPreset.Technical);
+        Assert.True(view.Presentation.ShowTokenUsageSummaries);
+        view.Presentation.ShowTokenUsageSummaries = false;
+        Assert.False(view.Presentation.ShowTokenUsageSummaries);
+    }
+
+    [Theory]
+    [InlineData(155, 178, 178, 23)]
+    [InlineData(178, 155, 178, -23)]
+    [InlineData(155, 155, 155, 0)]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(0, 10, 10, 10)]
+    [InlineData(10, 0, 10, -10)]
+    [InlineData(null, 178, 178, null)]
+    [InlineData(155, null, 155, null)]
+    public void TokenSignature_DeltaComparesOnlyAdjacentSizes(int? previous, int? current, int maximum, int? change)
+    {
+        var signature = new PromptTokenSignatureView([
+            new(1, "Older prompt", 1, [], 10000, null, false),
+            new(2, "Previous prompt", 1, [], previous, null, false),
+            new(3, "Current prompt", 1, [], current, null, true)], "o200k_base");
+        Assert.Equal(["Previous prompt", "Current prompt"], signature.ComparedRequests.Select(request => request.Label));
+        Assert.Equal(maximum, signature.MaxComparedTokens);
+        Assert.Equal(change, signature.EstimatedChange);
+    }
+
+    [Fact]
+    public void TokenSignature_DeltaWithoutPreviousHasNoChange()
+    {
+        var signature = new PromptTokenSignatureView([new(1, "First prompt", 1, [], 155, null, true)], "o200k_base");
+        Assert.Single(signature.ComparedRequests);
+        Assert.Equal(155, signature.MaxComparedTokens);
+        Assert.Null(signature.EstimatedChange);
+    }
+
+    [Fact]
+    public void TokenSignature_ReplayDoesNotRevealFutureUsageOrCarryItIntoTheNextCall()
+    {
+        const string payload = """{"messages":[{"role":"user","contents":[{"text":"Hello world"}]}]}""";
+        var exchange = new ConversationTurn("selected", "Hello", "Test", "Done", null, [
+            new(1, "received", "", null),
+            new(2, "llm-request", "", null, 1, payload),
+            new(3, "llm-response", "", null, 1, Usage: new(100, 10, 110, 50)),
+            new(4, "llm-request", "", null, 2, payload),
+            new(5, "llm-response", "", null, 2, Usage: new(200, 10, 210, 100)),
+        ]);
+        var exchanges = ExecutionReplayBuilder.Build([exchange], -1);
+        PromptTokenSignatureView At(int sequence) => ExecutionReplayBuilder.TokenSignatureAt(exchanges, "selected", sequence, "o200k_base");
+        Assert.Null(At(1).Current);
+        Assert.Equal("pending", At(2).Current!.ActualInputLabel);
+        Assert.Equal(100, At(3).Current!.Usage!.Input.Value);
+        Assert.Equal("pending", At(4).Current!.ActualInputLabel);
+        Assert.Equal(200, At(5).Current!.Usage!.Input.Value);
+        Assert.Equal(2, At(5).Current!.EstimatedTokens);
+    }
+
+    [Theory]
+    [InlineData("o200k_base")]
+    [InlineData("cl100k_base")]
+    public void TokenSignature_CountsInputOnlyAndPairsUsageByModelTurn(string encoding)
+    {
+        var request = new FlowEvent(3, "llm-request", "", null, 2, """
+            {"instructions":"Hello world","messages":[
+              {"role":"user","contents":[{"type":"text","text":"Hello world"}]},
+              {"role":"assistant","contents":[{"type":"text","text":"Hello world"}]},
+              {"role":"tool","contents":[{"type":"toolResult","result":"Hello world"}]}],
+             "tools":[{"name":"Search","description":"Find information","parameters":{"type":"object"}}]}
+            """);
+        FlowEvent[] events = [new(2, "llm-response", "", null, 1, Usage: new(999, 1, 1000, 999)), request];
+        var pending = PromptTokenSignatureBuilder.Build([("question", events)], encoding).Current!;
+        Assert.Equal(2, pending.Turn);
+        Assert.Equal("pending", pending.ActualInputLabel);
+        Assert.All(pending.Categories!.Where(category => category.Key != "definitions"), category => Assert.Equal(2, category.Tokens));
+        Assert.True(pending.Categories!.Single(category => category.Key == "definitions").Tokens > 0);
+        var completed = PromptTokenSignatureBuilder.Build([("question", (IReadOnlyList<FlowEvent>)[.. events,
+            new(4, "llm-response", "", null, 2, "{\"text\":\"Not input\"}", Usage: new(100, 10, 110, 50)),
+            new(5, "final", "", null, 2, "A very different answer")])], encoding).Current!;
+        Assert.Equal(pending.EstimatedTokens, completed.EstimatedTokens);
+        Assert.Equal(100, completed.Usage!.Input.Value);
+        Assert.Equal(50, completed.Usage.CachedInput.Value);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("malformed")]
+    [InlineData("{}")]
+    [InlineData("{\"messages\":null}")]
+    [InlineData("{\"messages\":[{\"role\":\"user\",\"contents\":[{\"type\":\"DataContent\"}]}]}")]
+    public void TokenSignature_UnknownPayloadDoesNotInventEstimates(string? payload)
+    {
+        var signature = PromptTokenSignatureBuilder.Build([("question", (IReadOnlyList<FlowEvent>)[
+            new(1, "llm-request", "", null, 1, payload),
+            new(2, "llm-response", "", null, 1, Usage: new(100, 10, 110, 0))])]);
+        Assert.Null(signature.Current!.EstimatedTokens);
+        Assert.Equal(100, signature.Current.Usage!.Input.Value);
+    }
+
+    [Fact]
+    public async Task Usage_ControllerArchivesPerExchangeAndClearsOnReset()
+    {
+        using var handler = new ReplayHandler { IncludeUsage = true };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        using var run = new FlowRunController(new AiServiceClient(http), view);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        async Task SendAsync(string message)
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = message;
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        await SendAsync("first");
+        var first = run.RunExchangeId;
+        var firstSignature = run.Projections.TokenSignature("o200k_base");
+        Assert.Same(firstSignature, run.Projections.TokenSignature("o200k_base"));
+        var preset = view.Diagram.Preset;
+        var events = run.Events.ToArray();
+        view.Diagram.PromptSignatureTokens = true;
+        view.Diagram.PromptSignatureEncoding = "cl100k_base";
+        Assert.Equal(preset, view.Diagram.Preset);
+        Assert.Equal(events, run.Events);
+        Assert.NotSame(firstSignature, run.Projections.TokenSignature("cl100k_base"));
+        Assert.Same(firstSignature, run.Projections.TokenSignature("o200k_base"));
+        Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+        await SendAsync("second");
+        var second = run.RunExchangeId;
+        Assert.NotSame(firstSignature, run.Projections.TokenSignature("o200k_base"));
+        Assert.Equal(2, run.Projections.TokenSignature("o200k_base").Requests.Count);
+        Assert.Equal(first, Assert.Single(run.Turns).Id);
+        Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+        Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        view.Cursor.SelectStage(first, 1);
+        Assert.Null(run.Replay.SelectedStage!.Usage);
+        Assert.Equal("pending", run.Replay.DisplayPromptTokenSignature("o200k_base").Current!.ActualInputLabel);
+        Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        var replayStage = run.Replay.SelectedStage;
+        var signature = run.Projections.TokenSignature("o200k_base");
+        events = run.Events.ToArray();
+        foreach (var visible in new[] { true, false, true })
+        {
+            view.Presentation.ShowTokenUsageSummaries = visible;
+            Assert.Same(replayStage, run.Replay.SelectedStage);
+            Assert.Same(signature, run.Projections.TokenSignature("o200k_base"));
+            Assert.Equal(events, run.Events);
+            Assert.Equal(110, run.Projections.UsageFor(first).Total.Value);
+            Assert.Equal(220, run.Projections.UsageFor(second).Total.Value);
+        }
+        await run.NewConversationAsync();
+        Assert.True(view.Presentation.ShowTokenUsageSummaries);
+        Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(first));
+        Assert.Equal(TokenUsageSummary.Empty, run.Projections.UsageFor(second));
+        Assert.Empty(run.Projections.TokenSignature("o200k_base").Requests);
+        Assert.Empty(run.Replay.DisplayPromptTokenSignature("cl100k_base").Requests);
+    }
+
+    [Fact]
+    public void TokenSignature_FailedCallDoesNotStayPending()
+    {
+        var signature = PromptTokenSignatureBuilder.Build([("failed", (IReadOnlyList<FlowEvent>)[
+            new(1, "llm-request", "", null, 1, "{\"messages\":[]}"),
+            new(2, "error", "", "Interrupted", 1)])]);
+        Assert.Equal("not reported", signature.Current!.ActualInputLabel);
+        Assert.Equal("not reported", signature.Current.CachedInputLabel);
+    }
+
+    [Theory]
+    [InlineData(null, "(not captured)")]
+    [InlineData("not json", "not json")]
+    [InlineData("{\"text\":\"Hello\"}", "Hello")]
+    public void Usage_InspectorOmitsUsageWithoutChangingPayloadOrCapture(string? payload, string expectedBody)
+    {
+        var response = new FlowEvent(2, "llm-response", "Response", null, 1, payload, Usage: new(100, 20, 120, 50));
+        var sections = ExecutionStageReader.Sections(response);
+        Assert.DoesNotContain(sections, section => section.Title == "Token usage");
+        Assert.Equal(expectedBody, Assert.Single(sections).Body);
+        Assert.Equal(ExecutionStageReader.Sections(response with { Usage = null }), sections);
+        Assert.Equal(new FlowTokenUsage(100, 20, 120, 50), response.Usage);
+        Assert.DoesNotContain(ExecutionStageReader.Sections(response with { Kind = "llm-request" }),
+            section => section.Title == "Token usage");
+    }
+
+    [Fact]
+    public void Usage_TransportArchiveAndReplayPreserveOnlyRecordedCounts()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var oldEvent = JsonSerializer.Deserialize<FlowEvent>("""{"sequence":1,"kind":"llm-request","label":"Request","turn":1}""", options)!;
+        Assert.Null(oldEvent.Usage);
+        var response = new FlowEvent(2, "llm-response", "Response", null, 1, Usage: new(100, 20, 120, 50));
+        var restored = JsonSerializer.Deserialize<FlowEvent>(JsonSerializer.Serialize(response, options), options)!;
+        Assert.Equal(response, restored);
+        var exchange = Assert.Single(ExecutionReplayBuilder.Build([
+            new ConversationTurn("usage", "Hello", "Test", "Hi", null, [oldEvent, restored]),
+        ], -1));
+        Assert.Null(TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 1)).Input.Value);
+        Assert.Equal(120, TokenUsageBuilder.Build(ExecutionReplayBuilder.PrefixThrough(exchange, 2)).Total.Value);
+        var missing = ExecutionStageReader.Sections(response with { Usage = null });
+        Assert.DoesNotContain(missing, section => section.Title == "Token usage");
+    }
+
+    [Fact]
+    public void Usage_SumsEachCallOnceAndWeightsCacheShareByInput()
+    {
+        var first = new FlowEvent(2, "llm-response", "", null, 1, Usage: new(100, 10, 110, 100));
+        FlowEvent[] events =
+        [
+            new(1, "llm-request", "", null, 1), first, first,
+            new(3, "llm-request", "", null, 2),
+            new(4, "llm-response", "", null, 2, Usage: new(900, 20, 920, 0)),
+            new(5, "final", "", null, 2, Usage: new(1000, 30, 1030, 100)),
+        ];
+        var usage = TokenUsageBuilder.Build(events);
+        Assert.Equal(2, usage.Calls);
+        Assert.Equal(1000, usage.Input.Value);
+        Assert.Equal(30, usage.Output.Value);
+        Assert.Equal(1030, usage.Total.Value);
+        Assert.Equal(100, usage.CachedInput.Value);
+        Assert.Equal(10m, usage.CachedInputPercent);
+        Assert.DoesNotContain("partial", usage.TotalLabel);
+    }
+
+    [Fact]
+    public void Usage_PreservesPartialAndUnknownCountsWithoutInventingTotals()
+    {
+        FlowEvent[] events =
+        [
+            new(1, "llm-response", "", null, 1, Usage: new(3000000000, 0, null, 0)),
+            new(2, "llm-request", "", null, 2),
+        ];
+        var stopped = TokenUsageBuilder.Build(events);
+        Assert.Equal(3000000000, stopped.Input.Value);
+        Assert.Equal(0, stopped.Output.Value);
+        Assert.Null(stopped.Total.Value);
+        Assert.Null(stopped.CachedInputPercent);
+        Assert.Contains("partial", stopped.InputLabel);
+        Assert.Contains("1/2 calls", stopped.CachedInputLabel);
+        Assert.Equal("not reported", stopped.TotalLabel);
+        var live = TokenUsageBuilder.Build(events, running: true);
+        Assert.Contains("so far", live.InputLabel);
+        Assert.Equal("pending", live.TotalLabel);
+        Assert.Equal("pending", TokenUsageBuilder.Build([], running: true).InputLabel);
+        Assert.Equal("not reported", TokenUsageBuilder.Build([]).InputLabel);
+    }
+
+    [Theory]
+    [InlineData(100L, null)]
+    [InlineData(0L, 0L)]
+    [InlineData(100L, 101L)]
+    [InlineData(100L, -1L)]
+    public void Usage_DoesNotInventCachePercentages(long input, long? cached)
+    {
+        var usage = TokenUsageBuilder.Build([new(1, "llm-response", "", null, 1, Usage: new(input, 1, input + 1, cached))]);
+        Assert.Null(usage.CachedInputPercent);
+    }
+
+    [Fact]
+    public void Usage_CacheCoverageIsIndependentOfTokenCoverage()
+    {
+        var usage = TokenUsageBuilder.Build([
+            new(1, "llm-response", "", null, 1, Usage: new(100, 10, 110, 100)),
+            new(2, "llm-response", "", null, 2, Usage: new(900, 20, 920, null)),
+        ]);
+        Assert.Equal(2, usage.Total.ReportedCalls);
+        Assert.Equal(1, usage.CachedInput.ReportedCalls);
+        Assert.DoesNotContain("partial", usage.TotalLabel);
+        Assert.Contains("partial", usage.CachedInputLabel);
+        Assert.Null(usage.CachedInputPercent);
+    }
+
     [Theory]
     [InlineData("1|0|1|400|300|450", false)]
     [InlineData("1|0|1|400|300|450|0", false)]
@@ -892,6 +1185,7 @@ public sealed class ExecutionReplayTests
 
     private sealed class ReplayHandler : HttpMessageHandler
     {
+        internal bool IncludeUsage { get; init; }
         internal int Resets { get; private set; }
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
@@ -917,6 +1211,12 @@ public sealed class ExecutionReplayTests
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
                 Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
             ];
+            if (IncludeUsage)
+            {
+                var calls = ConversationIds.Count;
+                events = [events[0], new FlowEvent(2, "llm-response", "Response", null, 1,
+                    Usage: new(calls * 100, calls * 10, calls * 110, calls * 50)), events[1] with { Sequence = 3 }];
+            }
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(string.Concat(events.Select(stage => $"event: flow\ndata: {JsonSerializer.Serialize(stage)}\n\n"))),

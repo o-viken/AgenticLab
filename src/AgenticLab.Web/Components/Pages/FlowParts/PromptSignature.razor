@@ -9,13 +9,33 @@
             <ConceptInfoButton Id="prompt-signature" Title="Learn about the prompt signature" />
             <span class="sig-title">Prompt signature</span>
         </span>
+        <div class="sig-actions">
+        <div class="sig-mode-toggle" role="group" aria-label="Prompt signature units">
+            <button type="button" class="@(!View.Diagram.PromptSignatureTokens ? "is-active" : null)"
+                aria-pressed="@(!View.Diagram.PromptSignatureTokens ? "true" : "false")"
+                @onclick="@(() => View.Diagram.PromptSignatureTokens = false)">Characters</button>
+            <button type="button" class="@(View.Diagram.PromptSignatureTokens ? "is-active" : null)"
+                aria-pressed="@(View.Diagram.PromptSignatureTokens ? "true" : "false")"
+                @onclick="@(() => View.Diagram.PromptSignatureTokens = true)">Tokens</button>
+        </div>
         <div class="sig-mode-toggle" role="group" aria-label="Prompt signature view">
             <button type="button" class="@(View.Diagram.PromptSignatureDelta ? null : "is-active")"
                     @onclick="@(() => View.Diagram.PromptSignatureDelta = false)">Comparison</button>
             <button type="button" class="@(View.Diagram.PromptSignatureDelta ? "is-active" : null)"
                     @onclick="@(() => View.Diagram.PromptSignatureDelta = true)">Delta</button>
         </div>
+        </div>
     </div>
+
+    @if (View.Diagram.PromptSignatureTokens)
+    {
+        <label class="sig-encoding">Reference encoding
+            <select @bind="View.Diagram.PromptSignatureEncoding">
+                <option value="o200k_base">o200k_base</option>
+                <option value="cl100k_base">cl100k_base</option>
+            </select>
+        </label>
+    }
 
     @if (Run.Replay.Replaying)
     {
@@ -28,7 +48,11 @@
         </div>
     }
 
-    @if (!Sig.HasCurrent)
+    @if (View.Diagram.PromptSignatureTokens)
+    {
+        <PromptTokenSignature />
+    }
+    else if (!Sig.HasCurrent)
     {
         <span class="sig-empty">@(Run.Replay.Replaying ? "No request captured at this stage." : "the signature appears once the agent sends its first request…")</span>
     }

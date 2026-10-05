@@ -1,5 +1,35 @@
 namespace AgenticLab.Web.Flow;
 
+/// <summary>A reported subtotal and its coverage; absent counts are not treated as zero.</summary>
+internal sealed record TokenUsageCount(long? Value, int ReportedCalls);
+
+/// <summary>One exchange's local usage, independent of replay selection and provider-specific billing.</summary>
+internal sealed record TokenUsageSummary(
+    TokenUsageCount Input, TokenUsageCount Output, TokenUsageCount Total, TokenUsageCount CachedInput,
+    int Calls, bool Running, decimal? CachedInputPercent)
+{
+    public static TokenUsageSummary Empty { get; } = TokenUsageBuilder.Build([]);
+    public string InputLabel => Format(Input);
+    public string OutputLabel => Format(Output);
+    public string TotalLabel => Format(Total);
+    public string CachedInputLabel => CachedInputPercent is { } percent
+        ? $"{Format(CachedInput)} ({percent:N1}% of input)"
+        : Format(CachedInput);
+
+    private string Format(TokenUsageCount count)
+    {
+        if (count.Value is not { } value)
+        {
+            return Running ? "pending" : "not reported";
+        }
+        if (count.ReportedCalls < Calls)
+        {
+            return $"{value:N0} ({(Running ? "so far" : "partial")}; {count.ReportedCalls}/{Calls} calls)";
+        }
+        return Running ? $"{value:N0} (so far)" : $"{value:N0}";
+    }
+}
+
 /// <summary>How the flow run is paced: automatically on a timer, or one step per user click.</summary>
 internal enum FlowMode
 {

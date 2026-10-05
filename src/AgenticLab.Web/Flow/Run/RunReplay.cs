@@ -15,6 +15,8 @@ internal sealed class RunReplay(FlowRunController owner)
     private int _replayVersion = -1;
     private string? _replayExchange;
     private int? _replaySequence;
+    private (int Version, string? Exchange, int? Sequence, string Encoding)? _tokenKey;
+    private PromptTokenSignatureView? _tokenSignature;
 
     private ReplayCursor Cursor => owner.View.Cursor;
 
@@ -156,6 +158,21 @@ internal sealed class RunReplay(FlowRunController owner)
         }
     }
 
+    /// <summary>Lazily estimates only visible inputs and matches reported usage within the replay's causal boundary.</summary>
+    public PromptTokenSignatureView DisplayPromptTokenSignature(string encoding)
+    {
+        if (!Replaying) return owner.Projections.TokenSignature(encoding);
+        var key = (owner.StateVersion, SelectedExchange?.Id, SelectedStage?.Sequence, encoding);
+        if (_tokenKey != key || _tokenSignature is null)
+        {
+            _tokenSignature = SelectedExchange is { } exchange
+                ? ExecutionReplayBuilder.TokenSignatureAt(owner.Projections.Exchanges, exchange.Id, SelectedStage?.Sequence, encoding)
+                : new([], encoding);
+            _tokenKey = key;
+        }
+        return _tokenSignature;
+    }
+
     /// <summary>The remote-agent topology and delegation state belonging to the displayed exchange.</summary>
     public A2AFlowView DisplayA2A
     {
@@ -205,6 +222,8 @@ internal sealed class RunReplay(FlowRunController owner)
     /// <summary>Drops the replay snapshots so captured payloads are released after events/history change.</summary>
     internal void Invalidate()
     {
+        _tokenKey = null;
+        _tokenSignature = null;
         _replayContext = ContextSnapshot.Empty;
         _replaySignature = PromptSignatureView.Empty;
         _replayA2A = A2AFlowView.Empty;

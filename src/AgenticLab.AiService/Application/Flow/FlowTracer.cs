@@ -48,8 +48,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
     {
         var sequence = 0;
         var currentTurn = 0;
-        FlowEvent Step(string kind, string label, string? detail = null, string? data = null, string? callId = null) =>
-            new(++sequence, kind, label, detail, currentTurn, data, callId);
+        FlowEvent Step(string kind, string label, string? detail = null, string? data = null, string? callId = null, FlowTokenUsage? usage = null) =>
+            new(++sequence, kind, label, detail, currentTurn, data, callId, Usage: usage);
 
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -136,7 +136,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                         var completed = turns[emittedResponses++];
                         currentTurn = completed.TurnNumber;
                         await session.WaitForStepAsync(token);
-                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), completed.ResponseSummary, response);
+                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), completed.ResponseSummary, response, usage: completed.Usage);
                         continue;
                     }
 
